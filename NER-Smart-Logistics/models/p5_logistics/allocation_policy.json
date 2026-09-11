@@ -1,0 +1,28 @@
+{
+  "model_name": "p5_inventory_allocation_policy",
+  "version": "1.0.0",
+  "objective": "Minimize delivery time and disruption risk while meeting relief demand",
+  "priority_tiers": {
+    "CRITICAL": {
+      "sla_hours": 12,
+      "allocation_multiplier": 1.5
+    },
+    "HIGH": {
+      "sla_hours": 24,
+      "allocation_multiplier": 1.2
+    },
+    "NORMAL": {
+      "sla_hours": 48,
+      "allocation_multiplier": 1.0
+    },
+    "LOW": {
+      "sla_hours": 72,
+      "allocation_multiplier": 0.8
+    }
+  },
+  "shortage_prediction": {
+    "critical_threshold_days": 2.0,
+    "high_threshold_days": 5.0,
+    "medium_threshold_days": 10.0
+  }
+}

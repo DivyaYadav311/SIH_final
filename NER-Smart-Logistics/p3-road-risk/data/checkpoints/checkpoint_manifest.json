@@ -1,0 +1,18 @@
+{
+  "pipeline_version": "p3-ml-v1",
+  "timestamp": "2026-09-05T08:32:28.439306+00:00",
+  "stages": {
+    "01_audit": "complete",
+    "02_extracted": "complete",
+    "03_cleaned": "complete",
+    "04_canonical": "complete",
+    "05_geo_features": "complete_landslide_and_river_distance_osm_skipped",
+    "06_environmental": "complete_rainfall_prior_only",
+    "07_features": "complete",
+    "08_training": "complete",
+    "09_splits": "complete",
+    "10_model": "complete",
+    "11_evaluation": "complete",
+    "12_artifact": "complete"
+  }
+}

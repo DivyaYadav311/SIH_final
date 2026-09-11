@@ -1,0 +1,13 @@
+{
+  "module": "p5-logistics",
+  "version": "1.0.0",
+  "endpoints": {
+    "shipment": "POST /api/v1/shipments",
+    "shortage": "POST /api/v1/predictions/shortage",
+    "warehouse": "POST /api/v1/warehouses/optimize"
+  },
+  "integration": {
+    "p4_to_p5": ["route_id", "estimated_travel_time_minutes", "route_risk"],
+    "p5_to_p6": ["shipment output", "shortage output", "warehouse recommendations"]
+  }
+}

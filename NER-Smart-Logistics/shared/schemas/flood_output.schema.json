@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FloodOutput",
+  "description": "Output schema for P1 - Flood Intelligence. Consumed by P3 - Road Risk & Accessibility.",
+  "type": "object",
+  "required": ["segment_id", "date", "flood_probability", "source_timestamp"],
+  "properties": {
+    "segment_id": { "type": "string" },
+    "date": { "type": "string", "format": "date" },
+    "flood_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "contributing_factors": {
+      "type": "object",
+      "properties": {
+        "rainfall_7day_mm": { "type": ["number", "null"] },
+        "elevation_m": { "type": ["number", "null"] },
+        "river_proximity_km": { "type": ["number", "null"] },
+        "historical_flood_frequency": { "type": ["number", "null"] },
+        "scoring_method": { "type": "string" },
+        "model_version": { "type": ["string", "null"] }
+      }
+    },
+    "source_timestamp": { "type": "string", "format": "date-time" }
+  }
+}

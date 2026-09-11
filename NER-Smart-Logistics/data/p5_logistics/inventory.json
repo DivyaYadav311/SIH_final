@@ -1,0 +1,82 @@
+[
+  {
+    "inventory_id": "INV_001",
+    "warehouse_id": "WH_001",
+    "product_type": "WATER",
+    "quantity_available": 2500,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_002",
+    "warehouse_id": "WH_001",
+    "product_type": "FOOD_KIT",
+    "quantity_available": 1500,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_003",
+    "warehouse_id": "WH_001",
+    "product_type": "MEDICINE",
+    "quantity_available": 800,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_004",
+    "warehouse_id": "WH_002",
+    "product_type": "WATER",
+    "quantity_available": 1500,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_005",
+    "warehouse_id": "WH_002",
+    "product_type": "FOOD_KIT",
+    "quantity_available": 900,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_006",
+    "warehouse_id": "WH_002",
+    "product_type": "MEDICINE",
+    "quantity_available": 500,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_007",
+    "warehouse_id": "WH_003",
+    "product_type": "WATER",
+    "quantity_available": 1200,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_008",
+    "warehouse_id": "WH_003",
+    "product_type": "FOOD_KIT",
+    "quantity_available": 700,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_009",
+    "warehouse_id": "WH_004",
+    "product_type": "WATER",
+    "quantity_available": 1000,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  },
+  {
+    "inventory_id": "INV_010",
+    "warehouse_id": "WH_005",
+    "product_type": "WATER",
+    "quantity_available": 1000,
+    "quantity_reserved": 0,
+    "quantity_in_transit": 0
+  }
+]

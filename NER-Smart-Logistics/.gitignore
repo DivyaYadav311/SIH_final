@@ -1,0 +1,54 @@
+# Python virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment variables / API secrets
+.env
+.env.*
+!.env.example
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing / tooling cache
+.pytest_cache/
+.mypy_cache/
+
+# Log files
+*.log
+
+# Generated routing/OSM cache
+data/graph_cache/
+
+# --- Model files ---
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.onnx
+**/models/*.zip
+
+# --- Large data files ---
+**/data/*.csv
+**/data/*.json
+!**/data/sample_output.json
+!**/data/README.md
+**/data/raw/
+**/data/processed/
+
+# --- Notebook checkpoints ---
+.ipynb_checkpoints/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+build/

@@ -1,0 +1,80 @@
+[
+  {
+    "shipment_id": "SHIP_1001",
+    "origin": "Guwahati",
+    "destination": "Tawang",
+    "cargo_type": "MEDICINE",
+    "quantity": 500,
+    "unit": "BOX",
+    "priority": "CRITICAL",
+    "requested_delivery": "2026-09-05T12:00:00Z",
+    "route_id": "ROUTE_501",
+    "status": "ON_ROUTE",
+    "district_id": "DIST_001"
+  },
+  {
+    "shipment_id": "SHIP_1002",
+    "origin": "Guwahati",
+    "destination": "Tawang",
+    "cargo_type": "FOOD",
+    "quantity": 200,
+    "unit": "CRATE",
+    "priority": "HIGH",
+    "requested_delivery": "2026-09-06T12:00:00Z",
+    "route_id": "ROUTE_501",
+    "status": "ON_ROUTE",
+    "district_id": "DIST_001"
+  },
+  {
+    "shipment_id": "SHIP_1003",
+    "origin": "Tezpur",
+    "destination": "Itanagar",
+    "cargo_type": "FUEL",
+    "quantity": 80,
+    "unit": "DRUM",
+    "priority": "MEDIUM",
+    "requested_delivery": "2026-09-07T08:00:00Z",
+    "route_id": "ROUTE_502",
+    "status": "ON_ROUTE",
+    "district_id": "DIST_002"
+  },
+  {
+    "shipment_id": "SHIP_1004",
+    "origin": "Guwahati",
+    "destination": "Bomdila",
+    "cargo_type": "MEDICINE",
+    "quantity": 120,
+    "unit": "BOX",
+    "priority": "CRITICAL",
+    "requested_delivery": "2026-09-05T18:00:00Z",
+    "route_id": "ROUTE_503",
+    "status": "PENDING",
+    "district_id": "DIST_003"
+  },
+  {
+    "shipment_id": "SHIP_1005",
+    "origin": "Guwahati",
+    "destination": "Shillong",
+    "cargo_type": "FOOD",
+    "quantity": 300,
+    "unit": "CRATE",
+    "priority": "LOW",
+    "requested_delivery": "2026-09-08T12:00:00Z",
+    "route_id": "ROUTE_610",
+    "status": "ON_ROUTE",
+    "district_id": "DIST_004"
+  },
+  {
+    "shipment_id": "SHIP_1006",
+    "origin": "Guwahati",
+    "destination": "Tawang",
+    "cargo_type": "MEDICINE",
+    "quantity": 60,
+    "unit": "BOX",
+    "priority": "HIGH",
+    "requested_delivery": "2026-09-06T09:00:00Z",
+    "route_id": "ROUTE_501",
+    "status": "DELIVERED",
+    "district_id": "DIST_001"
+  }
+]

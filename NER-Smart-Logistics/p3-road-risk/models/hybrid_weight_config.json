@@ -1,0 +1,72 @@
+{
+  "version": "p3_hybrid_v2",
+  "weight_source": "deterministic_evidence_fusion",
+  "method": "hybrid_evidence_fusion_v2",
+  "hazard_weights": {
+    "flood": 0.40,
+    "landslide": 0.40,
+    "traffic": 0.20
+  },
+  "flood_weights": {
+    "rainfall": 0.40,
+    "river": 0.30,
+    "flood_vulnerability": 0.20,
+    "nearby_flood": 0.10
+  },
+  "landslide_weights": {
+    "rainfall": 0.35,
+    "slope": 0.35,
+    "terrain": 0.20,
+    "nearby_landslide": 0.10
+  },
+  "traffic_weights": {
+    "risk": 0.60,
+    "nearby_accident": 0.30,
+    "congestion": 0.10
+  },
+  "thresholds": {
+    "low": 0.25,
+    "moderate": 0.50,
+    "high": 0.75
+  },
+  "synergy": {
+    "enabled": true,
+    "max_bonus": 0.10,
+    "threshold": 0.50
+  },
+  "temporal_decay": {
+    "enabled": true,
+    "tau_hours": 24.0
+  },
+  "spatial_decay": {
+    "enabled": true,
+    "scale_km": 5.0
+  },
+  "road_vulnerability_modifier": {
+    "enabled": true,
+    "minimum": 0.90,
+    "maximum": 1.10
+  },
+  "synergy_bonus_max": 0.10,
+  "weights": {
+    "flood_probability": 0.40,
+    "landslide_probability": 0.40,
+    "risk_probability": 0.20,
+    "incident_risk": 0.0
+  },
+  "normalization": {
+    "flood_probability": "already bounded probability [0,1]",
+    "landslide_probability": "already bounded probability [0,1]",
+    "risk_probability": "existing P3 accident/traffic risk probability [0,1]",
+    "incident_risk": "optional externally supplied operational risk [0,1]"
+  },
+  "missing_component_policy": "available_weight_renormalization",
+  "target_definition": "evidence-fusion road disruption likelihood estimate; not statistically calibrated",
+  "derived_from": "deterministic evidence fusion for road disruption; no supervised Model B available",
+  "created_at": "2026-09-08",
+  "limitations": [
+    "This is not a supervised road-disruption model and not a calibrated probability.",
+    "It is a deterministic, explainable evidence-fusion engine intended as a replacement point for a future supervised Model B.",
+    "Values must remain in [0,1] and unavailable evidence is not silently converted to zero."
+  ]
+}

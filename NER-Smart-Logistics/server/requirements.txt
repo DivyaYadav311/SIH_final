@@ -1,0 +1,34 @@
+# NER Smart Logistics — Unified Server Requirements
+# Combined from P1–P6 modules (runtime essentials only)
+
+# --- Core Web Framework ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.7.0
+python-dotenv>=1.0.1
+
+# --- HTTP Clients ---
+httpx>=0.27.0
+requests>=2.31.0
+
+# --- Database (P6) ---
+sqlalchemy>=2.0.0
+
+# --- ML / Data Science ---
+scikit-learn>=1.4.0
+joblib>=1.3.0
+numpy>=1.26.0
+pandas>=2.0.0
+
+# --- Geospatial (P4) ---
+networkx>=3.0
+geopy>=2.4.0
+shapely>=2.0.0
+
+# --- Image Processing (P6 CLIP / P3) ---
+Pillow>=10.0.0
+
+# --- Optional (may fail gracefully) ---
+# osmnx>=2.1.0         # P4 real OSM graph download (optional, falls back to OSRM)
+# xgboost>=2.0.0       # P2 trained model (optional, uses heuristic fallback)
+# transformers>=4.40.0  # P6 CLIP local model (optional, uses HF API)

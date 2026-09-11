@@ -1,0 +1,23 @@
+{
+  "model_name": "p4_multi_hazard_cost_matrix",
+  "version": "2.4.0",
+  "routing_engine": "OpenStreetMap_Dijkstra_with_OSRM_Fallback",
+  "weights": {
+    "travel_time": 1.0,
+    "distance": 0.25,
+    "risk": 140.0,
+    "transfer_penalty_minutes": 25.0
+  },
+  "priority_risk_multipliers": {
+    "critical": 5.0,
+    "high": 3.0,
+    "medium": 1.5,
+    "low": 1.0
+  },
+  "corridor_parameters": {
+    "corridor_buffer_km": 80.0,
+    "tile_length_km": 70.0,
+    "tile_buffer_km": 35.0,
+    "max_snap_distance_km": 80.0
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "ROUTE_501": {
+    "route_id": "ROUTE_501",
+    "origin": "Guwahati",
+    "destination": "Tawang",
+    "road_ids": ["ROAD_001", "ROAD_024", "ROAD_091", "ROAD_102", "ROAD_205"],
+    "distance_km": 480.5,
+    "estimated_travel_time_minutes": 792,
+    "origin_coords": {"latitude": 26.1445, "longitude": 91.7362},
+    "destination_coords": {"latitude": 27.5860, "longitude": 91.8590}
+  },
+  "ROUTE_502": {
+    "route_id": "ROUTE_502",
+    "origin": "Tezpur",
+    "destination": "Itanagar",
+    "road_ids": ["ROAD_310", "ROAD_311"],
+    "distance_km": 155.0,
+    "estimated_travel_time_minutes": 240,
+    "origin_coords": {"latitude": 26.6338, "longitude": 92.8006},
+    "destination_coords": {"latitude": 27.0844, "longitude": 93.6053}
+  },
+  "ROUTE_503": {
+    "route_id": "ROUTE_503",
+    "origin": "Guwahati",
+    "destination": "Bomdila",
+    "road_ids": ["ROAD_001", "ROAD_102", "ROAD_410"],
+    "distance_km": 290.0,
+    "estimated_travel_time_minutes": 520,
+    "origin_coords": {"latitude": 26.1445, "longitude": 91.7362},
+    "destination_coords": {"latitude": 27.2645, "longitude": 92.4072}
+  },
+  "ROUTE_505": {
+    "route_id": "ROUTE_505",
+    "origin": "Guwahati",
+    "destination": "Tawang",
+    "road_ids": ["ROAD_001", "ROAD_088", "ROAD_205"],
+    "distance_km": 512.0,
+    "estimated_travel_time_minutes": 860,
+    "origin_coords": {"latitude": 26.1445, "longitude": 91.7362},
+    "destination_coords": {"latitude": 27.5860, "longitude": 91.8590}
+  },
+  "ROUTE_610": {
+    "route_id": "ROUTE_610",
+    "origin": "Guwahati",
+    "destination": "Shillong",
+    "road_ids": ["ROAD_050", "ROAD_051"],
+    "distance_km": 100.0,
+    "estimated_travel_time_minutes": 180,
+    "origin_coords": {"latitude": 26.1445, "longitude": 91.7362},
+    "destination_coords": {"latitude": 25.5788, "longitude": 91.8933}
+  }
+}

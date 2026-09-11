@@ -1,0 +1,62 @@
+{
+  "@odata.context": "$metadata#Products",
+  "value": [
+    {
+      "@odata.mediaContentType": "application/octet-stream",
+      "Id": "6e7ac077-a953-47e1-a9bf-b5d376f028d6",
+      "Name": "S2B_MSIL1C_20180822T050649_N0500_R019_T43PGM_20230629T071804.SAFE",
+      "ContentType": "application/octet-stream",
+      "ContentLength": 834068133,
+      "OriginDate": "2024-02-25T07:29:43.353000Z",
+      "PublicationDate": "2024-02-25T13:14:42.489878Z",
+      "ModificationDate": "2025-06-20T05:51:49.224462Z",
+      "Online": true,
+      "EvictionDate": "9999-12-31T23:59:59.999999Z",
+      "S3Path": "/eodata/Sentinel-2/MSI/L1C_N0500/2018/08/22/S2B_MSIL1C_20180822T050649_N0500_R019_T43PGM_20230629T071804.SAFE",
+      "Checksum": [
+        {
+          "Value": "97df949bd203fdaaf0cf008e0e653594",
+          "Algorithm": "MD5",
+          "ChecksumDate": "2025-06-20T05:51:47.698975Z"
+        },
+        {
+          "Value": "f8aeca229481427259532eadbace26b2e80e7864b999ed60bd21ddbff3e64fe3",
+          "Algorithm": "BLAKE3",
+          "ChecksumDate": "2025-06-20T05:51:48.949429Z"
+        }
+      ],
+      "ContentDate": {
+        "Start": "2018-08-22T05:06:49.024000Z",
+        "End": "2018-08-22T05:06:49.024000Z"
+      },
+      "Footprint": "geography'SRID=4326;POLYGON ((76.8291914507247 10.850045783904, 76.823446450795 9.85748078121016, 77.8240278240188 9.85058955976391, 77.8329168412601 10.8424452224496, 76.8291914507247 10.850045783904))'",
+      "GeoFootprint": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.8291914507247,
+              10.850045783904
+            ],
+            [
+              76.823446450795,
+              9.85748078121016
+            ],
+            [
+              77.8240278240188,
+              9.85058955976391
+            ],
+            [
+              77.8329168412601,
+              10.8424452224496
+            ],
+            [
+              76.8291914507247,
+              10.850045783904
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

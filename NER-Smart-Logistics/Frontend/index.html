@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pravah — Safer Journeys. Stronger North East.</title>
+  <meta name="description" content="AI-based Smart Logistics and Disaster-Aware Route Optimization Platform for Northeast India" />
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Pravah Theme CSS (Light Theme default + Sleek Dark Mode) -->
+  <link rel="stylesheet" href="css/styles.css?v=3.7" />
+</head>
+<body>
+
+  <!-- ====================================================================
+       1. APP HEADER
+       ==================================================================== -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo" title="Pravah Disaster Logistics Command">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 19.5h20L12 2zm0 3.84l7.19 12.66H4.81L12 5.84zM11 10h2v4h-2zm0 5h2v2h-2z" />
+        </svg>
+      </div>
+      <div class="brand-info">
+        <h1>Pravah <span class="brand-badge">SIH 26002</span></h1>
+        <p>Safer Journeys. Stronger North East.</p>
+      </div>
+    </div>
+
+    <!-- Universal Search -->
+    <div class="header-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input id="headerSearchInput" type="text" placeholder="Search location, road, district, shipment..." />
+    </div>
+
+    <!-- Header Actions: Weather, Clock, Theme Toggle, Alerts, Disaster Mode -->
+    <div class="header-actions">
+      <div class="weather-widget" id="headerWeatherWidget" title="Live Open-Meteo & IMD Telemetry">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+        </svg>
+        <span id="headerWeatherText">Detecting… <b>--°C</b></span>
+      </div>
+
+      <div class="clock-widget" id="headerLiveClock">
+        <b>Wed, Sep 09, 2026</b>
+        <span>06:16 PM IST</span>
+      </div>
+
+      <!-- Light / Dark Mode Toggle Button -->
+      <button id="btnThemeToggle" class="theme-toggle-btn" title="Toggle Light / Dark Theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <!-- Notifications Bell -->
+      <button id="btnNotificationBell" class="header-btn" title="Emergency Alerts & Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span class="badge-count">2</span>
+      </button>
+
+      <!-- Disaster Mode Emergency Toggle (Switched before Profile) -->
+      <button id="disasterModeToggle" class="disaster-toggle" title="Toggle High-Alert Disaster Evacuation Corridor Priority">
+        <div class="toggle-switch"></div>
+        <span id="disasterModeLabel">Disaster Mode</span>
+      </button>
+
+      <!-- User Profile Officer Card & Dropdown (Switched to far right) -->
+      <div class="profile-menu-container">
+        <div id="userAvatarBadge" class="officer-profile-chip" title="Click for Officer Profile & Switch">
+          <div class="avatar-badge-circle" id="navAvatarInitials">AS</div>
+          <div class="officer-chip-details">
+            <span class="officer-chip-name" id="navOfficerName">Aditya Sharma <span class="officer-status-dot" title="Clearance Verified"></span></span>
+            <span class="officer-chip-role">Logistics Officer</span>
+          </div>
+          <svg class="officer-chip-chevron" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+        </div>
+
+        <!-- Profile Dropdown Menu -->
+        <div id="profileDropdown" class="profile-dropdown-menu" style="display:none;">
+          <div class="profile-menu-header">
+            <div class="profile-avatar-lg" id="menuAvatarInitials">AS</div>
+            <div class="profile-info">
+              <div class="profile-name" id="menuOfficerName">Aditya Sharma</div>
+              <div class="profile-role" id="menuOfficerRole">Logistics Command Officer · NER</div>
+              <div class="profile-badge">COMMAND READY</div>
+            </div>
+          </div>
+          <div class="profile-menu-divider"></div>
+          <button type="button" class="profile-menu-item" id="btnMenuProfile">
+            <span style="font-size:14px;">👤</span> Profile & Clearance
+          </button>
+          <button type="button" class="profile-menu-item" id="btnMenuDashboard">
+            <span style="font-size:14px;">📊</span> Dashboard Preferences
+          </button>
+          <button type="button" class="profile-menu-item" id="btnMenuSwitchZone">
+            <span style="font-size:14px;">📍</span> Dispatch Hubs
+          </button>
+          <button type="button" class="profile-menu-item" id="btnMenuLogin">
+            <span style="font-size:14px;">🔑</span> Switch Officer / Sign In
+          </button>
+          <div class="profile-menu-divider"></div>
+          <button type="button" class="profile-menu-item logout" id="btnMenuLogout">
+            <span style="font-size:14px;">🚪</span> Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ====================================================================
+       2. NAVIGATION TABS BAR
+       ==================================================================== -->
+  <nav class="nav-tabs-bar">
+    <div class="nav-tabs-list">
+      <button class="nav-tab" data-tab="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        Overview
+      </button>
+
+      <button class="nav-tab active" data-tab="path-optimization">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+        </svg>
+        Path Optimization
+      </button>
+
+      <button class="nav-tab" data-tab="risk-intelligence">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 6l-9.5 9.5-5-5L1 18"></path>
+          <path d="M17 6h6v6"></path>
+        </svg>
+        Risk Intelligence (P1–P3)
+      </button>
+
+      <button class="nav-tab" data-tab="logistics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        Logistics (P5)
+      </button>
+
+      <button class="nav-tab" data-tab="incidents">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        Incidents & Alerts (P6)
+      </button>
+
+      <button class="nav-tab" data-tab="simulation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        What-If Simulation
+      </button>
+    </div>
+
+    <!-- Backend Health Status Pill -->
+    <div id="backendHealthPill" class="backend-health-pill" title="Click to view & configure Backend Service Endpoints">
+      <span class="dot"></span>
+      <span id="backendHealthText">Backends Live</span>
+    </div>
+  </nav>
+
+  <!-- ====================================================================
+       3. VIEWPORTS CONTAINER
+       ==================================================================== -->
+  <main class="app-viewport">
+
+    <!-- ================================================================
+         TAB 1: PATH OPTIMIZATION (MATCHING USER SCREENSHOT)
+         ================================================================ -->
+    <section id="tab-path-optimization" class="tab-pane active">
+      <div class="path-optimization-grid">
+
+        <!-- LEFT PANEL: PLAN YOUR ROUTE -->
+        <aside class="panel-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              PLAN YOUR ROUTE
+            </div>
+            <div class="live-badge">LIVE</div>
+          </div>
+
+          <div class="panel-body">
+            <!-- 1. Source Location -->
+
+            <!-- 1. Source Location -->
+            <div class="form-group">
+              <div class="form-label">
+                <span>1. Source Location</span>
+                <span id="btnUseCurrentLocation" class="sub-link" style="cursor:pointer;font-weight:700;color:var(--brand-primary);">📍 Use Current GPS</span>
+              </div>
+              <div class="input-with-icon">
+                <span class="input-icon source-dot">●</span>
+                <input id="inputSourceLocation" type="text" value="" placeholder="Enter origin (e.g., Guwahati) or click GPS" />
+                <button id="btnClearSource" class="input-clear-btn">✕</button>
+              </div>
+            </div>
+
+            <!-- 2. Destination Location -->
+            <div class="form-group">
+              <div class="form-label">
+                <span>2. Destination Location</span>
+              </div>
+              <div class="input-with-icon">
+                <span class="input-icon dest-dot">📍</span>
+                <input id="inputDestLocation" type="text" value="" placeholder="Enter destination (e.g., Shillong, Tawang)" />
+                <button id="btnClearDest" class="input-clear-btn">✕</button>
+              </div>
+            </div>
+
+            <!-- 3. Transport Mode -->
+            <div class="form-group">
+              <div class="form-label">3. Transport Mode</div>
+              <div class="mode-toggle-group">
+                <button type="button" class="mode-toggle-btn active" data-mode="road">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.04 3H5.81l1.04-3zM19 17H5v-4.66l.12-.34h13.77l.11.34V17z"></path>
+                    <circle cx="7.5" cy="14.5" r="1.5"></circle>
+                    <circle cx="16.5" cy="14.5" r="1.5"></circle>
+                  </svg>
+                  Road Network
+                </button>
+                <button type="button" class="mode-toggle-btn" data-mode="multimodal">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 21c-1.39 0-2.78-.47-4-1.32-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.38 0 2.74-.35 4-.99 2.52 1.29 5.48 1.29 8 0 1.26.64 2.62.99 4 .99h2v-2h-2zM3.95 19H4c1.6 0 3.02-.88 4-2 .98 1.12 2.4 2 4 2s3.02-.88 4-2c.98 1.12 2.4 2 4 2h.05l1.89-6.68c.08-.26.06-.54-.06-.78s-.34-.42-.6-.48L20 10.62V6c0-1.1-.9-2-2-2h-3V1H9v3H6c-1.1 0-2 .9-2 2v4.62l-1.29.36c-.26.07-.49.25-.6.49-.11.24-.13.51-.05.77L3.95 19z"></path>
+                  </svg>
+                  Multimodal
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. Schedule Dispatch (Date in 1st row, Time in 2nd row) -->
+            <div class="form-group">
+              <div class="form-label">4. Schedule Dispatch</div>
+              <div class="schedule-inputs-column">
+                <div class="schedule-field-row">
+                  <div class="schedule-field-label">Departure Date</div>
+                  <div class="schedule-input-wrapper">
+                    <span class="schedule-icon">📅</span>
+                    <input id="inputDepartureDate" type="date" value="2026-09-09" class="schedule-input" />
+                  </div>
+                </div>
+                <div class="schedule-field-row">
+                  <div class="schedule-field-label">Departure Time</div>
+                  <div class="schedule-input-wrapper">
+                    <span class="schedule-icon">⏰</span>
+                    <input id="inputDepartureTime" type="time" value="06:30" class="schedule-input" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. Cargo / Shipment Type -->
+            <div class="form-group">
+              <div class="form-label">5. Cargo Category</div>
+              <select id="selectCargoType" class="select-dropdown" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--border-medium);background:var(--bg-surface);color:var(--text-primary);font-size:12px;">
+                <option value="Medical / Relief Supplies" selected>🏥 Medical / Relief Supplies</option>
+                <option value="Food Rations / Potable Water">🍞 Food Rations / Potable Water</option>
+                <option value="Heavy Engineering / Bridge Spares">🏗️ Heavy Engineering / Bridge Spares</option>
+                <option value="Fuel / Hazardous Chemicals">⛽ Fuel / Hazardous Chemicals</option>
+                <option value="General Disaster Logistics">📦 General Disaster Logistics</option>
+              </select>
+            </div>
+
+            <!-- 6. Cargo Priority -->
+            <div class="form-group">
+              <div class="form-label">6. Cargo Priority</div>
+              <div class="pill-select-group priority-group">
+                <button type="button" class="pill-btn" data-priority="normal">Normal</button>
+                <button type="button" class="pill-btn priority-high" data-priority="high">✦ High</button>
+                <button type="button" class="pill-btn priority-critical active" data-priority="critical">⚠️ Critical</button>
+              </div>
+            </div>
+
+            <!-- 7. Optimize For -->
+            <div class="form-group">
+              <div class="form-label">7. Optimize For</div>
+              <div class="pill-select-group optimize-group" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <button type="button" class="pill-btn optimize-shortest" data-goal="shortest">📏 Shortest Route</button>
+                <button type="button" class="pill-btn optimize-safest active" data-goal="safest">🛡️ Safest Corridor</button>
+                <button type="button" class="pill-btn" data-goal="fastest">⚡ Fastest Transit</button>
+                <button type="button" class="pill-btn" data-goal="balanced">⚖️ Balanced</button>
+              </div>
+            </div>
+
+            <!-- Optimize Button -->
+            <button id="btnOptimizeRoute" type="button" class="btn-optimize" onclick="P4Routing.handleOptimizeClick()">
+              ⚡ Optimize Route
+            </button>
+          </div>
+        </aside>
+
+        <!-- CENTER PANEL: MAP & BOTTOM AI/ML CARDS -->
+        <div class="center-map-container">
+          <div class="map-wrapper">
+            <div id="map"></div>
+
+            <!-- Floating Map Layers Card -->
+            <div class="map-floating-panel map-layers-widget">
+              <div class="widget-header">
+                <h4>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                  </svg>
+                  Map Layers
+                </h4>
+              </div>
+              <label class="layer-option"><input id="layer-roads" type="checkbox" checked /> <span class="layer-icon">🛣️</span> Road Network</label>
+              <label class="layer-option"><input id="layer-floods" type="checkbox" checked /> <span class="layer-icon">🌊</span> Flood Risk</label>
+              <label class="layer-option"><input id="layer-landslides" type="checkbox" checked /> <span class="layer-icon">⛰️</span> Landslide Risk</label>
+              <label class="layer-option"><input id="layer-weather" type="checkbox" checked /> <span class="layer-icon">🌦️</span> Weather (IMD)</label>
+              <label class="layer-option"><input id="layer-incidents" type="checkbox" checked /> <span class="layer-icon">🚨</span> Incidents</label>
+              <label class="layer-option"><input id="layer-railways" type="checkbox" /> <span class="layer-icon">🚆</span> Railway Network</label>
+              <label class="layer-option"><input id="layer-ferries" type="checkbox" /> <span class="layer-icon">⛴️</span> Ferry Routes</label>
+            </div>
+
+            <!-- Floating Basemap Switcher -->
+            <div class="map-floating-panel map-base-switcher">
+              <button class="map-base-btn active" data-base="light">Light</button>
+              <button class="map-base-btn" data-base="street">Street</button>
+              <button class="map-base-btn" data-base="satellite">Satellite</button>
+            </div>
+
+            <!-- Floating Route Legend Bar -->
+            <div class="map-legend-bar">
+              <div class="legend-item"><span class="legend-line suggested"></span> Suggested Route</div>
+              <div class="legend-item"><span class="legend-line alternative"></span> Alternative Route</div>
+              <div class="legend-item"><span class="legend-line high-risk"></span> High Risk Segment</div>
+              <div class="legend-item"><span class="legend-line closed"></span> Closed Road</div>
+              <div class="legend-item"><span class="legend-square flood"></span> Flood Area</div>
+              <div class="legend-item"><span class="legend-square landslide"></span> Landslide</div>
+            </div>
+          </div>
+
+          <!-- Bottom AI / ML Models Ribbon (P1–P4) -->
+          <div class="ai-models-container">
+            <div class="ai-models-header">
+              <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A7.003 7.003 0 0 1 5.07 11H5a1 1 0 0 1 0-2h.07A7.003 7.003 0 0 1 11 5.07V5a1 1 0 0 1 2 0v.07A7.003 7.003 0 0 1 18.93 11H19a1 1 0 0 1 0 2h-.07A7.003 7.003 0 0 1 13 16.93z"></path>
+                </svg>
+                AI / ML Models (P1–P4)
+              </h3>
+              <p>Real-time multi-hazard analysis for safer routing</p>
+            </div>
+
+            <div class="ai-cards-grid">
+              <!-- P1 Flood Card -->
+              <div class="ai-model-card" onclick="PredictionPipeline.showPredictionPopup()">
+                <div class="model-card-top">
+                  <span class="model-name">P1 — Flood Inundation</span>
+                  <span id="p1Status" class="model-status-pill idle">Idle</span>
+                </div>
+                <div id="p1Score" class="model-score">--% <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">Awaiting Corridor</span></div>
+                <div id="p1Desc" class="model-desc">Calculates upon route optimization</div>
+                <svg class="sparkline-svg" viewBox="0 0 100 20">
+                  <path d="M0,10 L100,10" fill="none" stroke="var(--border-medium)" stroke-width="1.5" stroke-dasharray="3,3" />
+                </svg>
+              </div>
+
+              <!-- P2 Landslide Card -->
+              <div class="ai-model-card" onclick="PredictionPipeline.showPredictionPopup()">
+                <div class="model-card-top">
+                  <span class="model-name">P2 — Landslide Susceptibility</span>
+                  <span id="p2Status" class="model-status-pill idle">Idle</span>
+                </div>
+                <div id="p2Score" class="model-score">--% <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">Awaiting Corridor</span></div>
+                <div id="p2Desc" class="model-desc">Calculates upon route optimization</div>
+                <svg class="sparkline-svg" viewBox="0 0 100 20">
+                  <path d="M0,10 L100,10" fill="none" stroke="var(--border-medium)" stroke-width="1.5" stroke-dasharray="3,3" />
+                </svg>
+              </div>
+
+              <!-- P3 Road Risk Card -->
+              <div class="ai-model-card" onclick="PredictionPipeline.showPredictionPopup()">
+                <div class="model-card-top">
+                  <span class="model-name">P3 — Road Risk Assessment</span>
+                  <span id="p3Status" class="model-status-pill idle">Idle</span>
+                </div>
+                <div id="p3Score" class="model-score">--% <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">Awaiting Corridor</span></div>
+                <div id="p3Desc" class="model-desc">Calculates upon route optimization</div>
+                <svg class="sparkline-svg" viewBox="0 0 100 20">
+                  <path d="M0,10 L100,10" fill="none" stroke="var(--border-medium)" stroke-width="1.5" stroke-dasharray="3,3" />
+                </svg>
+              </div>
+
+              <!-- P4 Route Optimizer Card -->
+              <div class="ai-model-card" onclick="PredictionPipeline.showPredictionPopup()">
+                <div class="model-card-top">
+                  <span class="model-name">P4 — Route Optimizer</span>
+                  <span id="p4Status" class="model-status-pill idle">Idle</span>
+                </div>
+                <div id="p4Score" class="model-score">--% <span style="font-size:11.5px;color:var(--text-muted);font-weight:600;">Awaiting Corridor</span></div>
+                <div id="p4Desc" class="model-desc">Calculates upon route optimization</div>
+                <svg class="sparkline-svg" viewBox="0 0 100 20">
+                  <path d="M0,10 L100,10" fill="none" stroke="var(--border-medium)" stroke-width="1.5" stroke-dasharray="3,3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: ROUTE PREVIEW, LIVE CONDITIONS, DISASTER NEWS -->
+        <aside class="panel-card right-panel">
+          <div class="panel-header">
+            <div class="panel-title">Route Preview</div>
+            <span id="routeStatusBadge" class="status-badge safe" style="display:none;">✓ Direct Clear</span>
+          </div>
+
+          <div class="right-panel-body">
+            <!-- AWAITING ROUTE STATE (DEFAULT ON INITIAL LOAD) -->
+            <div id="awaitingRouteCard" class="awaiting-route-card">
+              <div class="awaiting-route-icon">🗺️</div>
+              <h3>Ready for Route Optimization</h3>
+              <p>Enter your <b>Source Location</b> and <b>Destination</b> in the left panel, then click <b>⚡ Optimize Route</b> to compute verified shortest/safest corridors with live multi-hazard ML intelligence.</p>
+              <div class="awaiting-steps-pills">
+                <div class="awaiting-step-pill"><span>1️⃣</span> <span>Set Dispatch Origin</span></div>
+                <div class="awaiting-step-pill"><span>2️⃣</span> <span>Set Destination Hub</span></div>
+                <div class="awaiting-step-pill"><span>3️⃣</span> <span>Click ⚡ Optimize Route</span></div>
+              </div>
+              <button type="button" class="btn-primary" style="margin-top:12px;padding:7px 14px;font-size:11px;width:100%;max-width:280px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="document.getElementById('inputSourceLocation').value='Guwahati, Assam';document.getElementById('inputDestLocation').value='Shillong, Meghalaya';P4Routing.handleOptimizeClick();">
+                <span>⚡</span> <span>Test Sample Route (Guwahati ➔ Shillong)</span>
+              </button>
+            </div>
+
+            <!-- ACTIVE ROUTE CONTENT (REVEALED ONLY AFTER USER OPTIMIZES) -->
+            <div id="routeActiveContent" style="display:none;flex-direction:column;gap:12px;width:100%;">
+              <!-- Route Node Summary -->
+              <div class="route-preview-box">
+                <div class="route-endpoints">
+                  <div class="endpoint-node" id="previewOrigin">
+                    <b>Origin Hub</b>
+                    <span>Dispatch Point</span>
+                  </div>
+                  <div class="route-arrow">➔</div>
+                  <div class="endpoint-node" id="previewDestination" style="text-align:right;">
+                    <b>Destination Hub</b>
+                    <span>Destination Point</span>
+                  </div>
+                </div>
+
+                <div class="route-kpi-row">
+                  <div class="kpi-cell">
+                    <div class="kpi-label">Distance</div>
+                    <div id="previewDistance" class="kpi-value">— km</div>
+                    <div class="kpi-sub">OSRM Network</div>
+                  </div>
+                  <div class="kpi-cell">
+                    <div class="kpi-label">Est. Time</div>
+                    <div id="previewTime" class="kpi-value">—</div>
+                    <div class="kpi-sub">Traffic Calib</div>
+                  </div>
+                  <div class="kpi-cell">
+                    <div class="kpi-label">Est. Arrival</div>
+                    <div id="previewArrival" class="kpi-value">—</div>
+                    <div class="kpi-sub">Calculated</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:10px;text-align:center;">
+                  <a href="#" id="btnInspectPipeline" style="font-size:11.5px;color:var(--brand-primary);font-weight:700;text-decoration:none;">
+                    ⚡ Inspect AI Prediction Pipeline Decisions ➔
+                  </a>
+                </div>
+              </div>
+
+              <!-- Alternative Route Options Collapsible Container -->
+              <div id="altRoutesWrapper" class="alt-routes-card" style="display:none;background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:8px;padding:10px 12px;">
+                <div id="altRoutesHeader" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                  <span style="font-size:12px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                    <span>🛣️</span> <span id="altRoutesTitleText">Alternative Route Options</span>
+                  </span>
+                  <span id="altRoutesToggleIcon" style="font-size:11px;color:var(--brand-primary);font-weight:700;">Expand ▼</span>
+                </div>
+                <div id="altRoutesContent" style="display:none;margin-top:10px;flex-direction:column;gap:8px;">
+                  <!-- Dynamically populated alternative route options -->
+                </div>
+              </div>
+
+              <!-- Live Conditions (Route Area) -->
+              <div>
+                <div class="section-title-row">
+                  <h4>Live Conditions (Route Area)</h4>
+                  <a href="#" id="btnViewLiveConditionsDetails" style="font-size:10.5px;color:var(--brand-primary);font-weight:600;text-decoration:none;">View Details ➔</a>
+                </div>
+
+                <div class="conditions-grid">
+                  <div class="condition-tile">
+                    <div class="condition-icon">🌡️</div>
+                    <div class="condition-info">
+                      <div id="condTemp" class="val">--°C</div>
+                      <div class="lbl">Ambient Temp</div>
+                    </div>
+                  </div>
+                  <div class="condition-tile">
+                    <div class="condition-icon">🌧️</div>
+                    <div class="condition-info">
+                      <div id="condRain" class="val">-- mm</div>
+                      <div class="lbl">Rainfall (6h)</div>
+                    </div>
+                  </div>
+                  <div class="condition-tile">
+                    <div class="condition-icon">💨</div>
+                    <div class="condition-info">
+                      <div id="condAqi" class="val">-- AQI</div>
+                      <div class="lbl">Air Quality</div>
+                    </div>
+                  </div>
+                  <div class="condition-tile">
+                    <div class="condition-icon">🍃</div>
+                    <div class="condition-info">
+                      <div id="condWind" class="val">-- km/h</div>
+                      <div class="lbl">Wind Speed</div>
+                    </div>
+                  </div>
+                  <div class="condition-tile">
+                    <div class="condition-icon">💧</div>
+                    <div class="condition-info">
+                      <div id="condHumidity" class="val">--%</div>
+                      <div class="lbl">Rel. Humidity</div>
+                    </div>
+                  </div>
+                  <div class="condition-tile">
+                    <div class="condition-icon">👁️</div>
+                    <div class="condition-info">
+                      <div id="condVisibility" class="val">Optimal</div>
+                      <div class="lbl">Road Visibility</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Whole Day Weather Forecast Graph Widget (Apple/Google Weather App Style) -->
+                <div id="wholeDayWeatherCard" class="whole-day-weather-card">
+                  <div class="weather-graph-header">
+                    <div class="weather-graph-title">
+                      <span>⏱️</span> 24-Hour Whole Day Forecast
+                    </div>
+                    <span id="forecastLocationBadge" class="location-modal-badge" style="font-size:9.5px;padding:2px 8px;margin-bottom:0;">Live Corridor</span>
+                  </div>
+
+                  <!-- Hourly Forecast Horizontal Timeline -->
+                  <div id="hourlyTimelineStrip" class="hourly-timeline-container">
+                    <!-- Populated dynamically via JS -->
+                  </div>
+
+                  <!-- Dynamic SVG Temperature Trend Curve -->
+                  <div style="margin-top:6px;">
+                    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text-muted);margin-bottom:2px;">
+                      <span>Diurnal Temperature Curve (°C)</span>
+                      <span id="tempRangeText">Low: 21°C · High: 29°C</span>
+                    </div>
+                    <svg id="weatherCurveSvg" class="weather-curve-svg" viewBox="0 0 340 40">
+                      <!-- Dynamically rendered curve -->
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Real-Time Disaster Intelligence -->
+              <div>
+                <div class="section-title-row">
+                  <h4>Real-Time Disaster Intelligence</h4>
+                  <button type="button" id="btnViewAllDisasterNews" class="sub-link" style="background:none;border:none;color:var(--brand-primary);cursor:pointer;font-size:11.5px;font-weight:600;padding:0;display:inline-flex;align-items:center;gap:4px;">View All ➔</button>
+                </div>
+                <div id="disasterNewsFeed" class="intel-feed">
+                  <!-- Dynamically populated by p4-routing.js -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TAB 2: OVERVIEW (REGIONAL SITUATIONAL AWARENESS)
+         ================================================================ -->
+    <!-- ================================================================
+         TAB 2: OVERVIEW (MASTER ALL-IN-ONE EXECUTIVE COMMAND DASHBOARD)
+         ================================================================ -->
+    <section id="tab-overview" class="tab-pane">
+      <div class="view-container">
+        
+        <!-- GLASSMORPHIC HERO COMMAND HEADER -->
+        <div class="overview-hero-header">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+            <div>
+              <div class="overview-badge-pulse">
+                <span class="overview-pulse-dot"></span>
+                <span>📡 LIVE LOGISTICS MATRIX — NORTHEAST COMMAND ACTIVE</span>
+              </div>
+              <h2 style="font-size:22px;font-weight:800;color:var(--text-primary);margin-bottom:4px;">
+                Master Regional Logistics & Multi-Hazard Command Center
+              </h2>
+              <p style="font-size:12.5px;color:var(--text-secondary);max-width:780px;">
+                Integrated macro situational awareness across all 8 North Eastern states, synchronizing <b>P1 Flood Inundation</b>, <b>P2 Landslide Susceptibility</b>, <b>P3 Road Risk</b>, <b>P4 Route Optimization</b>, <b>P5 Supply Chain Logistics</b>, and <b>P6 Control Tower</b> into a single real-time operational dashboard.
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-secondary" style="font-size:11.5px;padding:8px 14px;" onclick="App.switchTab('risk-intelligence');">
+                📈 View Risk Gauges
+              </button>
+              <button class="btn-primary" onclick="P6ControlTower.renderOverviewStats()" style="font-size:11.5px;padding:8px 16px;">
+                ⚡ Refresh Live Intel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MULTI-HAZARD THREAT SPECTRUM STRIP -->
+        <div class="overview-spectrum-strip">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <b style="font-size:13px;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+              <span>📊</span> <span>Northeast Regional Multi-Hazard Threat Spectrum</span>
+            </b>
+            <span style="font-size:10.5px;color:var(--text-muted);">Real-Time Sensor & Satellite Telemetry (CWC / IMD WIS2 / ISRO)</span>
+          </div>
+
+          <div class="spectrum-items-grid">
+            <div class="spectrum-item">
+              <div class="spectrum-item-header">
+                <span>🌊 P1 River Discharge</span>
+                <span style="color:var(--brand-primary);">240 m³/s</span>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);">Pandu Gauge Station</div>
+              <div class="spectrum-bar-bg">
+                <div class="spectrum-bar-fill" style="width:38%;background:var(--brand-primary);"></div>
+              </div>
+            </div>
+
+            <div class="spectrum-item">
+              <div class="spectrum-item-header">
+                <span>⛰️ P2 Slope Saturation</span>
+                <span style="color:var(--status-warning);">74% Soil</span>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);">Sela Pass Ghat Section</div>
+              <div class="spectrum-bar-bg">
+                <div class="spectrum-bar-fill" style="width:74%;background:var(--status-warning);"></div>
+              </div>
+            </div>
+
+            <div class="spectrum-item">
+              <div class="spectrum-item-header">
+                <span>🚧 P3 Road Disruption</span>
+                <span style="color:var(--status-safe);">0.18 Score</span>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);">Accessibility Index</div>
+              <div class="spectrum-bar-bg">
+                <div class="spectrum-bar-fill" style="width:18%;background:var(--status-safe);"></div>
+              </div>
+            </div>
+
+            <div class="spectrum-item">
+              <div class="spectrum-item-header">
+                <span>🌩️ IMD CAP Warning</span>
+                <span style="color:var(--status-danger);">Orange Alert</span>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);">West Kameng District</div>
+              <div class="spectrum-bar-bg">
+                <div class="spectrum-bar-fill" style="width:85%;background:var(--status-danger);"></div>
+              </div>
+            </div>
+
+            <div class="spectrum-item">
+              <div class="spectrum-item-header">
+                <span>🚚 Depot Runway</span>
+                <span style="color:var(--status-safe);">3.8 Days</span>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);">NER Relief Buffer</div>
+              <div class="spectrum-bar-bg">
+                <div class="spectrum-bar-fill" style="width:65%;background:var(--status-safe);"></div>
+              </div>
+            </div>
+
+            <div class="spectrum-item">
+              <div class="spectrum-item-header">
+                <span>🛡️ AI Engine Sync</span>
+                <span style="color:#7c3aed;">6 / 6 Live</span>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);">FastAPI Port 8002</div>
+              <div class="spectrum-bar-bg">
+                <div class="spectrum-bar-fill" style="width:100%;background:#7c3aed;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 EXECUTIVE METRIC STAT CARDS -->
+        <div class="kpi-grid" style="margin-bottom:20px;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+          <div class="overview-stat-card" style="border-top:3.5px solid var(--brand-primary);">
+            <div class="overview-stat-header">
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);">P5 ACTIVE RELIEF CONVOYS</span>
+              <div class="overview-stat-icon" style="background:var(--brand-primary-light);color:var(--brand-primary);">🚚</div>
+            </div>
+            <div id="kpiOverviewActiveShipments" class="overview-stat-val" style="color:var(--brand-primary);">14</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">En-route emergency units</div>
+          </div>
+
+          <div class="overview-stat-card" style="border-top:3.5px solid var(--status-danger);">
+            <div class="overview-stat-header">
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);">P6 FIELD INCIDENTS</span>
+              <div class="overview-stat-icon" style="background:var(--status-danger-light);color:var(--status-danger);">🚨</div>
+            </div>
+            <div id="kpiOverviewOpenIncidents" class="overview-stat-val" style="color:var(--status-danger);">2</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Open geotagged alerts</div>
+          </div>
+
+          <div class="overview-stat-card" style="border-top:3.5px solid var(--status-warning);">
+            <div class="overview-stat-header">
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);">P1–P3 HIGH-RISK HIGHWAYS</span>
+              <div class="overview-stat-icon" style="background:var(--status-warning-light);color:var(--status-warning);">⛰️</div>
+            </div>
+            <div id="kpiOverviewHighRiskCorridors" class="overview-stat-val" style="color:var(--status-warning);">3</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Sela Ghat & river blockages</div>
+          </div>
+
+          <div class="overview-stat-card" style="border-top:3.5px solid var(--status-safe);">
+            <div class="overview-stat-header">
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);">P5 DEPOT STOCKOUT RUNWAY</span>
+              <div class="overview-stat-icon" style="background:var(--status-safe-light);color:var(--status-safe);">📦</div>
+            </div>
+            <div id="kpiOverviewRunway" class="overview-stat-val" style="color:var(--status-safe);">3.8 Days</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Average emergency buffer</div>
+          </div>
+
+          <div class="overview-stat-card" style="border-top:3.5px solid var(--brand-cyan);">
+            <div class="overview-stat-header">
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);">P4 ROUTE OPTIMIZATIONS</span>
+              <div class="overview-stat-icon" style="background:var(--brand-cyan-light);color:var(--brand-cyan);">⚡</div>
+            </div>
+            <div id="kpiOverviewOptimizations" class="overview-stat-val" style="color:var(--brand-cyan);">100%</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Autonomous AI routing</div>
+          </div>
+
+          <div class="overview-stat-card" style="border-top:3.5px solid #7c3aed;">
+            <div class="overview-stat-header">
+              <span style="font-size:11px;font-weight:700;color:var(--text-muted);">UNIFIED SYSTEM HEALTH</span>
+              <div class="overview-stat-icon" style="background:rgba(124,58,237,0.12);color:#7c3aed;">🛡️</div>
+            </div>
+            <div id="kpiOverviewHealth" class="overview-stat-val" style="color:#7c3aed;">6 / 6 Live</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">P1–P6 Microservices active</div>
+          </div>
+        </div>
+
+        <!-- MAIN 2-COLUMN DASHBOARD GRID -->
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;margin-bottom:20px;">
+
+          <!-- LEFT COLUMN: LIFELINE HIGHWAY CORRIDORS & ARCHITECTURE MATRIX -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- 1. LIFELINE CORRIDORS STATUS TABLE -->
+            <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <h3 style="font-size:14.5px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                  <span>🛣️</span> <span>Northeast Lifeline Corridors — Live Telemetry & Risk Index</span>
+                </h3>
+                <span style="font-size:11px;color:var(--text-muted);">Real-Time P1–P4 Engine Inputs</span>
+              </div>
+
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Corridor</th>
+                      <th>Highway Route</th>
+                      <th>P1 Flood</th>
+                      <th>P2 Landslide</th>
+                      <th>Vulnerability</th>
+                      <th>Status</th>
+                      <th>Quick Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>NH-6</b></td>
+                      <td>Guwahati ➔ Shillong Expressway</td>
+                      <td><span style="color:var(--status-safe);font-weight:700;">12%</span></td>
+                      <td><span style="color:var(--status-safe);font-weight:700;">22%</span></td>
+                      <td><b style="color:var(--status-safe);">0.18 (Low)</b></td>
+                      <td><span class="status-badge safe">✅ Clear Transit</span></td>
+                      <td>
+                        <button class="btn-primary" style="padding:3px 8px;font-size:10.5px;" onclick="P5Logistics.inspectShipment('SHIP_NH6', 'Guwahati, Assam', 'Shillong, Meghalaya')">Track Corridor ➔</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>NH-13</b></td>
+                      <td>Trans-Arunachal Highway (Guwahati ➔ Tawang)</td>
+                      <td><span style="color:var(--status-warning);font-weight:700;">38%</span></td>
+                      <td><span style="color:var(--status-danger);font-weight:700;">74%</span></td>
+                      <td><b style="color:var(--status-danger);">0.68 (High)</b></td>
+                      <td><span class="status-badge warning">⚠️ Caution (Sela Pass)</span></td>
+                      <td>
+                        <button class="btn-primary" style="padding:3px 8px;font-size:10.5px;" onclick="P5Logistics.inspectShipment('SHIP_NH13', 'Guwahati, Assam', 'Tawang, Arunachal Pradesh')">Track Corridor ➔</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>NH-27</b></td>
+                      <td>East-West Corridor (Tezpur ➔ Itanagar)</td>
+                      <td><span style="color:var(--status-warning);font-weight:700;">45%</span></td>
+                      <td><span style="color:var(--status-safe);font-weight:700;">18%</span></td>
+                      <td><b style="color:var(--status-warning);">0.32 (Medium)</b></td>
+                      <td><span class="status-badge safe">✅ Open</span></td>
+                      <td>
+                        <button class="btn-primary" style="padding:3px 8px;font-size:10.5px;" onclick="P5Logistics.inspectShipment('SHIP_NH27', 'Tezpur, Assam', 'Itanagar, Arunachal Pradesh')">Track Corridor ➔</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>NH-29</b></td>
+                      <td>Dimapur ➔ Kohima Bypass Lifeline</td>
+                      <td><span style="color:var(--status-safe);font-weight:700;">20%</span></td>
+                      <td><span style="color:var(--status-warning);font-weight:700;">52%</span></td>
+                      <td><b style="color:var(--status-warning);">0.42 (Medium)</b></td>
+                      <td><span class="status-badge info">🚚 Monitored</span></td>
+                      <td>
+                        <button class="btn-primary" style="padding:3px 8px;font-size:10.5px;" onclick="P5Logistics.inspectShipment('SHIP_NH29', 'Dimapur, Nagaland', 'Kohima, Nagaland')">Track Corridor ➔</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><b>NH-102</b></td>
+                      <td>Imphal ➔ Moreh Asian Highway</td>
+                      <td><span style="color:var(--status-safe);font-weight:700;">15%</span></td>
+                      <td><span style="color:var(--status-safe);font-weight:700;">25%</span></td>
+                      <td><b style="color:var(--status-safe);">0.20 (Low)</b></td>
+                      <td><span class="status-badge safe">✅ Clear</span></td>
+                      <td>
+                        <button class="btn-primary" style="padding:3px 8px;font-size:10.5px;" onclick="P5Logistics.inspectShipment('SHIP_NH102', 'Imphal, Manipur', 'Moreh, Manipur')">Track Corridor ➔</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 2. P1–P6 MICROSERVICES SYSTEM ARCHITECTURE MATRIX -->
+            <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+              <h3 style="font-size:14.5px;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                <span>⚙️</span> <span>Unified Microservices Architecture Matrix (P1–P6)</span>
+              </h3>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:10px;">
+                <div class="architecture-card" onclick="App.switchTab('risk-intelligence')">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <b style="font-size:12px;color:var(--brand-primary);">P1 — Flood Inundation</b>
+                    <span style="font-size:9.5px;padding:1px 6px;border-radius:10px;font-weight:700;background:var(--status-safe-light);color:var(--status-safe);">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);">CWC River Discharge & Rainfall Model</div>
+                </div>
+
+                <div class="architecture-card" onclick="App.switchTab('risk-intelligence')">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <b style="font-size:12px;color:var(--brand-primary);">P2 — Landslide Engine</b>
+                    <span style="font-size:9.5px;padding:1px 6px;border-radius:10px;font-weight:700;background:var(--status-safe-light);color:var(--status-safe);">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);">ISRO Atlas & Sentinel-2 Geology</div>
+                </div>
+
+                <div class="architecture-card" onclick="App.switchTab('risk-intelligence')">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <b style="font-size:12px;color:var(--brand-primary);">P3 — Road Risk Evaluator</b>
+                    <span style="font-size:9.5px;padding:1px 6px;border-radius:10px;font-weight:700;background:var(--status-safe-light);color:var(--status-safe);">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);">Accessibility Index & Vulnerability</div>
+                </div>
+
+                <div class="architecture-card" onclick="App.switchTab('path-optimization')">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <b style="font-size:12px;color:var(--brand-primary);">P4 — Route Optimizer</b>
+                    <span style="font-size:9.5px;padding:1px 6px;border-radius:10px;font-weight:700;background:var(--status-safe-light);color:var(--status-safe);">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);">OpenStreetMap Network & Vehicle GPS</div>
+                </div>
+
+                <div class="architecture-card" onclick="App.switchTab('logistics')">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <b style="font-size:12px;color:var(--brand-primary);">P5 — Supply Chain</b>
+                    <span style="font-size:9.5px;padding:1px 6px;border-radius:10px;font-weight:700;background:var(--status-safe-light);color:var(--status-safe);">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);">Stockout Runway & Depot Allocation</div>
+                </div>
+
+                <div class="architecture-card" onclick="App.switchTab('incidents')">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <b style="font-size:12px;color:var(--brand-primary);">P6 — Control Tower</b>
+                    <span style="font-size:9.5px;padding:1px 6px;border-radius:10px;font-weight:700;background:var(--status-safe-light);color:var(--status-safe);">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);">Hugging Face CLIP Vision & Simulation</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN: QUICK COMMAND LAUNCHPAD & REAL-TIME ACTIVITY STREAM -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+
+            <!-- 1. QUICK COMMAND LAUNCHPAD -->
+            <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+              <h3 style="font-size:14.5px;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                <span>🚀</span> <span>Command Operations Launchpad</span>
+              </h3>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn-primary" style="padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between;" onclick="App.switchTab('path-optimization');window.scrollTo({top:0,behavior:'smooth'});">
+                  <span style="display:flex;align-items:center;gap:6px;"><span>⚡</span> <span>Optimize Route (P4 Engine)</span></span>
+                  <span>➔</span>
+                </button>
+
+                <button class="btn-secondary" style="padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface-subtle);" onclick="App.switchTab('risk-intelligence');">
+                  <span style="display:flex;align-items:center;gap:6px;"><span>📈</span> <span>Multi-Hazard Risk Gauges (P1–P3)</span></span>
+                  <span>➔</span>
+                </button>
+
+                <button class="btn-secondary" style="padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface-subtle);" onclick="App.switchTab('logistics');">
+                  <span style="display:flex;align-items:center;gap:6px;"><span>📦</span> <span>Logistics & Stockout Forecast (P5)</span></span>
+                  <span>➔</span>
+                </button>
+
+                <button class="btn-secondary" style="padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface-subtle);" onclick="App.switchTab('incidents');">
+                  <span style="display:flex;align-items:center;gap:6px;"><span>🚨</span> <span>Report Hazard & Field Feed (P6)</span></span>
+                  <span>➔</span>
+                </button>
+
+                <button class="btn-secondary" style="padding:10px 14px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg-surface-subtle);" onclick="App.switchTab('simulation');">
+                  <span style="display:flex;align-items:center;gap:6px;"><span>📊</span> <span>Run What-If Cascade Simulation</span></span>
+                  <span>➔</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. REAL-TIME ACTIVITY LOG FEED -->
+            <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+              <h3 style="font-size:14.5px;font-weight:700;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                <span>📡</span> <span>Real-Time Activity & Intel Feed</span>
+              </h3>
+              <div style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;padding-right:4px;">
+                <div style="background:var(--bg-surface-subtle);border-left:3.5px solid var(--brand-primary);padding:8px 10px;border-radius:6px;font-size:11.5px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                    <b style="color:var(--brand-primary);">🚚 Convoy Registered</b>
+                    <span style="font-size:9.5px;color:var(--text-muted);">Just Now</span>
+                  </div>
+                  <div style="color:var(--text-secondary);">SHIP_NER_901 dispatches medical supplies on Guwahati ➔ Tawang corridor.</div>
+                </div>
+
+                <div style="background:var(--bg-surface-subtle);border-left:3.5px solid var(--status-warning);padding:8px 10px;border-radius:6px;font-size:11.5px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                    <b style="color:var(--status-warning);">⛰️ Landslide Advisory</b>
+                    <span style="font-size:9.5px;color:var(--text-muted);">14 mins ago</span>
+                  </div>
+                  <div style="color:var(--text-secondary);">ISRO Landslide Atlas reports slope instability near Sela Pass (NH-13).</div>
+                </div>
+
+                <div style="background:var(--bg-surface-subtle);border-left:3.5px solid var(--status-danger);padding:8px 10px;border-radius:6px;font-size:11.5px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                    <b style="color:var(--status-danger);">🌊 Flood Telemetry</b>
+                    <span style="font-size:9.5px;color:var(--text-muted);">32 mins ago</span>
+                  </div>
+                  <div style="color:var(--text-secondary);">CWC Gauge Station: River Brahmaputra discharge at 240 m³/s at Pandu.</div>
+                </div>
+
+                <div style="background:var(--bg-surface-subtle);border-left:3.5px solid var(--status-safe);padding:8px 10px;border-radius:6px;font-size:11.5px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+                    <b style="color:var(--status-safe);">✅ Highway Inspection</b>
+                    <span style="font-size:9.5px;color:var(--text-muted);">1 hour ago</span>
+                  </div>
+                  <div style="color:var(--text-secondary);">NH-6 Guwahati ➔ Shillong Expressway cleared for all commercial trucks.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TAB 3: RISK INTELLIGENCE (P1-P3 DETAILED MULTI-HAZARD DASHBOARD)
+         ================================================================ -->
+    <section id="tab-risk-intelligence" class="tab-pane">
+      <div class="view-container">
+        <!-- View Header -->
+        <div class="view-header" style="margin-bottom:12px;">
+          <div>
+            <h2 id="riskCorridorTitle">P1–P3 Multi-Hazard Risk Intelligence Dashboard</h2>
+            <p id="riskCorridorSub">Live Hydro-meteorological, Geotechnical & Road Disruption Monitoring</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button id="btnResetSimulators" type="button" class="btn-secondary" style="font-size:11px;padding:6px 12px;">
+              🔄 Reset Simulators
+            </button>
+            <button id="btnRefreshRiskIntel" type="button" class="btn-primary" style="font-size:11px;padding:6px 14px;">
+              ⚡ Refresh Telemetry
+            </button>
+          </div>
+        </div>
+
+        <!-- Corridor Presets Bar & Custom Search -->
+        <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-primary);">Select Lifeline Corridor or Search Custom Location:</div>
+            <form id="riskLocationSearchForm" style="display:flex;gap:6px;">
+              <input id="inputRiskQuery" type="text" placeholder="Search city or district (e.g. Dehradun, Gangtok)..." style="height:32px;padding:0 10px;font-size:11.5px;border-radius:6px;border:1px solid var(--border-medium);background:var(--bg-surface);color:var(--text-primary);" />
+              <button type="submit" class="btn-primary" style="height:32px;padding:0 12px;font-size:11px;">Search</button>
+            </form>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="btnSearchedRoutePreset" class="risk-corridor-btn active" data-preset="searched-route" style="display:none;background:var(--brand-primary);color:#ffffff;font-weight:700;">🎯 Active Searched Route</button>
+            <button class="risk-corridor-btn" data-preset="guwahati-tawang">🏔️ Guwahati ➔ Tawang (NH-13 Sela)</button>
+            <button class="risk-corridor-btn" data-preset="guwahati-shillong">🛣️ Guwahati ➔ Shillong (NH-6 Express)</button>
+            <button class="risk-corridor-btn" data-preset="lumding-silchar">🌊 Lumding ➔ Silchar (NH-27 Valley)</button>
+            <button class="risk-corridor-btn" data-preset="dimapur-kohima">🚚 Dimapur ➔ Kohima (NH-29)</button>
+            <button class="risk-corridor-btn" data-preset="imphal-moreh">🌐 Imphal ➔ Moreh (NH-102 Asian)</button>
+            <button class="risk-corridor-btn" data-preset="gangtok-nathula">❄️ Gangtok ➔ Nathu La (NH-310)</button>
+          </div>
+        </div>
+
+        <!-- AWAITING ROUTE PROMPT BANNER (Hidden when route is searched) -->
+        <div id="riskAwaitingBanner" style="background:var(--bg-surface);border:1.5px solid var(--brand-primary);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:16px;box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:26px;line-height:1;">🎯</div>
+            <div>
+              <h3 id="riskAwaitingTitle" style="font-size:14px;font-weight:700;color:var(--text-primary);">Awaiting Searched Route Optimization</h3>
+              <p id="riskAwaitingSub" style="font-size:11.5px;color:var(--text-secondary);">Optimize a route in <b>Plan Your Route</b> tab to automatically analyze its exact hazard profile, or select a corridor below.</p>
+            </div>
+          </div>
+          <button type="button" class="btn-primary" style="padding:7px 14px;font-size:11px;display:flex;align-items:center;gap:6px;" onclick="document.querySelector('.nav-tab[data-tab=\'path-optimization\']').click();">
+            <span>⚡</span> <span>Go to Plan Your Route</span>
+          </button>
+        </div>
+
+        <!-- 2-COLUMN CIRCULAR GAUGE DASHBOARD (LEFT) + OPTIMIZED RISK SIDEBAR (RIGHT) -->
+        <div class="risk-dashboard-top-grid" style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:20px;">
+          
+          <!-- LEFT SIDE: 4 CIRCULAR SVG GAUGES GRID -->
+          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+                <span>📊</span> <span>Live Hazard Risk Gauges</span>
+              </h3>
+              <span id="riskGaugesStatusPill" class="status-badge safe">LIVE TELEMETRY</span>
+            </div>
+
+            <div class="circular-gauges-grid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;text-align:center;">
+              
+              <!-- Circular Gauge 1: P1 Flood -->
+              <div class="circular-gauge-card" style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 8px;display:flex;flex-direction:column;align-items:center;position:relative;">
+                <div style="position:relative;width:96px;height:96px;">
+                  <svg viewBox="0 0 100 100" style="transform:rotate(-90deg);width:96px;height:96px;">
+                    <circle cx="50" cy="50" r="40" stroke="var(--border-medium)" stroke-width="8" fill="none" opacity="0.3"></circle>
+                    <circle id="circleGaugeP1" cx="50" cy="50" r="40" stroke="#0284c7" stroke-width="8" fill="none" stroke-dasharray="251.32" stroke-dashoffset="200" stroke-linecap="round" style="transition:stroke-dashoffset 0.8s ease, stroke 0.3s;"></circle>
+                  </svg>
+                  <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span id="circleValP1" style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--text-primary);">--%</span>
+                    <span style="font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;">FLOOD</span>
+                  </div>
+                </div>
+                <div style="font-size:11.5px;font-weight:700;color:var(--text-primary);margin-top:8px;">P1 Flood Inundation</div>
+                <span id="circleP1Pill" style="font-size:9.5px;padding:2px 8px;border-radius:10px;font-weight:700;background:rgba(2,132,199,0.12);color:#0284c7;margin-top:4px;">Low Risk</span>
+              </div>
+
+              <!-- Circular Gauge 2: P2 Landslide -->
+              <div class="circular-gauge-card" style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 8px;display:flex;flex-direction:column;align-items:center;position:relative;">
+                <div style="position:relative;width:96px;height:96px;">
+                  <svg viewBox="0 0 100 100" style="transform:rotate(-90deg);width:96px;height:96px;">
+                    <circle cx="50" cy="50" r="40" stroke="var(--border-medium)" stroke-width="8" fill="none" opacity="0.3"></circle>
+                    <circle id="circleGaugeP2" cx="50" cy="50" r="40" stroke="#d97706" stroke-width="8" fill="none" stroke-dasharray="251.32" stroke-dashoffset="180" stroke-linecap="round" style="transition:stroke-dashoffset 0.8s ease, stroke 0.3s;"></circle>
+                  </svg>
+                  <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span id="circleValP2" style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--text-primary);">--%</span>
+                    <span style="font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;">SLOPE</span>
+                  </div>
+                </div>
+                <div style="font-size:11.5px;font-weight:700;color:var(--text-primary);margin-top:8px;">P2 Landslide Hazard</div>
+                <span id="circleP2Pill" style="font-size:9.5px;padding:2px 8px;border-radius:10px;font-weight:700;background:rgba(217,119,6,0.12);color:#d97706;margin-top:4px;">Moderate</span>
+              </div>
+
+              <!-- Circular Gauge 3: P3 Road Disruption -->
+              <div class="circular-gauge-card" style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 8px;display:flex;flex-direction:column;align-items:center;position:relative;">
+                <div style="position:relative;width:96px;height:96px;">
+                  <svg viewBox="0 0 100 100" style="transform:rotate(-90deg);width:96px;height:96px;">
+                    <circle cx="50" cy="50" r="40" stroke="var(--border-medium)" stroke-width="8" fill="none" opacity="0.3"></circle>
+                    <circle id="circleGaugeP3" cx="50" cy="50" r="40" stroke="#dc2626" stroke-width="8" fill="none" stroke-dasharray="251.32" stroke-dashoffset="210" stroke-linecap="round" style="transition:stroke-dashoffset 0.8s ease, stroke 0.3s;"></circle>
+                  </svg>
+                  <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span id="circleValP3" style="font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;color:var(--text-primary);">--%</span>
+                    <span style="font-size:9px;font-weight:700;color:var(--text-muted);letter-spacing:0.04em;">ROAD</span>
+                  </div>
+                </div>
+                <div style="font-size:11.5px;font-weight:700;color:var(--text-primary);margin-top:8px;">P3 Disruption Risk</div>
+                <span id="circleP3Pill" style="font-size:9.5px;padding:2px 8px;border-radius:10px;font-weight:700;background:rgba(220,38,38,0.12);color:#dc2626;margin-top:4px;">Minimal</span>
+              </div>
+
+              <!-- Circular Gauge 4: Overall Safety Index -->
+              <div class="circular-gauge-card" style="background:var(--brand-primary-light);border:1.5px solid var(--brand-primary);border-radius:var(--radius-md);padding:14px 8px;display:flex;flex-direction:column;align-items:center;position:relative;">
+                <div style="position:relative;width:96px;height:96px;">
+                  <svg viewBox="0 0 100 100" style="transform:rotate(-90deg);width:96px;height:96px;">
+                    <circle cx="50" cy="50" r="40" stroke="var(--border-medium)" stroke-width="8" fill="none" opacity="0.2"></circle>
+                    <circle id="circleGaugeSafety" cx="50" cy="50" r="40" stroke="#059669" stroke-width="8" fill="none" stroke-dasharray="251.32" stroke-dashoffset="25" stroke-linecap="round" style="transition:stroke-dashoffset 0.8s ease, stroke 0.3s;"></circle>
+                  </svg>
+                  <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <span id="circleValSafety" style="font-family:'Outfit',sans-serif;font-size:19px;font-weight:800;color:var(--status-safe);">--</span>
+                    <span style="font-size:8.5px;font-weight:700;color:var(--status-safe);letter-spacing:0.04em;">SAFETY SCORE</span>
+                  </div>
+                </div>
+                <div style="font-size:11.5px;font-weight:700;color:var(--text-primary);margin-top:8px;">Corridor Safety Index</div>
+                <span id="circleSafetyPill" style="font-size:9.5px;padding:2px 8px;border-radius:10px;font-weight:700;background:var(--status-safe);color:#fff;margin-top:4px;">OPTIMAL</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- RIGHT SIDE: OPTIMIZED RISK SIDEBAR PANEL -->
+          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                  <span>🎯</span> <span>Optimized Risk Summary</span>
+                </h3>
+                <span id="optRiskTag" class="status-badge info" style="font-size:10px;">ACTIVE CORRIDOR</span>
+              </div>
+
+              <div id="optRiskCorridorName" style="font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">
+                Awaiting Route Optimization
+              </div>
+              <div id="optRiskCorridorSub" style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">
+                Search a route or select a corridor preset below
+              </div>
+
+              <!-- Quick Specs Table -->
+              <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:11.5px;display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="color:var(--text-muted);">Highway Corridor:</span>
+                  <b id="optSpecRoad" style="color:var(--text-primary);">--</b>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="color:var(--text-muted);">Corridor Elevation:</span>
+                  <b id="optSpecElev" style="color:var(--text-primary);">-- m</b>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="color:var(--text-muted);">Avg Slope Angle:</span>
+                  <b id="optSpecSlope" style="color:var(--text-primary);">--°</b>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span style="color:var(--text-muted);">Catchment Rainfall:</span>
+                  <b id="optSpecRain" style="color:var(--text-primary);">-- mm</b>
+                </div>
+              </div>
+            </div>
+
+            <!-- Alternative Corridor Quick Switcher -->
+            <div style="border-top:1px solid var(--border-subtle);padding-top:10px;margin-top:6px;">
+              <div style="font-size:10.5px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">COMPARE WITH OTHER CORRIDORS:</div>
+              <select id="selectRiskCompareCorridor" class="select-dropdown" style="width:100%;padding:6px 8px;font-size:11.5px;border-radius:6px;border:1px solid var(--border-medium);background:var(--bg-surface);color:var(--text-primary);">
+                <option value="" disabled selected>-- Select Corridor Preset --</option>
+                <option value="guwahati-tawang">🏔️ Guwahati ➔ Tawang (NH-13 Sela)</option>
+                <option value="guwahati-shillong">🛣️ Guwahati ➔ Shillong (NH-6 Express)</option>
+                <option value="lumding-silchar">🌊 Lumding ➔ Silchar (NH-27 Valley)</option>
+                <option value="dimapur-kohima">🚚 Dimapur ➔ Kohima (NH-29)</option>
+                <option value="imphal-moreh">🌐 Imphal ➔ Moreh (NH-102 Asian)</option>
+                <option value="gangtok-nathula">❄️ Gangtok ➔ Nathu La (NH-310)</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 2-Column Main Risk Intelligence Grid -->
+        <div class="risk-intel-grid">
+          <!-- LEFT COLUMN: P1, P2, P3 Detailed Model Cards -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            
+            <!-- P1 FLOOD CARD -->
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <div class="risk-card-title">
+                  <span style="font-size:18px;">🌊</span>
+                  <span>P1 — Flood Inundation & Hydrological Intelligence</span>
+                </div>
+                <span id="riskP1Badge" class="status-badge safe">NOMINAL RUNOFF</span>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:4px;">
+                <div class="risk-score-display" id="riskP1Score">18%</div>
+                <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Model: Open-Meteo Flood API + Bhuvan DEM</div>
+              </div>
+              <div class="risk-gauge-container">
+                <div id="riskP1GaugeBar" class="risk-gauge-bar" style="width:18%;background:var(--brand-primary);"></div>
+              </div>
+              <div id="riskP1Summary" style="font-size:11.5px;color:var(--text-secondary);line-height:1.5;"></div>
+
+              <!-- Interactive P1 Flood Simulator -->
+              <div class="risk-sim-group">
+                <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                  <span>🎛️</span> Interactive Flood Risk Simulator (Adjust Rainfall & Discharge)
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div>
+                    <div class="risk-sim-label">
+                      <span>7-Day Cumulative Rain</span>
+                      <span id="valP1Rain" style="color:var(--brand-primary);">165 mm</span>
+                    </div>
+                    <input id="simP1Rain" class="risk-sim-slider" type="range" min="10" max="350" value="165" />
+                  </div>
+                  <div>
+                    <div class="risk-sim-label">
+                      <span>Catchment River Discharge</span>
+                      <span id="valP1Discharge" style="color:var(--brand-primary);">240 m³/s</span>
+                    </div>
+                    <input id="simP1Discharge" class="risk-sim-slider" type="range" min="20" max="1200" value="240" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- P2 LANDSLIDE CARD -->
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <div class="risk-card-title">
+                  <span style="font-size:18px;">⛰️</span>
+                  <span>P2 — Landslide Susceptibility & Geotechnical Intelligence</span>
+                </div>
+                <span id="riskP2Badge" class="status-badge warning">MODERATE SLIP</span>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:4px;">
+                <div class="risk-score-display" id="riskP2Score">34%</div>
+                <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Model: ISRO Bhuvan + Sentinel-2 MSI</div>
+              </div>
+              <div class="risk-gauge-container">
+                <div id="riskP2GaugeBar" class="risk-gauge-bar" style="width:34%;background:var(--status-warning);"></div>
+              </div>
+              <div id="riskP2Summary" style="font-size:11.5px;color:var(--text-secondary);line-height:1.5;"></div>
+
+              <!-- Interactive P2 Landslide Simulator -->
+              <div class="risk-sim-group">
+                <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                  <span>🎛️</span> Interactive Landslide Simulator (Adjust Slope & Saturation)
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                  <div>
+                    <div class="risk-sim-label">
+                      <span>Slope Angle</span>
+                      <span id="valP2Slope" style="color:var(--status-warning);">36.5°</span>
+                    </div>
+                    <input id="simP2Slope" class="risk-sim-slider" type="range" min="5" max="55" value="36.5" step="0.5" />
+                  </div>
+                  <div>
+                    <div class="risk-sim-label">
+                      <span>3-Day Rain</span>
+                      <span id="valP2Rain" style="color:var(--status-warning);">85 mm</span>
+                    </div>
+                    <input id="simP2Rain" class="risk-sim-slider" type="range" min="0" max="250" value="85" />
+                  </div>
+                  <div>
+                    <div class="risk-sim-label">
+                      <span>Soil Saturation</span>
+                      <span id="valP2Sat" style="color:var(--status-warning);">74%</span>
+                    </div>
+                    <input id="simP2Sat" class="risk-sim-slider" type="range" min="10" max="100" value="74" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- P3 ROAD RISK CARD -->
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <div class="risk-card-title">
+                  <span style="font-size:18px;">⛔</span>
+                  <span>P3 — Road Disruption, Accessibility & Detour Intelligence</span>
+                </div>
+                <span id="riskP3Badge" class="status-badge warning">RESTRICTED PASSAGE</span>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:4px;">
+                <div>
+                  <div class="risk-score-display" id="riskP3Score">31%</div>
+                  <div style="font-size:10.5px;color:var(--text-muted);">Synthesized Disruption Probability</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="risk-score-display" id="riskP3AccessScore" style="color:var(--status-safe);">88%</div>
+                  <div style="font-size:10.5px;color:var(--text-muted);">Corridor Accessibility Index</div>
+                </div>
+              </div>
+              <div class="risk-gauge-container">
+                <div id="riskP3GaugeBar" class="risk-gauge-bar" style="width:31%;background:var(--status-warning);"></div>
+              </div>
+              <div id="riskP3Recommendation" style="margin-top:8px;"></div>
+            </div>
+
+            <!-- INCIDENT REGISTRY TABLE -->
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <div class="risk-card-title">
+                  <span style="font-size:16px;">🚨</span>
+                  <span>Active Incident & Blockage Registry</span>
+                </div>
+                <span class="sub-link" style="font-size:11px;">Live Telemetry Feed</span>
+              </div>
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Incident ID</th>
+                      <th>Hazard Description</th>
+                      <th>Severity</th>
+                      <th>Location</th>
+                      <th>Operational Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="riskIncidentsTbody">
+                    <!-- Populated dynamically via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN: VISUALIZATIONS, RADAR CHART & LEAFLET MAP -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            
+            <!-- MULTI-HAZARD COMPARATIVE RADAR / BAR CHART -->
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <div class="risk-card-title">
+                  <span style="font-size:16px;">📊</span>
+                  <span>Multi-Hazard Comparative Analytics</span>
+                </div>
+              </div>
+              <div style="position:relative;width:100%;height:220px;">
+                <canvas id="riskRadarCanvas"></canvas>
+              </div>
+            </div>
+
+            <!-- CORRIDOR ELEVATION & HAZARD PROFILE SVG -->
+            <div class="risk-card">
+              <div class="risk-card-header">
+                <div class="risk-card-title">
+                  <span style="font-size:16px;">📈</span>
+                  <span>Corridor Elevation & Risk Profile Curve</span>
+                </div>
+              </div>
+              <div style="margin-top:4px;">
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:4px;">
+                  <span>Origin Elevation</span>
+                  <span>Highest Slope Pass</span>
+                  <span>Destination Hub</span>
+                </div>
+                <svg id="riskProfileSvg" viewBox="0 0 360 50" style="width:100%;height:50px;">
+                  <!-- Rendered dynamically -->
+                </svg>
+              </div>
+            </div>
+
+            <!-- DEDICATED LEAFLET RISK MAP -->
+            <div class="risk-card" style="padding:12px;">
+              <div class="risk-card-header" style="margin-bottom:8px;padding-bottom:4px;">
+                <div class="risk-card-title" style="font-size:12.5px;">
+                  <span style="font-size:15px;">🗺️</span>
+                  <span>Dedicated Multi-Hazard Map View</span>
+                </div>
+              </div>
+              <div id="riskIntelligenceMap"></div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================
+    <!-- ================================================================
+         TAB 4: LOGISTICS (P5 MODULE — COMPLETE SUPPLY CHAIN COMMAND)
+         ================================================================ -->
+    <section id="tab-logistics" class="tab-pane">
+      <div class="view-container">
+        
+        <!-- View Header -->
+        <div class="view-header" style="margin-bottom:14px;">
+          <div>
+            <h2>P5 Logistics & Supply Chain Management</h2>
+            <p>Priority dispatch, inventory stockout forecasting, and multi-depot warehouse optimization</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button type="button" class="btn-secondary" style="font-size:11px;padding:6px 12px;" onclick="P5Logistics.renderShipmentsTable()">
+              🔄 Refresh Logistics
+            </button>
+            <button type="button" class="btn-primary" style="font-size:11px;padding:6px 14px;" onclick="document.getElementById('formCreateShipment').scrollIntoView({behavior:'smooth'});">
+              📦 Dispatch Shipment
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Automated Logistics KPI Cards -->
+        <div class="kpi-summary-grid" style="margin-bottom:18px;">
+          <div class="kpi-card">
+            <div class="kpi-card-icon blue">🚚</div>
+            <div class="kpi-card-details">
+              <div id="kpiActiveShipments" class="kpi-num">14</div>
+              <div class="kpi-title">Active Relief Shipments</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-icon red">⚠️</div>
+            <div class="kpi-card-details">
+              <div id="kpiHighRiskShipments" class="kpi-num">3</div>
+              <div class="kpi-title">High-Risk Cargo Convoy</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-icon amber">⏳</div>
+            <div class="kpi-card-details">
+              <div id="kpiDepotRunway" class="kpi-num">4.2 Days</div>
+              <div class="kpi-title">Avg Depot Stock Runway</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card-icon green">📦</div>
+            <div class="kpi-card-details">
+              <div id="kpiDepotsOnline" class="kpi-num">4 / 4</div>
+              <div class="kpi-title">Active Regional Depots</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-COLUMN OPERATIONAL FORMS GRID -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+          
+          <!-- LEFT COLUMN: CREATE RELIEF SHIPMENT FORM -->
+          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                <span>📦</span> <span>Dispatch New Relief Shipment</span>
+              </h3>
+              <span class="status-badge info" style="font-size:10px;">LIVE P4 INTEGRATED</span>
+            </div>
+
+            <form id="formCreateShipment">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Shipment ID</label>
+                  <input name="shipment_id" value="SHIP_NER_904" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Origin Dispatch Hub</label>
+                  <select name="origin" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);">
+                    <option value="Guwahati, Assam" selected>Guwahati Central Depot (Assam)</option>
+                    <option value="Tezpur, Assam">Tezpur Forward Base (Assam)</option>
+                    <option value="Silchar, Assam">Silchar River Valley Hub (Assam)</option>
+                    <option value="Dimapur, Nagaland">Dimapur Regional Depot (Nagaland)</option>
+                    <option value="Kolkata, West Bengal">Kolkata Gateway Hub</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Destination District</label>
+                  <select name="destination" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);">
+                    <option value="Tawang, Arunachal Pradesh">Tawang District (Arunachal)</option>
+                    <option value="Shillong, Meghalaya">Shillong District (Meghalaya)</option>
+                    <option value="Kohima, Nagaland">Kohima District (Nagaland)</option>
+                    <option value="Silchar, Assam">Silchar Catchment (Assam)</option>
+                    <option value="Gangtok, Sikkim">Gangtok District (Sikkim)</option>
+                    <option value="Imphal, Manipur">Imphal Valley (Manipur)</option>
+                    <option value="Aizawl, Mizoram">Aizawl District (Mizoram)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Cargo Category</label>
+                  <select name="cargo_type" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);">
+                    <option value="Medical / Emergency Relief" selected>🏥 Medical / Emergency Relief</option>
+                    <option value="Food Rations & Water">🍞 Food Rations & Potable Water</option>
+                    <option value="Fuel & Oil Spares">⛽ Fuel & Generator Oil</option>
+                    <option value="Heavy Engineering Spares">🏗️ Heavy Engineering Spares</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Quantity & Units</label>
+                  <input name="quantity" type="number" value="650" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Shipment Priority</label>
+                  <select name="priority" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);">
+                    <option value="CRITICAL" selected>⚠️ CRITICAL DISASTER RELIEF</option>
+                    <option value="HIGH">✦ HIGH PRIORITY</option>
+                    <option value="NORMAL">NORMAL SCHEDULED</option>
+                  </select>
+                </div>
+              </div>
+
+              <button class="btn-primary" type="submit" style="width:100%;height:36px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;">
+                <span>⚡</span> <span>Evaluate Corridor Risk & Dispatch Shipment</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- RIGHT COLUMN: DISTRICT SHORTAGE PREDICTION & STOCKOUT FORECAST -->
+          <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                <span>🔮</span> <span>District Stockout Forecasting</span>
+              </h3>
+              <span class="status-badge warning" style="font-size:10px;">STOCK RUNWAY ENGINE</span>
+            </div>
+
+            <form id="formPredictShortage">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Target District</label>
+                  <input name="district_name" value="Tawang District" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">District Code</label>
+                  <input name="district_id" value="DIST_NE_TW09" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Relief Commodity</label>
+                  <select name="product_type" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);">
+                    <option value="MEDICINE" selected>💊 Essential Medicines & IV Fluids</option>
+                    <option value="FOOD_RATIONS">🍞 Dry Food Rations & Water</option>
+                    <option value="FUEL">⛽ Diesel & Generator Fuel</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Current On-Hand Stock (Units)</label>
+                  <input name="inventory" type="number" value="420" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Daily Burn Rate (Units/Day)</label>
+                  <input name="consumption" type="number" value="140" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size:11px;font-weight:600;">Corridor Hazard Risk</label>
+                  <input name="road_risk" type="number" step="0.05" value="0.75" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+                </div>
+              </div>
+
+              <button class="btn-primary" type="submit" style="width:100%;height:36px;font-size:12px;background:#d97706;display:flex;align-items:center;justify-content:center;gap:6px;">
+                <span>🔮</span> <span>Forecast District Stockout Runway & Action Plan</span>
+              </button>
+            </form>
+
+            <div id="shortageResultBox" style="margin-top:12px;display:none;"></div>
+          </div>
+
+        </div>
+
+        <!-- MULTI-DEPOT WAREHOUSE INVENTORY & ALLOCATION OPTIMIZER SECTION -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+                <span>🏢</span> <span>Multi-Depot Warehouse Stock & Linear Allocation Optimizer</span>
+              </h3>
+              <p style="font-size:11.5px;color:var(--text-muted);">Real-time inventory levels across North-East regional storage hubs</p>
+            </div>
+            <form id="formOptimizeWarehouse" style="display:flex;gap:8px;align-items:center;">
+              <select name="product_type" style="height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);">
+                <option value="MEDICINE">💊 MEDICINE</option>
+                <option value="FOOD_RATIONS" selected>🍞 FOOD_RATIONS</option>
+                <option value="FUEL">⛽ FUEL</option>
+              </select>
+              <input name="demand" type="number" value="3500" placeholder="Demand Units" style="width:110px;height:32px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;font-size:11.5px;background:var(--bg-surface);color:var(--text-primary);" />
+              <button class="btn-primary" type="submit" style="height:32px;padding:0 12px;font-size:11px;">Optimize Dispatch</button>
+            </form>
+          </div>
+
+          <!-- Live Warehouse Inventory Cards Grid -->
+          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;margin-bottom:12px;">
+            <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <b style="font-size:12px;color:var(--text-primary);">Guwahati Central</b>
+                <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(5,150,105,0.12);color:#059669;font-weight:700;">ONLINE</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Capacity: 12,000 units</div>
+              <div style="font-size:11.5px;color:var(--text-secondary);display:flex;flex-direction:column;gap:3px;">
+                <span>💊 Medical: <b>4,500</b></span>
+                <span>🍞 Food Rations: <b>3,200</b></span>
+                <span>⛽ Fuel: <b>2,100</b></span>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <b style="font-size:12px;color:var(--text-primary);">Tezpur Forward Base</b>
+                <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(5,150,105,0.12);color:#059669;font-weight:700;">ONLINE</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Capacity: 8,500 units</div>
+              <div style="font-size:11.5px;color:var(--text-secondary);display:flex;flex-direction:column;gap:3px;">
+                <span>💊 Medical: <b>2,800</b></span>
+                <span>🍞 Food Rations: <b>3,000</b></span>
+                <span>⛽ Fuel: <b>1,400</b></span>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <b style="font-size:12px;color:var(--text-primary);">Silchar River Hub</b>
+                <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(217,119,6,0.12);color:#d97706;font-weight:700;">HIGH LOAD</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Capacity: 7,200 units</div>
+              <div style="font-size:11.5px;color:var(--text-secondary);display:flex;flex-direction:column;gap:3px;">
+                <span>💊 Medical: <b>1,800</b></span>
+                <span>🍞 Food Rations: <b>2,400</b></span>
+                <span>⛽ Fuel: <b>1,900</b></span>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <b style="font-size:12px;color:var(--text-primary);">Dimapur Regional Depot</b>
+                <span style="font-size:10px;padding:1px 6px;border-radius:10px;background:rgba(5,150,105,0.12);color:#059669;font-weight:700;">ONLINE</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Capacity: 6,800 units</div>
+              <div style="font-size:11.5px;color:var(--text-secondary);display:flex;flex-direction:column;gap:3px;">
+                <span>💊 Medical: <b>1,500</b></span>
+                <span>🍞 Food Rations: <b>2,100</b></span>
+                <span>⛽ Fuel: <b>1,200</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div id="warehouseResultBox" style="margin-top:10px;display:none;"></div>
+        </div>
+
+        <!-- ACTIVE SHIPMENTS REGISTRY TABLE -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <h3 style="font-size:14.5px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+              <span>🚨</span> <span>Active Critical Relief Shipments & Convoy Tracking</span>
+            </h3>
+            <div style="display:flex;gap:6px;">
+              <button class="pill-btn active" style="font-size:10.5px;padding:3px 9px;">All Shipments</button>
+              <button class="pill-btn priority-critical" style="font-size:10.5px;padding:3px 9px;">Critical Only</button>
+            </div>
+          </div>
+
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Shipment ID</th>
+                  <th>Priority</th>
+                  <th>Route Corridor</th>
+                  <th>Hazard Risk</th>
+                  <th>Operational Status</th>
+                  <th>Est. Delivery ETA</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="shipmentsTableBody">
+                <!-- Dynamically populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TAB 5: INCIDENTS & ALERTS (P6 MODULE)
+         ================================================================ -->
+    <section id="tab-incidents" class="tab-pane">
+      <div class="view-container">
+        <div class="view-header">
+          <div>
+            <h2>P6 Control Tower — Incidents & Multi-Hazard Alerts</h2>
+            <p>Geotagged field reporting, Hugging Face CLIP visual verification, and IMD CAP emergency alerts</p>
+          </div>
+        </div>
+
+        <!-- KPI SUMMARY BAR -->
+        <div class="kpi-grid" style="margin-bottom:20px;">
+          <div class="kpi-card">
+            <div id="kpiOpenIncidents" class="kpi-num" style="color:var(--status-danger);">2</div>
+            <div class="kpi-title">Active Open Incidents</div>
+            <div class="kpi-sub">Geotagged field reports</div>
+          </div>
+          <div class="kpi-card">
+            <div id="kpiActiveAlerts" class="kpi-num" style="color:var(--status-warning);">3</div>
+            <div class="kpi-title">Corridor Alerts</div>
+            <div class="kpi-sub">Multi-hazard advisories</div>
+          </div>
+          <div class="kpi-card">
+            <div id="kpiCriticalAtRisk" class="kpi-num" style="color:var(--brand-primary);">1</div>
+            <div class="kpi-title">Shipments Monitored</div>
+            <div class="kpi-sub">Critical relief convoys</div>
+          </div>
+          <div class="kpi-card">
+            <div id="kpiImdAlerts" class="kpi-num" style="color:var(--status-safe);">2</div>
+            <div class="kpi-title">IMD WIS2 Warnings</div>
+            <div class="kpi-sub">Official CAP alerts active</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:360px 1fr;gap:20px;margin-bottom:20px;">
+          <!-- Left Column: Forms -->
+          <div style="display:flex;flex-direction:column;gap:18px;">
+
+            <!-- 1. Submit Road Hazard Form -->
+            <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:10px;padding:16px;">
+              <h3 style="font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                <span>📢</span> <span>Submit Geotagged Field Report</span>
+              </h3>
+              <form id="formReportIncident">
+                <div class="form-group">
+                  <label class="form-label">Reported By Officer / Driver</label>
+                  <input name="reported_by" value="DRIVER_NER_551" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <div class="form-group">
+                    <label class="form-label">Latitude (°N)</label>
+                    <input name="latitude" type="number" step="any" value="27.42" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Longitude (°E)</label>
+                    <input name="longitude" type="number" step="any" value="92.15" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Incident Hazard Category</label>
+                  <select name="incident_type" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;">
+                    <option value="LANDSLIDE">⛰️ LANDSLIDE / ROCKFALL</option>
+                    <option value="FLOOD">🌊 FLOOD INUNDATION</option>
+                    <option value="ROAD_BLOCKED">⛔ ROAD CLOSURE / BLOCKAGE</option>
+                    <option value="ACCIDENT">💥 ACCIDENT / OBSTRUCTION</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Target Road Corridor</label>
+                  <input name="road_id" value="NH-13" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Detailed Situation Description</label>
+                  <input name="description" value="Rockfall across uphill corridor, single-track access only" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Evidence Image URL (CLIP AI)</label>
+                  <input name="image_url" value="https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&q=80" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                </div>
+                <button class="btn-primary" type="submit" style="width:100%;background:var(--status-warning);color:#fff;font-weight:700;">Submit Geotagged Report ➔</button>
+              </form>
+            </div>
+
+            <!-- 2. Evaluate Alert Severity Form -->
+            <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:10px;padding:16px;">
+              <h3 style="font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                <span>⚡</span> <span>Evaluate Corridor Alert Severity</span>
+              </h3>
+              <form id="formEvaluateAlert">
+                <div class="form-group">
+                  <label class="form-label">Corridor Road ID</label>
+                  <input name="road_id" value="NH-13" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <div class="form-group">
+                    <label class="form-label">P1 Flood Prob</label>
+                    <input name="flood_prob" type="number" step="0.01" min="0" max="1" value="0.75" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">P2 Landslide Prob</label>
+                    <input name="landslide_prob" type="number" step="0.01" min="0" max="1" value="0.55" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                </div>
+                <button class="btn-primary" type="submit" style="width:100%;padding:8px 0;font-size:12px;">Evaluate Severity Score</button>
+              </form>
+              <div id="alertEvalResultBox" style="display:none;margin-top:12px;"></div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Incidents List & Live IMD Weather Feed -->
+          <div style="display:flex;flex-direction:column;gap:18px;">
+            <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                <h3 style="font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                  <span>📋</span> <span>Control Tower Live Incident Feed</span>
+                </h3>
+                <div style="display:flex;gap:4px;" id="incidentFilterGroup">
+                  <button class="pill-btn active" style="font-size:10.5px;padding:2px 8px;" onclick="P6ControlTower.filterIncidents('ALL')">All Reports</button>
+                  <button class="pill-btn" style="font-size:10.5px;padding:2px 8px;" onclick="P6ControlTower.filterIncidents('LANDSLIDE')">Landslides</button>
+                  <button class="pill-btn" style="font-size:10.5px;padding:2px 8px;" onclick="P6ControlTower.filterIncidents('FLOOD')">Floods</button>
+                  <button class="pill-btn" style="font-size:10.5px;padding:2px 8px;" onclick="P6ControlTower.filterIncidents('VERIFIED')">Verified</button>
+                </div>
+              </div>
+
+              <div class="data-table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Type</th>
+                      <th>Location & Coordinates</th>
+                      <th>Status</th>
+                      <th>AI Confidence</th>
+                      <th>Description</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="incidentsTableBody">
+                    <!-- Dynamically rendered via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Active IMD Weather Alerts Panel -->
+            <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:10px;padding:16px;">
+              <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--status-warning);">
+                <span>🌤️</span> <span>IMD WIS2 Official CAP Emergency Bulletins</span>
+              </h3>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="background:var(--status-danger-light);border:1.5px solid var(--status-danger-border);border-radius:8px;padding:10px;font-size:12px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <b style="color:var(--status-danger);">🚨 Orange Alert — West Kameng & Tawang</b>
+                    <span style="font-size:10px;color:var(--text-muted);">IMD WIS2 Live</span>
+                  </div>
+                  <div style="color:var(--text-primary);line-height:1.4;">Heavy cloudburst precip forecasted over high-altitude ghat sections. Surface runoff warning active.</div>
+                </div>
+                <div style="background:var(--status-warning-light);border:1.5px solid var(--status-warning-border);border-radius:8px;padding:10px;font-size:12px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <b style="color:var(--status-warning);">⚠️ Yellow Alert — Brahmaputra Valley</b>
+                    <span style="font-size:10px;color:var(--text-muted);">CWC River Watch</span>
+                  </div>
+                  <div style="color:var(--text-primary);line-height:1.4;">River discharge approaching 850 m³/s at Pandu Station. Inland ferry transit monitored.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TAB 6: WHAT-IF SIMULATION (P6 SIMULATOR)
+         ================================================================ -->
+    <section id="tab-simulation" class="tab-pane">
+      <div class="view-container">
+        <div class="view-header">
+          <div>
+            <h2>What-If Multi-Hazard Disruption Simulator</h2>
+            <p>Model road closures, flash floods, or landslides to analyze cascade fleet impacts and compute detours</p>
+          </div>
+        </div>
+
+        <form id="formWhatIfSim" style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:12px;padding:20px;margin-bottom:20px;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px;">
+            <div class="form-group">
+              <label class="form-label">Simulation Scenario</label>
+              <select name="scenario_type" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--border-medium);border-radius:8px;">
+                <option value="LANDSLIDE_BLOCK">Major Mountain Landslide Severance</option>
+                <option value="FLOOD_CLOSURE">River Basin Flood Inundation</option>
+                <option value="BRIDGE_OUT">Critical Bridge Failure</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Road Corridor</label>
+              <select name="road_id" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--border-medium);border-radius:8px;">
+                <option value="NH-13">NH-13 (Trans-Arunachal Highway)</option>
+                <option value="NH-27">NH-27 (East-West Lumding Corridor)</option>
+                <option value="NH-6">NH-6 (Guwahati - Shillong Highway)</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" style="margin-top:10px;padding:12px 24px;font-size:13px;">
+            Run Scenario Simulation
+          </button>
+        </form>
+
+        <div id="simulationResultContainer" style="display:none;"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       MODALS & POPUPS
+       ==================================================================== -->
+
+  <!-- Dedicated Real-Time Disaster News Intelligence Output Modal -->
+  <div id="disasterNewsModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width:640px;">
+      <div class="modal-header">
+        <h3 style="font-size:15px;display:flex;align-items:center;gap:6px;">
+          <span>📰</span> <span>Live Disaster Intelligence & News Output</span>
+        </h3>
+        <button id="btnCloseDisasterNewsModal" class="input-clear-btn" style="position:static;font-size:16px;" onclick="document.getElementById('disasterNewsModal').classList.remove('active');document.getElementById('disasterNewsModal').style.display='none';">✕</button>
+      </div>
+      <div class="modal-body" id="disasterNewsModalContent">
+        <!-- Dynamically injected by P4Routing -->
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11px;color:var(--text-muted);">Fetched live via GDELT & Google News Intelligence Engine</span>
+        <button id="btnAckDisasterNewsModal" class="btn-primary" onclick="document.getElementById('disasterNewsModal').classList.remove('active');document.getElementById('disasterNewsModal').style.display='none';">Close Intel Viewer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated AI Prediction Logic & Route Adaptation Modal -->
+  <div id="predictionPopupModal" class="modal-backdrop">
+    <div class="modal-box" style="max-width:620px;">
+      <div class="modal-header">
+        <h3 style="font-size:15px;display:flex;align-items:center;gap:6px;">
+          ⚡ AI Multi-Hazard Prediction & Route Adaptation
+        </h3>
+        <button id="btnClosePredictionPopup" class="input-clear-btn" style="position:static;font-size:16px;">✕</button>
+      </div>
+      <div class="modal-body" id="predictionPopupContent">
+        <!-- Dynamically injected by pipeline.js -->
+      </div>
+      <div class="modal-footer">
+        <button id="btnAckPredictionPopup" class="btn-primary">Acknowledge & Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Endpoints Settings Modal -->
+  <div id="settingsModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="font-size:15px;">Pravah Microservices Configuration</h3>
+        <button id="btnCloseSettings" class="input-clear-btn" style="position:static;font-size:16px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+          Configure backend service URLs. All modules run on a single unified server by default (port 8002). Fallback simulation activates automatically when a service is offline.
+        </p>
+        <div class="form-group">
+          <label class="form-label">P1 Flood Intelligence Service URL</label>
+          <input id="setEndpointP1" type="text" style="width:100%;height:36px;padding:0 10px;border:1px solid var(--border-medium);border-radius:6px;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">P2 Landslide Intelligence Service URL</label>
+          <input id="setEndpointP2" type="text" style="width:100%;height:36px;padding:0 10px;border:1px solid var(--border-medium);border-radius:6px;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">P3 Road Risk & Accessibility Service URL</label>
+          <input id="setEndpointP3" type="text" style="width:100%;height:36px;padding:0 10px;border:1px solid var(--border-medium);border-radius:6px;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">P4 Route Optimization Service URL</label>
+          <input id="setEndpointP4" type="text" style="width:100%;height:36px;padding:0 10px;border:1px solid var(--border-medium);border-radius:6px;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">P5 Logistics & Supply Chain Service URL</label>
+          <input id="setEndpointP5" type="text" style="width:100%;height:36px;padding:0 10px;border:1px solid var(--border-medium);border-radius:6px;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">P6 Control Tower Service URL</label>
+          <input id="setEndpointP6" type="text" style="width:100%;height:36px;padding:0 10px;border:1px solid var(--border-medium);border-radius:6px;" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btnSaveSettings" class="btn-primary">Save & Reconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications Drawer Modal -->
+  <div id="notificationsModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 style="font-size:15px;">Emergency Broadcasts & IMD Warnings</h3>
+        <button id="btnCloseNotifications" class="input-clear-btn" style="position:static;font-size:16px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="background:var(--status-danger-light);border:1px solid var(--status-danger-border);padding:12px;border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;">
+              <b style="color:var(--status-danger);">🚨 IMD CAP WARNING — Orange Alert</b>
+              <span style="font-size:10px;color:var(--text-muted);">32 mins ago</span>
+            </div>
+            <p style="font-size:12px;color:var(--text-primary);margin-top:4px;">
+              Heavy to very heavy rainfall expected in West Kameng and Tawang districts over next 24 hours. High risk of debris flow.
+            </p>
+          </div>
+          <div style="background:var(--status-warning-light);border:1px solid var(--status-warning-border);padding:12px;border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;">
+              <b style="color:var(--status-warning);">⚠️ ASDMA NOTICE — Brahmaputra Basin</b>
+              <span style="font-size:10px;color:var(--text-muted);">1 hour ago</span>
+            </div>
+            <p style="font-size:12px;color:var(--text-primary);margin-top:4px;">
+              River discharge level at Pandu Ghat rising towards danger mark. Ferries operational under daytime restrictions.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       INITIAL LOCATION DISCOVERY MODAL (FIRST PROMPT ON ARRIVAL)
+       ==================================================================== -->
+  <!-- ====================================================================
+       INITIAL LOCATION DISCOVERY MODAL (COMPACT & FAST)
+       ==================================================================== -->
+  <div id="initialLocationModal" class="location-prompt-modal-overlay" style="display:none;">
+    <div class="location-prompt-modal compact-modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span class="location-modal-badge" style="margin-bottom:0;">📍 Dispatch Location</span>
+        <button id="btnModalClose" class="modal-close-icon-btn" title="Close">✕</button>
+      </div>
+      <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text-primary);">Where are you starting from?</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+        Share your live location or pick a logistics hub to calculate the shortest corridor.
+      </p>
+
+      <button id="btnModalUseGPS" type="button" class="btn-modal-gps-primary">
+        📍 Share My Live Location
+      </button>
+
+      <div id="modalGPSStatus" style="display:none;font-size:11.5px;margin-bottom:10px;color:var(--brand-primary);font-weight:600;">
+        <span class="dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brand-primary);margin-right:6px;animation:pulse-dot 1s infinite;"></span>
+        Detecting your location…
+      </div>
+
+      <div class="modal-or-divider" style="font-size:10px;margin:10px 0;">— OR SELECT A REGIONAL HUB —</div>
+
+      <div class="modal-hub-grid" style="grid-template-columns:repeat(3, 1fr);gap:6px;">
+        <button type="button" class="hub-chip-btn" data-city="Guwahati, Assam" data-lat="26.1445" data-lng="91.7362">🏢 Guwahati</button>
+        <button type="button" class="hub-chip-btn" data-city="Shillong, Meghalaya" data-lat="25.5788" data-lng="91.8933">🏢 Shillong</button>
+        <button type="button" class="hub-chip-btn" data-city="Tezpur, Assam" data-lat="26.6338" data-lng="92.7926">🏢 Tezpur</button>
+        <button type="button" class="hub-chip-btn" data-city="Silchar, Assam" data-lat="24.8333" data-lng="92.7789">🏢 Silchar</button>
+        <button type="button" class="hub-chip-btn" data-city="Dibrugarh, Assam" data-lat="27.4728" data-lng="94.9120">🏢 Dibrugarh</button>
+        <button type="button" class="hub-chip-btn" data-city="Dimapur, Nagaland" data-lat="25.9068" data-lng="93.7271">🏢 Dimapur</button>
+      </div>
+
+      <div style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <input id="modalCustomOriginInput" type="text" placeholder="Or type city name…" style="font-size:11.5px;padding:6px 10px;border-radius:4px;border:1px solid var(--border-subtle);background:var(--bg-surface-subtle);color:var(--text-primary);flex:1;" />
+        <button id="btnModalCustomOrigin" type="button" class="btn-banner-action" style="font-size:11px;padding:6px 12px;">Set</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       IN-PAGE DETAIL & NEWS MODAL (NEVER NAVIGATES TO ANOTHER WINDOW)
+       ==================================================================== -->
+  <div id="inPageDetailModal" class="location-prompt-modal-overlay" style="display:none;">
+    <div class="location-prompt-modal" style="max-width:560px;text-align:left;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div>
+          <span id="detailModalBadge" class="location-modal-badge" style="margin-bottom:6px;">HAZARD INTEL</span>
+          <h3 id="detailModalTitle" style="font-size:17px;font-weight:700;color:var(--text-primary);line-height:1.3;">Incident Details</h3>
+        </div>
+        <button id="btnCloseDetailModal" class="modal-close-icon-btn" style="font-size:16px;">✕</button>
+      </div>
+      <div id="detailModalMeta" style="font-size:11.5px;color:var(--text-muted);display:flex;gap:16px;padding-bottom:10px;border-bottom:1px solid var(--border-subtle);margin-bottom:12px;">
+        <span id="detailModalSource">Source: Live Telemetry</span>
+        <span id="detailModalTime">Updated Live</span>
+      </div>
+      <div id="detailModalBody" style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;">
+        Detailed situation report and operational advisory for this corridor segment.
+      </div>
+      <div id="detailModalNewsLink" class="detail-news-link-wrap" style="display:none;margin-bottom:14px;"></div>
+      <div id="detailModalTelemetry" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:var(--bg-surface-subtle);padding:12px;border-radius:6px;margin-bottom:18px;">
+        <div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Disruption Risk</div>
+          <div id="detailModalDisruption" style="font-size:13.5px;font-weight:700;color:var(--status-danger);">28%</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Corridor Distance</div>
+          <div id="detailModalDistance" style="font-size:13.5px;font-weight:700;color:var(--text-primary);">0.8 km</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;">Operational Status</div>
+          <div id="detailModalStatus" style="font-size:13.5px;font-weight:700;color:var(--status-warning);">Active Caution</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button id="btnAcknowledgeDetailModal" type="button" class="btn-banner-action" style="padding:8px 18px;">Acknowledge & Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       PROFILE & CLEARANCE MODAL
+       ==================================================================== -->
+  <div id="profileModal" class="location-prompt-modal-overlay" style="display:none;">
+    <div class="location-prompt-modal" style="max-width:500px;text-align:left;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="profile-avatar-lg" style="width:48px;height:48px;font-size:16px;">AS</div>
+          <div>
+            <h3 style="font-size:17px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Aditya Sharma</h3>
+            <div style="font-size:11.5px;color:var(--text-muted);">Officer ID: <b>NER-CMD-26002-AS</b></div>
+          </div>
+        </div>
+        <button id="btnCloseProfileModal" class="modal-close-icon-btn" style="font-size:16px;">✕</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--bg-surface-subtle);padding:14px;border-radius:8px;margin-bottom:16px;border:1px solid var(--border-subtle);">
+        <div>
+          <div style="font-size:10.5px;color:var(--text-muted);text-transform:uppercase;">Command Role</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text-primary);margin-top:2px;">Logistics Command Officer</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:var(--text-muted);text-transform:uppercase;">Security Clearance</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--brand-primary);margin-top:2px;">Level 4 (Disaster Command)</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:var(--text-muted);text-transform:uppercase;">Operational Zone</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text-primary);margin-top:2px;">NER Central Hub (Guwahati)</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:var(--text-muted);text-transform:uppercase;">Active Fleets</div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--status-safe);margin-top:2px;">14 Heavy Trucks · 3 Multimodal</div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;margin-bottom:20px;">
+        Authorized to dispatch emergency relief corridors, override AI transit weightings, and activate civil disaster relief protocols across all 8 North-Eastern states.
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button id="btnProfileSwitchAccount" type="button" class="btn-secondary" style="padding:8px 16px;">🔑 Switch Officer / Sign In</button>
+        <button id="btnProfileDone" type="button" class="btn-banner-action" style="padding:8px 20px;">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       OFFICER SIGN IN & AUTHENTICATION MODAL
+       ==================================================================== -->
+  <div id="loginModal" class="location-prompt-modal-overlay" style="display:none;">
+    <div class="location-prompt-modal" style="max-width:490px;text-align:left;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div>
+          <span class="location-modal-badge" style="margin-bottom:4px;">🔐 PRAVAH AUTHENTICATION</span>
+          <h3 style="font-size:17px;font-weight:700;color:var(--text-primary);">Officer Command Sign In</h3>
+        </div>
+        <button id="btnCloseLoginModal" class="modal-close-icon-btn" style="font-size:16px;">✕</button>
+      </div>
+
+      <p style="font-size:11.5px;color:var(--text-muted);margin-bottom:14px;">
+        Access encrypted North-East multi-hazard routing, civil relief dispatch, and model telemetry.
+      </p>
+
+      <!-- Quick Select Officer Profile Chips -->
+      <div style="margin-bottom:14px;">
+        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px;">
+          Quick Select Verified Officer
+        </label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="quick-login-chip active" data-name="Aditya Sharma" data-role="Logistics Command Officer" data-id="NER-CMD-26002-AS" data-init="AS" data-station="Guwahati Central Hub">
+            👨‍✈️ Aditya Sharma
+          </button>
+          <button type="button" class="quick-login-chip" data-name="Priya Barua" data-role="Hazard AI Analyst" data-id="NER-ANL-26004-PB" data-init="PB" data-station="Shillong Mountain Sector">
+            👩‍🔬 Priya Barua
+          </button>
+          <button type="button" class="quick-login-chip" data-name="Vikram Singh" data-role="Evacuation Commander" data-id="NER-EVAC-26010-VS" data-init="VS" data-station="Tezpur Transit Depot">
+            👮 Vikram Singh
+          </button>
+        </div>
+      </div>
+
+      <form id="officerLoginForm" onsubmit="event.preventDefault();">
+        <div class="auth-input-group">
+          <label>Officer ID / Service Key</label>
+          <input type="text" id="loginOfficerId" value="NER-CMD-26002-AS" required />
+        </div>
+
+        <div class="auth-input-group">
+          <label>Operational Duty Station</label>
+          <select id="loginStation">
+            <option value="Guwahati, Assam (Central Hub)" selected>Guwahati, Assam (Central Hub)</option>
+            <option value="Shillong, Meghalaya (Mountain Sector)">Shillong, Meghalaya (Mountain Sector)</option>
+            <option value="Tezpur, Assam (Arunachal Corridor)">Tezpur, Assam (Arunachal Corridor)</option>
+            <option value="Silchar, Assam (Barak Valley Base)">Silchar, Assam (Barak Valley Base)</option>
+          </select>
+        </div>
+
+        <div class="auth-input-group">
+          <label>Security Clearance PIN / Access Token</label>
+          <input type="password" id="loginPin" value="••••••••" placeholder="Enter clearance PIN" required />
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
+          <button type="button" id="btnCancelLogin" class="btn-secondary" style="padding:8px 16px;">Cancel</button>
+          <button type="submit" id="btnSubmitLogin" class="btn-primary" style="padding:8px 20px;">Authorize & Sign In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       DASHBOARD PREFERENCES MODAL
+       ==================================================================== -->
+  <div id="dashboardOptionsModal" class="location-prompt-modal-overlay" style="display:none;">
+    <div class="location-prompt-modal" style="max-width:520px;text-align:left;padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <span class="location-modal-badge" style="margin-bottom:4px;">SETTINGS</span>
+          <h3 style="font-size:17px;font-weight:700;color:var(--text-primary);">Dashboard Preferences</h3>
+        </div>
+        <button id="btnCloseDashboardModal" class="modal-close-icon-btn" style="font-size:16px;">✕</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:20px;">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-primary);display:block;margin-bottom:4px;">Default Path Optimization Goal</label>
+          <select id="prefDefaultGoal" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-surface-subtle);color:var(--text-primary);font-size:12.5px;">
+            <option value="shortest">Shortest Corridor (Minimal Travel Distance)</option>
+            <option value="safest" selected>Safest Route (Autonomous Hazard Avoidance)</option>
+            <option value="fastest">Fastest Transit (Speed Optimization)</option>
+            <option value="balanced">Balanced Multi-Modal Route</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text-primary);display:block;margin-bottom:4px;">Default Regional Dispatch Hub</label>
+          <select id="prefDefaultHub" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-surface-subtle);color:var(--text-primary);font-size:12.5px;">
+            <option value="Guwahati, Assam" selected>Guwahati, Assam (Central Hub)</option>
+            <option value="Shillong, Meghalaya">Shillong, Meghalaya</option>
+            <option value="Tezpur, Assam">Tezpur, Assam</option>
+            <option value="Silchar, Assam">Silchar, Assam</option>
+            <option value="Dibrugarh, Assam">Dibrugarh, Assam</option>
+            <option value="Dimapur, Nagaland">Dimapur, Nagaland</option>
+          </select>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg-surface-subtle);border-radius:6px;border:1px solid var(--border-subtle);">
+          <div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text-primary);">Audio Alert on Critical Hazards</div>
+            <div style="font-size:11px;color:var(--text-muted);">Sound chime when P1–P3 detects imminent danger</div>
+          </div>
+          <input type="checkbox" id="prefHazardAudio" checked style="width:18px;height:18px;accent-color:var(--brand-primary);cursor:pointer;" />
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg-surface-subtle);border-radius:6px;border:1px solid var(--border-subtle);">
+          <div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text-primary);">Automatic Dynamic Weather Sensing</div>
+            <div style="font-size:11px;color:var(--text-muted);">Sync top header weather pill with origin sensor data</div>
+          </div>
+          <input type="checkbox" id="prefAutoWeather" checked style="width:18px;height:18px;accent-color:var(--brand-primary);cursor:pointer;" />
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button id="btnCancelDashboardModal" type="button" class="btn-secondary" style="padding:8px 16px;">Cancel</button>
+        <button id="btnSaveDashboardModal" type="button" class="btn-primary" style="padding:8px 20px;">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ====================================================================
+       SCRIPTS (LEAFLET & APPLICATION LOGIC)
+       ==================================================================== -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/config.js?v=3.7"></script>
+  <script src="js/pipeline.js?v=3.7"></script>
+  <script src="js/api.js?v=3.7"></script>
+  <script src="js/map.js?v=3.7"></script>
+  <script src="js/p4-routing.js?v=3.7"></script>
+  <script src="js/p5-logistics.js?v=3.7"></script>
+  <script src="js/p6-control-tower.js?v=3.7"></script>
+  <script src="js/simulation.js?v=3.7"></script>
+  <script src="js/risk-intelligence.js?v=3.7"></script>
+  <script src="js/app.js?v=3.7"></script>
+
+</body>
+</html>

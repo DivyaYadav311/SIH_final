@@ -1,0 +1,13 @@
+{
+  "model_name": "p6_incident_verification_and_alert_evaluator",
+  "version": "1.0.0",
+  "verification_model": "openai/clip-vit-base-patch32",
+  "verification_labels": ["LANDSLIDE", "FLOOD", "ROAD_BLOCKED", "ACCIDENT", "CLEAR"],
+  "exif_mismatch_max_km": 5.0,
+  "alert_severities": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+  "alert_trigger_thresholds": {
+    "flood_warning_probability": 0.65,
+    "landslide_warning_probability": 0.60,
+    "road_risk_high_threshold": 0.70
+  }
+}

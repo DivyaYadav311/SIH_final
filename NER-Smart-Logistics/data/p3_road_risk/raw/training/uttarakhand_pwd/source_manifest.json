@@ -1,0 +1,57 @@
+{
+  "source_name": "Uttarakhand PWD Road Closure Status MIS",
+  "publisher": "Public Works Department, Government of Uttarakhand",
+  "source_url": "https://mis.pwduk.in/pwd/roadClosureStatus",
+  "access_method": "Public GET of https://mis.pwduk.in/pwd/roadClosureStatus as used by the dashboard DataTables request (same URL as the public page; first page only, length=10). Table Options on the page loads DataTables HTML5 export scripts. Not a separately documented bulk API.",
+  "retrieval_timestamp": "2026-09-07T13:15:00+00:00",
+  "file_name": "road_closure_status_datatables_sample.json",
+  "sha256": "fac36ad56824812372baee4a2acd81f71d57d21a2d99502910590b5a93c3d235",
+  "date_range": {
+    "min": "2026-07-09 10:15:00",
+    "max": "2026-09-07 18:33:00"
+  },
+  "geographic_scope": "Uttarakhand, India \u2014 PWD-managed roads visible in the public MIS date-filtered view",
+  "authentication_required": false,
+  "license_or_reuse_information": "Government of Uttarakhand PWD website. No explicit reuse licence was found on the public pages reviewed.",
+  "files": [
+    {
+      "source_name": "Uttarakhand PWD Road Closure Status MIS",
+      "publisher": "Public Works Department, Government of Uttarakhand",
+      "source_url": "https://mis.pwduk.in/pwd/roadClosureStatus",
+      "access_method": "Public GET of https://mis.pwduk.in/pwd/roadClosureStatus as used by the dashboard DataTables request (same URL as the public page; first page only, length=10). Table Options on the page loads DataTables HTML5 export scripts. Not a separately documented bulk API.",
+      "retrieval_timestamp": "2026-09-07T13:15:00+00:00",
+      "file_name": "road_closure_status_datatables_sample.json",
+      "sha256": "fac36ad56824812372baee4a2acd81f71d57d21a2d99502910590b5a93c3d235",
+      "date_range": {
+        "min": "2026-07-09 10:15:00",
+        "max": "2026-09-07 18:33:00"
+      },
+      "geographic_scope": "Uttarakhand, India \u2014 PWD-managed roads visible in the public MIS date-filtered view",
+      "authentication_required": false,
+      "license_or_reuse_information": "Government of Uttarakhand PWD website. No explicit reuse licence was found on the public pages reviewed."
+    },
+    {
+      "source_name": "Uttarakhand PWD Road Closure Status MIS",
+      "publisher": "Public Works Department, Government of Uttarakhand",
+      "source_url": "https://mis.pwduk.in/pwd/eeOfficeSegmentHistory/5731",
+      "access_method": "Public GET of the segment-history URL linked from the public list sample (eeOfficeSegmentHistory/5731). CSRF token redacted in the saved copy.",
+      "retrieval_timestamp": "2026-09-07T13:15:00+00:00",
+      "file_name": "ee_office_segment_history_5731.html",
+      "sha256": "3151250dc018e7a27ab46986803e65c398f159c3d05a994a54ef0be482773884",
+      "date_range": {
+        "min": "2026-05-29 05:54:02",
+        "max": "2026-07-20 06:32:54"
+      },
+      "geographic_scope": "Uttarakhand, India \u2014 PWD-managed roads visible in the public MIS date-filtered view",
+      "authentication_required": false,
+      "license_or_reuse_information": "Government of Uttarakhand PWD website. No explicit reuse licence was found on the public pages reviewed."
+    }
+  ],
+  "companion_source": {
+    "source_name": "Uttarakhand PWD SRMD Daily Reports",
+    "source_url": "https://pwd.uk.gov.in/document-category/srmd-daily-reports-2026/",
+    "access_method": "Public document archive; PDFs linked from the category page.",
+    "authentication_required": false,
+    "sample_acquired": false
+  }
+}

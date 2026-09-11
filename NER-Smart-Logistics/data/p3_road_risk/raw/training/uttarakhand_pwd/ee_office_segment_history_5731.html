@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<!-- Fallback to app locale or 'en' if session locale is empty to prevent Highcharts from throwing RangeError on invalid language tag -->
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="csrf-token" content="REDACTED">
+    <meta name="description" content="MISPWD Contract">
+    <meta name="author" content="PWD Uttarakahand">
+    <meta name="keywords" content="mispwd, contract, bond,pwd, Uttarakahand">
+    <title>MISPWD</title>
+    <link rel="stylesheet" href="https://mis.pwduk.in/pwd/../forumtailcssjs/css/mispwd_tailwind.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind:wght@300;400;500;600;700&family=Roboto+Condensed:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap" rel="stylesheet">
+    <style type="text/css">
+      /*Scroll Bar Color */
+        :root {
+                --primary: rgba(3, 105, 161, 0.1);
+                --secondary: rgba(3, 105, 161, 0.8);
+              }
+              * { scrollbar-width: thin; scrollbar-color: var(--primary) var(--secondary); } /* Firefox */
+              *::-webkit-scrollbar { width: 12px; } /* Chrome, Edge, and Safari */
+              *::-webkit-scrollbar-track { background: var(--primary); }
+              *::-webkit-scrollbar-thumb { background-color: var(--secondary);border-radius: 20px;border: 3px solid var(--primary);}
+    </style>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.0/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.0.0/css/buttons.bootstrap5.min.css">
+    <style>
+        th {
+            vertical-align: top;
+        }
+    </style>
+    <!-- Livewire Styles --><style >[wire\:loading][wire\:loading], [wire\:loading\.delay][wire\:loading\.delay], [wire\:loading\.inline-block][wire\:loading\.inline-block], [wire\:loading\.inline][wire\:loading\.inline], [wire\:loading\.block][wire\:loading\.block], [wire\:loading\.flex][wire\:loading\.flex], [wire\:loading\.table][wire\:loading\.table], [wire\:loading\.grid][wire\:loading\.grid], [wire\:loading\.inline-flex][wire\:loading\.inline-flex] {display: none;}[wire\:loading\.delay\.none][wire\:loading\.delay\.none], [wire\:loading\.delay\.shortest][wire\:loading\.delay\.shortest], [wire\:loading\.delay\.shorter][wire\:loading\.delay\.shorter], [wire\:loading\.delay\.short][wire\:loading\.delay\.short], [wire\:loading\.delay\.default][wire\:loading\.delay\.default], [wire\:loading\.delay\.long][wire\:loading\.delay\.long], [wire\:loading\.delay\.longer][wire\:loading\.delay\.longer], [wire\:loading\.delay\.longest][wire\:loading\.delay\.longest] {display: none;}[wire\:offline][wire\:offline] {display: none;}[wire\:dirty]:not(textarea):not(input):not(select) {display: none;}:root {--livewire-progress-bar-color: #2299dd;}[x-cloak] {display: none !important;}[wire\:cloak] {display: none !important;}dialog#livewire-error::backdrop {background-color: rgba(0, 0, 0, .6);}</style>
+            <script src="https://code.jquery.com/jquery-3.5.1.js"></script></head>
+
+<body class="bg-sky-100" style="font-family: 'Hind', 'Roboto Condensed', 'sans-serif';"> 
+  <div class="sticky w-full z-10 top-0 print:hidden">
+    <nav class="flex items-center justify-between flex-wrap p-1 "
+      x-data="{ isOpen: false }"
+      @keydown.escape="isOpen = false"
+      :class="{ 'shadow-lg bg-indigo-900' : isOpen , 'bg-sky-900' : !isOpen}"
+        >
+      <!--Logo etc-->
+      <div class="flex items-center flex-shrink-0">
+            <p class="text-white text-2xl">Road Closure and opened Status as on Mon 07 Sep 2026. <span class="text-base align-middle">Base Date is Wed 01 Apr 2026</span></p>
+      </div>
+
+      <!--Toggle button (hidden on large screens)-->
+      <button
+        @click="isOpen = !isOpen"
+        type="button"
+        class="block lg:hidden px-2 text-gray-500 hover:text-white focus:outline-none focus:text-white"
+        :class="{ 'transition transform-180': isOpen }"
+      >
+        <svg x-show="isOpen" class="w-8 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.877075 7.49988C0.877075 3.84219 3.84222 0.877045 7.49991 0.877045C11.1576 0.877045 14.1227 3.84219 14.1227 7.49988C14.1227 11.1575 11.1576 14.1227 7.49991 14.1227C3.84222 14.1227 0.877075 11.1575 0.877075 7.49988ZM7.49991 1.82704C4.36689 1.82704 1.82708 4.36686 1.82708 7.49988C1.82708 10.6329 4.36689 13.1727 7.49991 13.1727C10.6329 13.1727 13.1727 10.6329 13.1727 7.49988C13.1727 4.36686 10.6329 1.82704 7.49991 1.82704ZM9.85358 5.14644C10.0488 5.3417 10.0488 5.65829 9.85358 5.85355L8.20713 7.49999L9.85358 9.14644C10.0488 9.3417 10.0488 9.65829 9.85358 9.85355C9.65832 10.0488 9.34173 10.0488 9.14647 9.85355L7.50002 8.2071L5.85358 9.85355C5.65832 10.0488 5.34173 10.0488 5.14647 9.85355C4.95121 9.65829 4.95121 9.3417 5.14647 9.14644L6.79292 7.49999L5.14647 5.85355C4.95121 5.65829 4.95121 5.3417 5.14647 5.14644C5.34173 4.95118 5.65832 4.95118 5.85358 5.14644L7.50002 6.79289L9.14647 5.14644C9.34173 4.95118 9.65832 4.95118 9.85358 5.14644Z" fill="currentColor"></path></svg>        <svg x-show="!isOpen" class="w-8 h-6" viewBox="2 2 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M8 6C8 7.10457 7.10457 8 6 8C4.89543 8 4 7.10457 4 6C4 4.89543 4.89543 4 6 4C7.10457 4 8 4.89543 8 6Z" fill="currentColor"></path>
+  <path d="M8 12C8 13.1046 7.10457 14 6 14C4.89543 14 4 13.1046 4 12C4 10.8954 4.89543 10 6 10C7.10457 10 8 10.8954 8 12Z" fill="currentColor"></path>
+  <path d="M6 20C7.10457 20 8 19.1046 8 18C8 16.8954 7.10457 16 6 16C4.89543 16 4 16.8954 4 18C4 19.1046 4.89543 20 6 20Z" fill="currentColor"></path>
+  <path d="M14 6C14 7.10457 13.1046 8 12 8C10.8954 8 10 7.10457 10 6C10 4.89543 10.8954 4 12 4C13.1046 4 14 4.89543 14 6Z" fill="currentColor"></path>
+  <path d="M12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z" fill="currentColor"></path>
+  <path d="M14 18C14 19.1046 13.1046 20 12 20C10.8954 20 10 19.1046 10 18C10 16.8954 10.8954 16 12 16C13.1046 16 14 16.8954 14 18Z" fill="currentColor"></path>
+  <path d="M18 8C19.1046 8 20 7.10457 20 6C20 4.89543 19.1046 4 18 4C16.8954 4 16 4.89543 16 6C16 7.10457 16.8954 8 18 8Z" fill="currentColor"></path>
+  <path d="M20 12C20 13.1046 19.1046 14 18 14C16.8954 14 16 13.1046 16 12C16 10.8954 16.8954 10 18 10C19.1046 10 20 10.8954 20 12Z" fill="currentColor"></path>
+  <path d="M18 20C19.1046 20 20 19.1046 20 18C20 16.8954 19.1046 16 18 16C16.8954 16 16 16.8954 16 18C16 19.1046 16.8954 20 18 20Z" fill="currentColor"></path>
+</svg>      </button>
+
+      <!--Menu-->
+      <div
+        class="w-full flex-grow lg:flex lg:items-center lg:w-auto"
+        :class="{ 'block shadow-3xl': isOpen, 'hidden': !isOpen }"
+        @click.away="isOpen = false"
+        x-show.transition="true"
+      >
+        <div class="pt-6 lg:pt-0 list-reset lg:flex justify-end flex-1 items-center text-white"> 
+                      <a class="mr-3 text-white" href="https://mis.pwduk.in/pwd/login">Login</a>
+                  </div>
+      </div>
+    </nav>
+    <div class="bg-sky-700 grid grid-cols-1 md:grid-cols-2" id="second_header">
+      <div class="mx-1 col-span-1 py-1">
+              </div>
+      <div div class="mx-1 col-span-1 py-1 justify-self-end ">
+             <style>
+        #second_header{
+                background-color: #E2F2FA;
+        }
+</style>
+<div class="space-x-2 my-2">
+    
+    <a href="https://mis.pwduk.in/pwd/home" class="inline-flex items-center no-underline px-2 py-1 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150" title="MIS Dashboard">
+        MIS Dashboard
+    </a>
+    
+   
+
+    
+    <a
+                    class="inline-flex items-center no-underline px-2 py-1 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150"
+            href="https://mis.pwduk.in/pwd/roadClosureStatus"
+            target="_blank"
+            >
+        Time Based Snapshots
+    </a>
+
+    
+    <a
+                    class="inline-flex items-center no-underline px-2 py-1 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150"
+            href="https://mis.pwduk.in/pwd/roadClosure"
+            target="_blank"
+            >
+        List
+    </a>
+    
+    <a
+        class="inline-flex items-center no-underline px-2 py-1 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150"
+        href="http://mis.pwduk.in/im/gis"
+        target="_blank"
+    >
+        GIS in IM
+    </a>
+     
+     <a
+                    class="inline-flex items-center no-underline px-2 py-1 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150"
+            href="https://mis.pwduk.in/pwd/roadClosurePics"
+            target="_blank"
+            >
+        Closure Pics
+    </a>
+     
+    
+    <a
+        class="inline-flex items-center no-underline px-2 py-1 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150"
+        href="http://mis.pwduk.in/misentry/notifyClosureEventFromODK"
+    >
+        Refresh Data
+    </a>
+     
+     <a
+                    class="inline-flex items-center no-underline px-2 py-1 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 transition ease-in-out duration-150"
+            href="https://mis.pwduk.in/pwd/damage"
+            target="_blank"
+            >
+        Infra Damage Report
+    </a>
+</div>
+      </div>
+    </div>
+  </div>
+  <div class="">
+
+<div class="col-md-12">
+    <div x-data="{ showSuccess: false, showMessage: false, showFail: false }">
+        <!-- Success Alert -->
+        <div x-show="showSuccess" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-x-full opacity-0" x-transition:enter-end="translate-x-0 opacity-100" x-transition:leave="transition ease-in duration-100 transform" x-transition:leave-start="translate-x-0 opacity-100" x-transition:leave-end="translate-x-full opacity-0" class="fixed right-0 top-0 mt-4 mr-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline"></span>
+            <span @click="showSuccess = false" class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <title>Close</title>
+                    <path d="M14.348 5.652a1 1 0 10-1.414-1.414L10 7.172 7.066 4.238a1 1 0 00-1.414 1.414l2.932 2.932-2.932 2.932a1 1 0 001.414 1.414L10 10.828l2.932 2.932a1 1 0 001.414-1.414L11.828 10l2.932-2.932z"/>
+                </svg>
+            </span>
+        </div>
+        <!-- Message Alert -->
+        <div x-show="showMessage" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-x-full opacity-0" x-transition:enter-end="translate-x-0 opacity-100" x-transition:leave="transition ease-in duration-100 transform" x-transition:leave-start="translate-x-0 opacity-100" x-transition:leave-end="translate-x-full opacity-0" class="fixed right-0 top-0 mt-4 mr-4 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline"></span>
+            <span @click="showMessage = false" class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                <svg class="fill-current h-6 w-6 text-blue-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <title>Close</title>
+                    <path d="M14.348 5.652a1 1 0 10-1.414-1.414L10 7.172 7.066 4.238a1 1 0 00-1.414 1.414l2.932 2.932-2.932 2.932a1 1 0 001.414 1.414L10 10.828l2.932 2.932a1 1 0 001.414-1.414L11.828 10l2.932-2.932z"/>
+                </svg>
+            </span>
+        </div>
+        <!-- Fail Alert -->
+        <div x-show="showFail" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="translate-x-full opacity-0" x-transition:enter-end="translate-x-0 opacity-100" x-transition:leave="transition ease-in duration-100 transform" x-transition:leave-start="translate-x-0 opacity-100" x-transition:leave-end="translate-x-full opacity-0" class="fixed right-0 top-0 mt-4 mr-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline"></span>
+            <span @click="showFail = false" class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <title>Close</title>
+                    <path d="M14.348 5.652a1 1 0 10-1.414-1.414L10 7.172 7.066 4.238a1 1 0 00-1.414 1.414l2.932 2.932-2.932 2.932a1 1 0 001.414 1.414L10 10.828l2.932 2.932a1 1 0 001.414-1.414L11.828 10l2.932-2.932z"/>
+                </svg>
+            </span>
+        </div>
+    </div>
+</div>
+
+    <div class="mx-3 p-2 bg-gray-100 rounded-lg shadow-md">
+    <form action="https://mis.pwduk.in/pwd/eeOfficeSegmentHistory/5731" method="GET">
+        <div class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700" for="base_date">Base Date</label>
+                <input class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" type="datetime-local" name="base_date" id="base_date" value="2026-04-01T00:00">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700" for="current_date">Current Date</label>
+                <input class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" type="datetime-local" name="current_date" id="current_date" value="2026-09-07T23:59">
+            </div>
+            <button class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" type="submit">Submit</button>
+            <button type="button" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" onclick="resetCurrentDate()">Reset Current Date</button>
+        </div>
+    </form>
+</div>
+
+<div class="m-3 bg-white">
+            <h2 class="text-xl font-bold mb-0 text-center"><span class="font-semibold text-blue-600">त्यूनी चकराता मसूरी चम्बा नई टिहरी जीरो ब्रिज मलेथा राष्ट्रीय राजमार्ग</span>
+        (ID: <span class="font-medium text-gray-600">5731</span>)  ,  रा0मा0 खण्ड दे0दून , Tehri</h2>
+
+        <div class="flex justify-end items-center space-x-2 px-2 py-0">
+            <a class="no-underline inline-flex items-center px-2 py-1 bg-green-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-600 active:bg-green-700 focus:outline-none focus:border-green-700 focus:ring ring-green-300 disabled:opacity-25 transition ease-in-out duration-150" href="http://mis.pwduk.in/im/segmentMap/19" target="_blank" title="View Road Detail In IM">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                </svg>
+                <span>IM Details</span>
+            </a>
+            <a class="no-underline inline-flex items-center px-2 py-1 bg-blue-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-600 active:bg-blue-700 focus:outline-none focus:border-blue-700 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150" href="https://mis.pwduk.in/pwd/damageHistory/1/5731" target="_blank" title="Infra Damage Report">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v5a1 1 0 11-2 0v-5a1 1 0 011-1zm4-1a1 1 0 10-2 0v7a1 1 0 102 0V8z" clip-rule="evenodd" />
+                </svg>
+                <span>Report</span>
+            </a>
+            <a class="no-underline inline-flex items-center px-2 py-1 bg-purple-400 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-600 active:bg-purple-700 focus:outline-none focus:border-purple-700 focus:ring ring-purple-300 disabled:opacity-25 transition ease-in-out duration-150" href="https://mis.pwduk.in/pwd/roadClosurePics/5731" target="_blank" title="Road Closure Pics">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                </svg>
+                <span>Closure Pics</span>
+            </a>
+            <a class="no-underline inline-flex items-center px-2 py-1 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-600 active:bg-purple-700 focus:outline-none focus:border-purple-700 focus:ring ring-purple-300 disabled:opacity-25 transition ease-in-out duration-150" href="https://mis.pwduk.in/pwd/damagePics/1/5731" target="_blank" title="Infra Damage Pics">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                </svg>
+                <span>Damage Pics</span>
+            </a>
+        </div>
+    
+    <div class="table-responsive p-2 ">
+        <table class="table table-bordered table-striped table-hover ajaxTable table-sm datatable" id="detail_table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>KM</th>
+                    <th>Closed On</th>
+                    <th>Tentative Date</th>
+                    <th>Opened On</th>
+                    <th>Response Time</th>
+                    <th>Open Type</th>
+                    <th>Informed By</th>
+                    <th>Initial cost</th>
+                    <th>Restoration Cost</th>
+                    <th>Damage Type</th>
+                    <th>Location</th>
+                    <th>Chainages</th>
+                    <th>Remark</th>
+                    <th>PiC</th>
+                    <th>geo location</th>
+                    <th>lat</th>
+                    <th>lng</th>
+                    <th>ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                                                
+                    <tr  class="bg-green-100">
+                        
+                        <td>1</td>
+                        <td>194</td>
+                        <td>2026-05-29 05:54:02</td>
+                        <td class="border px-4 py-2 ">
+                                2026-05-29 08:54:00
+                        </td>
+
+                        <td>2026-05-29 07:16:40</td>
+                        <td>
+                            1 hours 22 mins                        </td>
+                        <td>Opened</td>
+                        <td>Sharad Kumar ,Assistant Engineer Civil ,05001381204055</td>
+
+                        <td class="text-right px-2 py-1">0.50</td>
+                        <td class="text-right px-2 py-1">0.50</td>
+                        <td class="text-center">
+                            
+                            Fludding
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>
+                                                                        </td>
+                        <td>
+                                                   <a href="https://www.google.com/maps/search/?api=1&query=30.428395000000,78.242346000000" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8">
+                              <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25c0 2.896 2.152 5.97 5.25 9.832 3.098-3.862 5.25-6.936 5.25-9.832A5.25 5.25 0 0012 1.5zM12 7.75a1 1 0 110-2 1 1 0 010 2z" clip-rule="evenodd" />
+                            </svg>
+                            </a>
+                                                </td>
+                        <td>30.428395000000</td>
+                        <td>78.242346000000</td>
+                        <td>42977</td>
+                    </tr>
+                                
+                    <tr  class="bg-green-100">
+                        
+                        <td>2</td>
+                        <td>178</td>
+                        <td>2026-07-09 11:55:07</td>
+                        <td class="border px-4 py-2 ">
+                                2026-07-09 12:55:07
+                        </td>
+
+                        <td>2026-07-09 12:29:12</td>
+                        <td>
+                            34 mins 5 secs                        </td>
+                        <td>Opened</td>
+                        <td>Sharad Kumar ,Assistant Engineer Civil ,05001381204055</td>
+
+                        <td class="text-right px-2 py-1">0.10</td>
+                        <td class="text-right px-2 py-1">0.15</td>
+                        <td class="text-center">
+                            
+                            Slip/ Landslide
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td>Heavy and light bolders with mud came from hil side.</td>
+                        <td>
+                                                                        </td>
+                        <td>
+                                                   <a href="https://www.google.com/maps/search/?api=1&query=30.453065000000,78.147714000000" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8">
+                              <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25c0 2.896 2.152 5.97 5.25 9.832 3.098-3.862 5.25-6.936 5.25-9.832A5.25 5.25 0 0012 1.5zM12 7.75a1 1 0 110-2 1 1 0 010 2z" clip-rule="evenodd" />
+                            </svg>
+                            </a>
+                                                </td>
+                        <td>30.453065000000</td>
+                        <td>78.147714000000</td>
+                        <td>47116</td>
+                    </tr>
+                                
+                    <tr  class="bg-green-100">
+                        
+                        <td>3</td>
+                        <td>178</td>
+                        <td>2026-07-20 06:32:54</td>
+                        <td class="border px-4 py-2 ">
+                                2026-07-20 08:32:00
+                        </td>
+
+                        <td>2026-07-20 07:58:46</td>
+                        <td>
+                            1 hours 25 mins                        </td>
+                        <td>Opened</td>
+                        <td>Sharad Kumar ,Assistant Engineer Civil ,05001381204055</td>
+
+                        <td class="text-right px-2 py-1">0.50</td>
+                        <td class="text-right px-2 py-1">0.50</td>
+                        <td class="text-center">
+                            
+                            Slip/ Landslide
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td>Running Boulders are falls from hill side.</td>
+                        <td>
+                                                                        </td>
+                        <td>
+                                                   <a href="https://www.google.com/maps/search/?api=1&query=30.453550000000,78.149139000000" target="_blank">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8">
+                              <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25c0 2.896 2.152 5.97 5.25 9.832 3.098-3.862 5.25-6.936 5.25-9.832A5.25 5.25 0 0012 1.5zM12 7.75a1 1 0 110-2 1 1 0 010 2z" clip-rule="evenodd" />
+                            </svg>
+                            </a>
+                                                </td>
+                        <td>30.453550000000</td>
+                        <td>78.149139000000</td>
+                        <td>52331</td>
+                    </tr>
+                                
+                    <tr  class="bg-green-100">
+                        
+                        <td>4</td>
+                        <td>228</td>
+                        <td>2026-07-11 08:34:50</td>
+                        <td class="border px-4 py-2 ">
+                                2026-07-11 09:34:00
+                        </td>
+
+                        <td>2026-07-11 09:05:54</td>
+                        <td>
+                            31 mins 4 secs                        </td>
+                        <td>Opened</td>
+                        <td>Sharad Kumar ,Assistant Engineer Civil ,05001381204055</td>
+
+                        <td class="text-right px-2 py-1">0.05</td>
+                        <td class="text-right px-2 py-1">0.05</td>
+                        <td class="text-center">
+                            
+                            Slip/ Landslide
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td>Tree Fallen on the road, Option not available in Chati ka prakar.</td>
+                        <td>
+                                                <a href="https://pwduttrakhand.s3.ap-south-1.amazonaws.com/road_closures/6000/5731/6a51b3736e1bb.jpeg">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8">
+                              <path fill-rule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM6 12.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0z" clip-rule="evenodd" />
+                            </svg>
+                        </a>
+                                                </td>
+                        <td>
+                                                   -
+                                                </td>
+                        <td></td>
+                        <td></td>
+                        <td>48736</td>
+                    </tr>
+                            </tbody>
+              
+                <tfoot>
+                    <tr class="bg-gray-200 font-bold border-t-2 border-gray-400"> 
+                        
+                        <td colspan="8" class="text-right px-2 py-1">Total:</td>
+                        
+                        <td class="text-right px-2 py-1">1.15</td>
+                        
+                        <td class="text-right px-2 py-1">1.20</td>
+                        
+                        <td colspan="9"></td>
+                    </tr>
+                </tfoot>
+                
+        </table>
+                    <h4 class="m-3 font-semibold">Current Road KM Closures (as on 07 Sep 2026)</h4>
+            <table class="table table-bordered table-sm m-3 w-auto bg-white">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th>KM</th>
+                        <th>Tentative Opening Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                                    </tbody>
+            </table>
+                Road is open.
+        <p>
+                        is opened for Traffic
+                    </p>
+
+
+    </div>
+</div>
+
+  </div>
+</body>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            document.querySelectorAll('[x-data]').forEach(el => {
+                el.__x.$data.showSuccess = false;
+                el.__x.$data.showMessage = false;
+                el.__x.$data.showFail = false;
+            });
+        }, 20000); // 60000 ms = 1 minute
+    });
+</script>
+    <script src="https://cdn.datatables.net/1.11.0/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.0/js/dataTables.bootstrap5.min.js "></script>
+			<script src="https://cdn.datatables.net/buttons/2.0.0/js/dataTables.buttons.min.js "></script>
+		<script src="https://cdn.datatables.net/buttons/2.0.0/js/buttons.bootstrap5.min.js "></script>
+		<script src="https://cdn.datatables.net/buttons/2.0.0/js/buttons.print.min.js "></script>
+		<script src="https://cdn.datatables.net/buttons/2.0.0/js/buttons.html5.min.js "></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+	
+    <script src="https://cdn.datatables.net/buttons/2.0.0/js/buttons.colVis.min.js"></script>
+     <script>
+        $(document).ready(function() {
+            $('#detail_table').DataTable({
+                dom: 'Blfrtip', // Add 'B' to enable Buttons
+                buttons: [
+                    {
+                        extend: 'colvis',
+                        text: 'Show Columns',
+                        className: 'btn btn-sm btn-outline-info' // Example Bootstrap class
+                    },
+                    'excelHtml5',
+                    'csvHtml5',
+                    'pdfHtml5'
+                ],
+                lengthMenu: [
+                    [10, 25, 50, 100, -1],
+                    ['10', '25', '50', '100', 'all']
+                ],
+                pageLength: -1, // Set initial page length to show all
+                // Optionally hide columns by default (adjust the targets based on your needs)
+                columnDefs: [
+                    { targets: [0,6,12,16,17,18], visible: false } // Hide  Damage Type, Location, Chainages, Remark, PiC by default
+                ]
+            });
+        });
+        function resetCurrentDate() {
+            document.getElementById('current_date').value = ''; // Clear the input visually
+            const baseUrl = window.location.href.split('?')[0];
+            const now = new Date();
+            const istOffsetMilliseconds = 5.5 * 60 * 60 * 1000;
+            const istTime = new Date(now.getTime() + istOffsetMilliseconds);
+            const istISOString = istTime.toISOString().slice(0, 16);
+            const newUrl = `${baseUrl}?current_date=${encodeURIComponent(istISOString)}`;
+            window.location.href = newUrl;
+        }
+    </script>
+<script src="/pwd/livewire/livewire.js?id=61e33937"   data-csrf="REDACTED" data-update-uri="/pwd/livewire/update" data-navigate-once="true"></script>
+</html>

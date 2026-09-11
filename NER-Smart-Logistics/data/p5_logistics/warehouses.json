@@ -1,0 +1,57 @@
+[
+  {
+    "warehouse_id": "WH_001",
+    "name": "Guwahati Central Depot",
+    "state": "Assam",
+    "district": "Kamrup Metropolitan",
+    "latitude": 26.1445,
+    "longitude": 91.7362,
+    "storage_capacity": 6000.0,
+    "current_utilization": 1000.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_002",
+    "name": "Tezpur Forward Base",
+    "state": "Assam",
+    "district": "Sonitpur",
+    "latitude": 26.6528,
+    "longitude": 92.7926,
+    "storage_capacity": 4000.0,
+    "current_utilization": 2200.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_003",
+    "name": "Shillong Mountain Hub",
+    "state": "Meghalaya",
+    "district": "East Khasi Hills",
+    "latitude": 25.5788,
+    "longitude": 91.8933,
+    "storage_capacity": 3500.0,
+    "current_utilization": 1500.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_004",
+    "name": "Silchar Logistics Centre",
+    "state": "Assam",
+    "district": "Cachar",
+    "latitude": 24.8333,
+    "longitude": 92.7789,
+    "storage_capacity": 5000.0,
+    "current_utilization": 2000.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_005",
+    "name": "Jorhat Distribution Hub",
+    "state": "Assam",
+    "district": "Jorhat",
+    "latitude": 26.7509,
+    "longitude": 94.2037,
+    "storage_capacity": 4500.0,
+    "current_utilization": 1200.0,
+    "status": "ACTIVE"
+  }
+]

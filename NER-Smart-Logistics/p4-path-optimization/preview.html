@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NER Smart Logistics — Backend Demo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+ --bg:#07111f;--panel:#0c192b;--panel2:#101f34;--line:#20344d;
+ --text:#eef6ff;--muted:#8fa6bd;--cyan:#36d9ff;--green:#35d07f;
+ --amber:#ffc857;--red:#ff647c;--blue:#5b9dff
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 70% 0,#102d4a 0,#07111f 40%);
+ color:var(--text);font:14px Inter,system-ui,Segoe UI,Arial,sans-serif}
+.app{min-height:100vh;display:grid;grid-template-columns:380px 1fr}
+.side{padding:22px;border-right:1px solid var(--line);background:rgba(7,17,31,.94);overflow:auto}
+.brand{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),#4279ff);
+ display:grid;place-items:center;color:#00111d;font-weight:900}
+.brand h1{font-size:18px;margin:0}.brand p{margin:3px 0 0;color:var(--muted);font-size:11px}
+.label{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.12em;margin:14px 0 7px}
+input,select,button{width:100%;border:1px solid var(--line);border-radius:9px;background:#0a1626;color:var(--text);
+ padding:11px 12px;font:inherit}
+button{background:linear-gradient(135deg,#2dd9ff,#477dff);color:#00111d;font-weight:800;cursor:pointer;border:0;margin-top:15px}
+button:disabled{opacity:.6;cursor:wait}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.card{margin-top:15px;border:1px solid var(--line);background:rgba(16,31,52,.65);border-radius:12px;padding:13px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:#091727;border:1px solid var(--line);border-radius:9px;padding:10px}
+.stat b{display:block;font-size:18px;margin-top:3px}
+.small{font-size:11px;color:var(--muted)}
+.ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+.source{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid rgba(32,52,77,.6)}
+.source:last-child{border-bottom:0}
+.map{position:relative;min-height:100vh}#map{position:absolute;inset:0}
+.hud{position:absolute;z-index:500;top:18px;right:18px;width:min(430px,calc(100% - 36px));max-height:calc(100vh - 36px);
+ overflow:auto;background:rgba(7,17,31,.92);border:1px solid var(--line);border-radius:14px;padding:15px;backdrop-filter:blur(12px)}
+.route-title{font-size:18px;font-weight:800}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 8px;margin:4px 3px 0 0;font-size:11px;color:var(--muted)}
+.riskbar{height:8px;background:#15263a;border-radius:99px;overflow:hidden;margin-top:7px}
+.riskbar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--amber),var(--red))}
+.steps{max-height:210px;overflow:auto}
+.step{padding:8px 0;border-bottom:1px solid rgba(32,52,77,.6)}
+pre{white-space:pre-wrap;word-break:break-word;font-size:10px;color:#9edfff;max-height:250px;overflow:auto}
+.legend{position:absolute;z-index:600;bottom:18px;left:18px;background:rgba(7,17,31,.9);
+ border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--muted)}
+.legend span{display:inline-block;width:20px;height:4px;margin-right:5px;vertical-align:middle}
+.loading{color:var(--cyan)}
+.status{
+ margin-top:10px;padding:11px;border:1px solid var(--line);border-radius:9px;
+ background:#091727;line-height:1.45
+}
+.progress{height:5px;background:#15263a;border-radius:99px;overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;width:0;background:var(--cyan);transition:width .4s ease}
+.map-status{
+ position:absolute;z-index:700;top:18px;left:18px;padding:8px 11px;border-radius:9px;
+ background:rgba(7,17,31,.9);border:1px solid var(--line);font-size:11px
+}
+@media(max-width:900px){
+ .app{grid-template-columns:1fr}.side{position:absolute;z-index:800;width:min(380px,92vw);height:100vh}
+ .hud{right:12px;top:12px}.map{min-height:100vh}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+ <div class="brand">
+  <div class="logo">P4</div>
+  <div><h1>NER Smart Logistics</h1><p>Disaster-aware travelable-route engine</p></div>
+ </div>
+
+ <label class="label">Origin</label>
+ <input id="origin" value="Guwahati">
+
+ <label class="label">Destination</label>
+ <input id="dest" value="Tawang">
+
+ <div class="grid">
+  <div>
+   <label class="label">Priority</label>
+   <select id="priority">
+    <option>critical</option><option>high</option><option selected>medium</option><option>low</option>
+   </select>
+  </div>
+  <div>
+   <label class="label">Mode</label>
+   <select id="mode">
+    <option selected>road</option><option>multimodal</option>
+   </select>
+  </div>
+ </div>
+
+ <label class="label">Vehicle weight (tons)</label>
+ <input id="weight" type="number" min="0" step="0.1" value="10">
+
+ <button id="go" type="button">Optimize real travelable route</button>
+
+ <div id="optimizationStatus" class="status">
+  <b>Ready</b><br>
+  Enter your origin and destination, then click <b>Optimize real travelable route</b>.
+  <div class="progress"><i id="progressBar"></i></div>
+ </div>
+
+ <div class="card">
+  <div class="small">What this demo proves</div>
+  <p style="line-height:1.5;margin:7px 0 0">
+   The route is selected from mapped transport infrastructure, not a straight line.
+   Environmental and incident risk is evaluated on the mapped route candidates before the final route is selected. Every risk value is labelled by source/basis.
+  </p>
+ </div>
+
+ <div class="card">
+  <div class="small">DATA SOURCES</div>
+  <div id="sources">Loading provider status…</div>
+ </div>
+
+ <div class="card">
+  <div class="small">BACKEND HEALTH</div>
+  <div id="health" class="small">Checking…</div>
+ </div>
+
+ <div class="card">
+  <div class="small">LIVE DISASTER INTELLIGENCE</div>
+  <div id="newsStatus" class="small" style="margin-top:7px">Checking news feeds…</div>
+  <div id="newsList" style="margin-top:8px"></div>
+ </div>
+</aside>
+
+<main class="map">
+ <div id="map"></div>
+ <div id="mapStatus" class="map-status">🗺️ Loading map…</div>
+
+ <div class="hud">
+  <div class="route-title" id="title">Waiting for route</div>
+  <div id="summary" class="small" style="margin-top:5px">
+   Run an optimization to inspect the actual backend output.
+  </div>
+
+  <div id="stats" class="stats" style="margin-top:12px"></div>
+  <div id="risks" style="margin-top:12px"></div>
+  <div id="incidents" style="margin-top:12px"></div>
+  <div id="modes"></div>
+
+  <div class="card" style="margin-top:12px">
+   <div class="small">ROUTE SEGMENTS</div>
+   <div id="steps" class="steps"></div>
+  </div>
+
+  <div class="card">
+   <div class="small">RAW API RESPONSE</div>
+   <pre id="json">—</pre>
+  </div>
+ </div>
+
+ <div class="legend">
+  <div><span style="background:#36d9ff"></span>optimized route</div>
+  <div><span style="background:#3b82f6"></span>ferry / water</div>
+  <div><span style="background:#35d07f"></span>rail infrastructure</div>
+ </div>
+</main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/*
+ IMPORTANT:
+ The backend in your terminal is running on port 8001.
+ The request shown by your terminal is:
+ POST /api/routes/optimize
+*/
+const API = 'http://127.0.0.1:8001';
+const OPTIMIZE_ENDPOINT = API + '/api/routes/optimize';
+
+let map = L.map('map').setView([26.2,91.7],7);
+
+L.tileLayer(
+ 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+ {maxZoom:19,attribution:'© OpenStreetMap contributors'}
+).addTo(map);
+
+document.getElementById('mapStatus').innerHTML =
+ '<span class="ok">● Map loaded</span>';
+
+let routeLayer = null;
+let markers = L.layerGroup().addTo(map);
+
+const nrsc = L.tileLayer.wms(
+ 'https://bhuvan-vec2.nrsc.gov.in/bhuvan/wms',
+ {
+  layers:'disaster:RUOKKE_LHZ_01',
+  format:'image/png',
+  transparent:true,
+  opacity:.45,
+  version:'1.1.1'
+ }
+);
+
+L.control.layers(
+ null,
+ {'NRSC/ISRO landslide hazard':nrsc},
+ {collapsed:true}
+).addTo(map);
+
+function setStatus(message, type='loading', progress=null){
+ const box = document.getElementById('optimizationStatus');
+ const bar = document.getElementById('progressBar');
+
+ let cls = type === 'success' ? 'ok' :
+           type === 'error' ? 'bad' :
+           type === 'warning' ? 'warn' : 'loading';
+
+ box.innerHTML =
+   '<span class="' + cls + '">' + message + '</span>' +
+   '<div class="progress"><i id="progressBar"></i></div>';
+
+ if(progress !== null){
+   document.getElementById('progressBar').style.width =
+     Math.max(0,Math.min(100,progress)) + '%';
+ }
+}
+
+async function loadMeta(){
+ try{
+  const [h,m] = await Promise.all([
+   fetch(API+'/health'),
+   fetch(API+'/api/v1/data-sources')
+  ]);
+
+  const hd = await h.json();
+  const md = await m.json();
+
+  document.getElementById('health').innerHTML =
+   '<span class="ok">● API online</span> · OSM graph ' +
+   (hd.graph_loaded?'loaded':'lazy') + ' · ' +
+   (hd.nodes||0) + ' nodes / ' + (hd.edges||0) + ' edges';
+
+  const s = md.sources || {};
+
+  document.getElementById('sources').innerHTML =
+   Object.entries(s).map(([k,v]) =>
+    '<div class="source"><span>'+k+'</span><span class="' +
+    (v.enabled?'ok':'warn') + '">' +
+    (v.enabled?'● enabled':'○ optional / overlay') +
+    '</span></div>'
+   ).join('');
+ }catch(e){
+  document.getElementById('health').innerHTML =
+   '<span class="bad">● Backend unavailable</span><br>' +
+   '<span class="small">Make sure Uvicorn is running on port 8001.</span>';
+ }
+
+ try{
+  const ns = await fetch(API+'/api/v1/news/status');
+  const nd = await ns.json();
+
+  document.getElementById('newsStatus').innerHTML =
+   '<span class="ok">● Live feeds configured</span> · ' +
+   (nd.providers || []).join(' + ') + ' · ' +
+   (nd.lookback_hours || '?') + 'h lookback';
+ }catch(e){
+  document.getElementById('newsStatus').innerHTML =
+   '<span class="warn">○ News feed status unavailable</span>';
+ }
+}
+
+function pct(x){
+ return Math.round((x||0)*100);
+}
+
+function riskRow(name,v){
+ const p = pct(v);
+ return '<div style="margin:7px 0">' +
+  '<div style="display:flex;justify-content:space-between">' +
+  '<span>'+name+'</span><b>'+p+'%</b></div>' +
+  '<div class="riskbar"><i style="width:'+Math.min(100,p)+'%"></i></div>' +
+  '</div>';
+}
+
+async function optimize(){
+ const b = document.getElementById('go');
+
+ const source = document.getElementById('origin').value.trim();
+ const destination = document.getElementById('dest').value.trim();
+ const priority = document.getElementById('priority').value;
+ const mode = document.getElementById('mode').value;
+ const weight = Number(document.getElementById('weight').value);
+
+ if(!source || !destination){
+  setStatus('❌ Please enter both origin and destination.','error',0);
+  return;
+ }
+
+ b.disabled = true;
+ b.textContent = '⏳ Optimizing…';
+
+ document.getElementById('json').textContent = 'Waiting for backend response…';
+
+ setStatus('🔄 Connecting to routing backend…','loading',5);
+
+ try{
+  setStatus('📍 Geocoding origin and destination…','loading',15);
+
+  const payload = {
+   source: source,
+   destination: destination,
+   priority: priority,
+   transport_mode: mode,
+   constraints: {
+    avoid_high_risk_roads: true,
+    max_vehicle_weight_tons: weight
+   }
+  };
+
+  setStatus('🗺️ Loading real travelable transport network…','loading',30);
+
+  const r = await fetch(OPTIMIZE_ENDPOINT,{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify(payload)
+  });
+
+  let d;
+  const contentType = r.headers.get('content-type') || '';
+
+  if(contentType.includes('application/json')){
+   d = await r.json();
+  }else{
+   const text = await r.text();
+   d = {error:text || ('HTTP '+r.status)};
+  }
+
+  document.getElementById('json').textContent =
+   JSON.stringify(d,null,2);
+
+  if(!r.ok){
+   let message = d.detail || d.error || ('HTTP '+r.status);
+
+   if(r.status === 400){
+    message =
+     '❌ Backend rejected the request (400). ' +
+     'Check the RAW API RESPONSE below.';
+   }
+
+   throw new Error(message);
+  }
+
+  setStatus('🌦️ Risk data received — calculating optimized route…','loading',75);
+
+  renderResult(d);
+
+  setStatus('✅ Route optimization completed successfully!','success',100);
+  b.textContent = '✓ Route Optimized';
+
+  setTimeout(()=>{
+   b.textContent = 'Optimize real travelable route';
+  },2500);
+
+ }catch(e){
+  console.error('Optimization error:',e);
+
+  setStatus(
+   '❌ Optimization failed: ' + e.message,
+   'error',
+   0
+  );
+
+  b.textContent = 'Try Again';
+ }finally{
+  b.disabled = false;
+ }
+}
+
+function renderResult(d){
+ document.getElementById('title').textContent =
+  (d.origin || document.getElementById('origin').value) +
+  ' → ' +
+  (d.destination || document.getElementById('dest').value);
+
+ document.getElementById('summary').textContent =
+  (d.distance_km != null ? d.distance_km + ' km travelable network distance' : '') +
+  (d.eta_hours != null ? ' · ' + d.eta_hours + ' h estimated' : '') +
+  (d.generated_at ? ' · generated ' + d.generated_at : '');
+
+ document.getElementById('stats').innerHTML =
+  '<div class="stat"><span class="small">DISTANCE</span><b>' +
+  (d.distance_km ?? '—') + ' km</b></div>' +
+  '<div class="stat"><span class="small">TIME</span><b>' +
+  (d.eta_hours ?? '—') + ' h</b></div>' +
+  '<div class="stat"><span class="small">SAFETY</span><b class="ok">' +
+  (d.safety_score ?? '—') + '%</b></div>' +
+  '<div class="stat"><span class="small">RISK</span><b class="warn">' +
+  pct(d.route_risk) + '%</b></div>';
+
+ const weather = `
+  <div class="card">
+   <div class="small">🌦 WEATHER — LIVE FORECAST SIGNAL</div>
+   <div style="margin-top:7px"><b>${d.weather_condition || 'Unavailable'}</b></div>
+   <div class="small" style="margin-top:5px">
+    Rain probability: <b>${d.rain_probability ?? '—'}%</b> ·
+    Rainfall: <b>${d.rainfall_mm ?? '—'} mm</b>
+   </div>
+   <div class="small">
+    Temperature: <b>${d.temperature_c ?? '—'}°C</b> ·
+    Wind: <b>${d.wind_kmh ?? '—'} km/h</b>
+   </div>
+   ${riskRow('Weather risk signal',d.weather_risk)}
+  </div>`;
+
+ const flood = `
+  <div class="card">
+   <div class="small">🌊 FLOOD — HYDROLOGICAL MODEL SIGNAL</div>
+   ${riskRow('Flood risk signal',d.flood_risk)}
+   <div class="small">River discharge model value: ${d.river_discharge ?? '—'}</div>
+  </div>`;
+
+ const landslide = `
+  <div class="card">
+   <div class="small">⛰ LANDSLIDE SUSCEPTIBILITY</div>
+   ${riskRow('Susceptibility signal',d.landslide_risk)}
+   <div class="small">
+    Source: ${d.landslide_source || 'Unavailable'}
+    ${d.nrsc_landslide_risk != null ? ' · NRSC score: ' + pct(d.nrsc_landslide_risk) + '%' : ''}
+   </div>
+  </div>`;
+
+ const warnings = `
+  <div class="card">
+   <div class="small">🇮🇳 IMD WARNING</div>
+   ${riskRow('IMD warning signal',d.imd_warning_risk)}
+   <div class="small">${d.imd_warning || 'No matching spatial CAP warning returned.'}</div>
+  </div>`;
+
+ const news = `
+  <div class="card">
+   <div class="small">📰 LIVE DISASTER NEWS</div>
+   ${riskRow('News / incident signal',d.news_risk)}
+   <div class="small">News is corroborating evidence, not proof of a road closure.</div>
+  </div>`;
+
+ document.getElementById('risks').innerHTML =
+   weather + flood + landslide + warnings + news;
+
+ const inc = d.live_incidents || [];
+
+ document.getElementById('incidents').innerHTML =
+  inc.length ?
+  '<div class="card"><div class="small">LIVE / RECENT REPORTS NEAR ROUTE</div>' +
+  inc.map(e =>
+   '<div class="step"><b>' +
+   String(e.event_type || 'incident').replace('_',' ') +
+   '</b> · ' +
+   Math.round((e.severity||0)*100) +
+   '% signal · ' +
+   (e.distance_from_route_km ?? '—') +
+   ' km<br><span class="small">' +
+   (e.title || '') +
+   '</span><br><span class="small">' +
+   (e.source || '') + ' · ' +
+   (e.provider || '') +
+   (e.geocoded_from_query ? ' · Location matched: ' + e.geocoded_from_query : '') +
+   (e.published_at ? ' · ' + e.published_at : '') +
+   '</span>' +
+   (e.url ?
+    '<br><a href="'+e.url+'" target="_blank" rel="noopener" style="color:#36d9ff">Open report</a>'
+    : '') +
+   '</div>'
+  ).join('') +
+  '</div>' :
+  '<div class="card"><div class="small">LIVE / RECENT REPORTS NEAR ROUTE</div>' +
+  '<div class="small" style="margin-top:6px">' +
+  'No recent disaster report matched the route within the configured radius. ' +
+  'News feeds can be unavailable or may not contain a report for this route; this does not prove that the route is incident-free.' +
+  '</div></div>';
+
+ document.getElementById('modes').innerHTML =
+  (d.transit_modes || []).map(x =>
+   '<span class="pill">'+x+'</span>'
+  ).join('') ||
+  '<span class="pill">road</span>';
+
+ document.getElementById('steps').innerHTML =
+  (d.road_ids || []).slice(0,80).map((x,i) =>
+   '<div class="step"><b>'+(i+1)+'.</b> '+x+'</div>'
+  ).join('') ||
+  'No segments';
+
+ draw(d);
+}
+
+function draw(d){
+ markers.clearLayers();
+
+ if(routeLayer){
+  map.removeLayer(routeLayer);
+  routeLayer = null;
+ }
+
+ const c = d.route_coordinates || [];
+
+ if(c.length < 2){
+  document.getElementById('mapStatus').innerHTML =
+   '<span class="warn">⚠ Route geometry not returned</span>';
+  return;
+ }
+
+ routeLayer = L.polyline(c,{
+  color:'#36d9ff',
+  weight:6,
+  opacity:.9
+ }).addTo(map);
+
+ L.circleMarker(c[0],{
+  radius:8,
+  color:'#fff',
+  fillColor:'#35d07f',
+  fillOpacity:1
+ }).bindPopup(
+  'Origin: ' + (d.origin || '')
+ ).addTo(markers);
+
+ L.circleMarker(c[c.length-1],{
+  radius:8,
+  color:'#fff',
+  fillColor:'#ff647c',
+  fillOpacity:1
+ }).bindPopup(
+  'Destination: ' + (d.destination || '')
+ ).addTo(markers);
+
+ map.fitBounds(routeLayer.getBounds(),{
+  padding:[70,70]
+ });
+
+ document.getElementById('mapStatus').innerHTML =
+  '<span class="ok">● Actual route displayed</span>';
+}
+
+document.getElementById('go').addEventListener('click',optimize);
+
+loadMeta();
+setInterval(loadMeta,30000);
+
+// IMPORTANT: do NOT automatically call optimize() on page load.
+// The user should be able to see and click the button.
+</script>
+</body>
+</html>
+
