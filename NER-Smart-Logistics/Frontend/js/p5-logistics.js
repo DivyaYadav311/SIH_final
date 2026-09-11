@@ -5,70 +5,92 @@
  */
 
 const P5Logistics = {
-  shipmentList: [],
+  currentFilter: 'ALL',
 
   init() {
     this.renderShipmentsTable();
     this.bindForms();
   },
 
-  async renderShipmentsTable() {
+  setFilter(filterType) {
+    this.currentFilter = filterType;
+    this.renderShipmentsTable(false);
+  },
+
+  async renderShipmentsTable(fetchFromApi = true) {
     const tbody = document.getElementById("shipmentsTableBody");
     const kpiActive = document.getElementById("kpiActiveShipments");
     const kpiHighRisk = document.getElementById("kpiHighRiskShipments");
     const kpiRunway = document.getElementById("kpiDepotRunway");
     const kpiDepots = document.getElementById("kpiDepotsOnline");
 
-    let shipments = [];
-    try {
-      shipments = await PravahAPI.getShipments();
-    } catch (e) {
-      console.warn("P5 shipments fetch fallback:", e);
-    }
+    if (fetchFromApi || !this.shipmentList || this.shipmentList.length === 0) {
+      let shipments = [];
+      try {
+        shipments = await PravahAPI.getShipments();
+      } catch (e) {
+        console.warn("P5 shipments fetch fallback:", e);
+      }
 
-    if (!shipments || shipments.length === 0) {
-      shipments = [
-        {
-          shipment_id: "SHIP_NER_901",
-          priority: "CRITICAL",
-          origin: "Guwahati, Assam",
-          destination: "Tawang, Arunachal Pradesh",
-          cargo_type: "Medical / Emergency Relief",
-          quantity: 850,
-          route_risk: 0.42,
-          status: "ON_ROUTE",
-          eta: new Date(Date.now() + 5.5 * 3600 * 1000).toISOString()
-        },
-        {
-          shipment_id: "SHIP_NER_902",
-          priority: "HIGH",
-          origin: "Tezpur, Assam",
-          destination: "Itanagar, Arunachal Pradesh",
-          cargo_type: "Food Rations & Water",
-          quantity: 1200,
-          route_risk: 0.18,
-          status: "ON_ROUTE",
-          eta: new Date(Date.now() + 3.2 * 3600 * 1000).toISOString()
-        },
-        {
-          shipment_id: "SHIP_NER_903",
-          priority: "CRITICAL",
-          origin: "Silchar, Assam",
-          destination: "Aizawl, Mizoram",
-          cargo_type: "Fuel & Oil Spares",
-          quantity: 450,
-          route_risk: 0.38,
-          status: "DELAYED_HAZARD",
-          eta: new Date(Date.now() + 8.0 * 3600 * 1000).toISOString()
+      if (!shipments || shipments.length === 0) {
+        shipments = [
+          {
+            shipment_id: "SHIP_NER_901",
+            priority: "CRITICAL",
+            origin: "Guwahati, Assam",
+            destination: "Tawang, Arunachal Pradesh",
+            cargo_type: "Medical / Emergency Relief",
+            quantity: 850,
+            route_risk: 0.42,
+            status: "ON_ROUTE",
+            eta: new Date(Date.now() + 5.5 * 3600 * 1000).toISOString()
+          },
+          {
+            shipment_id: "SHIP_NER_902",
+            priority: "HIGH",
+            origin: "Tezpur, Assam",
+            destination: "Itanagar, Arunachal Pradesh",
+            cargo_type: "Food Rations & Water",
+            quantity: 1200,
+            route_risk: 0.18,
+            status: "ON_ROUTE",
+            eta: new Date(Date.now() + 3.2 * 3600 * 1000).toISOString()
+          },
+          {
+            shipment_id: "SHIP_NER_903",
+            priority: "CRITICAL",
+            origin: "Silchar, Assam",
+            destination: "Aizawl, Mizoram",
+            cargo_type: "Fuel & Oil Spares",
+            quantity: 450,
+            route_risk: 0.38,
+            status: "DELAYED_HAZARD",
+            eta: new Date(Date.now() + 8.0 * 3600 * 1000).toISOString()
+          }
+        ];
+      }
+
+      // Merge newly added local items that might not be on the remote server
+      if (this.shipmentList && this.shipmentList.length > 0) {
+        const existingIds = new Set(shipments.map(s => s.shipment_id));
+        for (const localShip of this.shipmentList) {
+          if (!existingIds.has(localShip.shipment_id)) {
+            shipments.unshift(localShip);
+          }
         }
-      ];
+      }
+
+      this.shipmentList = shipments;
     }
 
-    this.shipmentList = shipments;
+    let displayedShipments = this.shipmentList;
+    if (this.currentFilter === 'CRITICAL') {
+      displayedShipments = displayedShipments.filter(s => s.priority === "CRITICAL" || (s.route_risk || 0) > 0.30);
+    }
 
     // Calculate dynamic KPI card values
-    const totalActive = shipments.length;
-    const highRiskCount = shipments.filter(s => (s.route_risk || 0) > 0.30).length;
+    const totalActive = displayedShipments.length;
+    const highRiskCount = displayedShipments.filter(s => (s.route_risk || 0) > 0.30).length;
 
     if (kpiActive) kpiActive.textContent = totalActive;
     if (kpiHighRisk) kpiHighRisk.textContent = highRiskCount;
@@ -77,7 +99,7 @@ const P5Logistics = {
 
     if (!tbody) return;
 
-    tbody.innerHTML = shipments.map(s => {
+    tbody.innerHTML = displayedShipments.map(s => {
       let priorityClass = "info";
       if (s.priority === "CRITICAL") priorityClass = "danger";
       else if (s.priority === "HIGH") priorityClass = "warning";
@@ -148,20 +170,38 @@ const P5Logistics = {
           route_risk: computedRisk
         };
 
+        const newShipmentObj = {
+          shipment_id: payload.shipment_id,
+          priority: payload.priority,
+          origin: payload.origin,
+          destination: payload.destination,
+          cargo_type: payload.cargo_type,
+          quantity: payload.quantity,
+          route_risk: payload.route_risk,
+          status: payload.route_risk > 0.35 ? "DELAYED_HAZARD" : "ON_ROUTE",
+          eta: new Date(Date.now() + (payload.travel_time || 240) * 60000).toISOString()
+        };
+
         try {
           const res = await PravahAPI.createShipment(payload);
-          App.showToast(`✅ Shipment ${res.shipment_id || payload.shipment_id} evaluated & registered!`, "safe");
+          if (res) {
+            Object.assign(newShipmentObj, res);
+          }
+          App.showToast(`✅ Shipment ${newShipmentObj.shipment_id} evaluated & registered!`, "safe");
         } catch (err) {
           console.warn("Shipment creation fallback:", err);
-          this.shipmentList.unshift(payload);
-          App.showToast(`✅ Shipment ${payload.shipment_id} dispatched!`, "safe");
+          App.showToast(`✅ Shipment ${newShipmentObj.shipment_id} dispatched!`, "safe");
         }
+
+        // Add to the top of active shipments
+        if (!this.shipmentList) this.shipmentList = [];
+        this.shipmentList.unshift(newShipmentObj);
 
         // Regenerate new shipment ID for next submission
         const idInput = shipForm.querySelector("input[name='shipment_id']");
         if (idInput) idInput.value = `SHIP_NER_${Math.floor(900 + Math.random() * 99)}`;
 
-        this.renderShipmentsTable();
+        this.renderShipmentsTable(false);
       });
     }
 

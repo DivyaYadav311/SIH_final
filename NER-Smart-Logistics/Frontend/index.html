@@ -1659,8 +1659,8 @@
               <span>🚨</span> <span>Active Critical Relief Shipments & Convoy Tracking</span>
             </h3>
             <div style="display:flex;gap:6px;">
-              <button class="pill-btn active" style="font-size:10.5px;padding:3px 9px;">All Shipments</button>
-              <button class="pill-btn priority-critical" style="font-size:10.5px;padding:3px 9px;">Critical Only</button>
+              <button id="btnFilterAllShipments" class="pill-btn active" style="font-size:10.5px;padding:3px 9px;" onclick="document.querySelectorAll('#btnFilterAllShipments, #btnFilterCritShipments').forEach(b=>b.classList.remove('active')); this.classList.add('active'); P5Logistics.setFilter('ALL');">All Shipments</button>
+              <button id="btnFilterCritShipments" class="pill-btn priority-critical" style="font-size:10.5px;padding:3px 9px;" onclick="document.querySelectorAll('#btnFilterAllShipments, #btnFilterCritShipments').forEach(b=>b.classList.remove('active')); this.classList.add('active'); P5Logistics.setFilter('CRITICAL');">Critical Only</button>
             </div>
           </div>
 
