@@ -362,54 +362,6 @@ const PravahAPI = {
   },
 
   // --------------------------------------------------------------------------
-  // P6 — WHAT-IF SIMULATION
-  // --------------------------------------------------------------------------
-  async runWhatIfSimulation(payload) {
-    try {
-      const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/simulation/what-if`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(3000)
-      });
-      if (res.ok) return await res.json();
-    } catch (e) {}
-
-    // Simulated what-if fallback
-    const roadId = payload.road_id || "NH-13";
-    const affectedShipments = PRAVAH_CONFIG.SHIPMENTS.filter(s => s.priority === "CRITICAL" || Math.random() > 0.5);
-
-    return {
-      scenario_id: `SIM_${Date.now()}`,
-      scenario_type: payload.scenario_type || "LANDSLIDE_BLOCK",
-      road_id: roadId,
-      status: "COMPLETED",
-      impact_summary: {
-        severed_road_segments: [roadId],
-        affected_active_shipments: affectedShipments.length,
-        average_delay_hours: 4.8,
-        rerouting_viable: true
-      },
-      recommended_reroutes: [
-        {
-          corridor: "Bypass via NH-15 North Bank & Brahmaputra Corridor",
-          additional_distance_km: 74.2,
-          additional_time_hours: 2.2,
-          safety_gain_pct: 38
-        }
-      ],
-      affected_shipments: affectedShipments.map(s => ({
-        shipment_id: s.shipment_id,
-        current_eta: s.eta,
-        revised_eta: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
-        cargo: s.cargo_type,
-        priority: s.priority
-      })),
-      generated_at: new Date().toISOString()
-    };
-  },
-
-  // --------------------------------------------------------------------------
   // P5 — LOGISTICS & SUPPLY SHORTAGES
   // --------------------------------------------------------------------------
   async getShipments() {
@@ -511,63 +463,14 @@ const PravahAPI = {
           road_id: payload.road_id || "NH-13",
           warehouse_id: payload.warehouse_id || null
         }),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(120000)
       });
       if (res.ok) return await res.json();
     } catch (e) {
-      console.warn("What-If backend fetch fallback:", e);
+      console.warn("What-If backend request failed:", e);
     }
 
-    const road = payload.road_id || "NH-13";
-    const sc = payload.scenario_type || "LANDSLIDE_BLOCK";
-    const delayMin = sc === "LANDSLIDE_BLOCK" ? 300 : (sc === "BRIDGE_OUT" ? 420 : 240);
-    const delayHrs = parseFloat((delayMin / 60).toFixed(1));
-
-    return {
-      scenario_id: `SIM_${road.replace('-', '')}_${Date.now()}`,
-      scenario_type: sc,
-      road_id: road,
-      affected_roads: [road],
-      affected_shipments: 2,
-      delayed_shipments: 2,
-      affected_districts: 1,
-      additional_delay_minutes: delayMin,
-      average_delay_hours: delayHrs,
-      shortage_risk_change: 0.38,
-      recommended_route_id: `REROUTE_${road}_ALT`,
-      recommended_reroutes: [
-        {
-          corridor: road.includes("13") ? "Bypass via NH-15 North Bank Expressway & Balipara Ridge" : (road.includes("27") ? "Bypass via NH-715 Southern Valley Axis" : "Secondary State Highway Bypass Axis"),
-          additional_distance_km: road.includes("13") ? 42.5 : 28.0,
-          additional_time_hours: parseFloat((delayHrs * 0.35).toFixed(1)),
-          safety_gain_pct: road.includes("13") ? 38 : 45
-        }
-      ],
-      affected_shipments_detail: [
-        {
-          shipment_id: `SHIP_${road.replace('-', '')}_101`,
-          priority: "CRITICAL",
-          cargo: "🏥 Emergency Medical Supplies & Vaccines",
-          origin: "Guwahati Central Depot",
-          destination: road.includes("13") ? "Tawang Relief Hub" : "Shillong Army Base",
-          current_eta: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
-          revised_eta: new Date(Date.now() + (2 + delayHrs) * 3600 * 1000).toISOString(),
-          delay_hours: delayHrs
-        },
-        {
-          shipment_id: `SHIP_${road.replace('-', '')}_102`,
-          priority: "HIGH",
-          cargo: "🍞 Emergency Dry Food Rations & Water",
-          origin: "Tezpur Forward Base",
-          destination: road.includes("13") ? "Bomdila Base" : "Itanagar Base",
-          current_eta: new Date(Date.now() + 3.5 * 3600 * 1000).toISOString(),
-          revised_eta: new Date(Date.now() + (3.5 + delayHrs) * 3600 * 1000).toISOString(),
-          delay_hours: delayHrs
-        }
-      ],
-      generated_at: new Date().toISOString(),
-      data_provenance: { shipments: "live_client", routing_engine: "p4_osrm_live" }
-    };
+    return null;
   }
 };
 

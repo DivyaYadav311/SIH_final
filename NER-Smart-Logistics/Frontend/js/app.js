@@ -23,6 +23,12 @@ const App = {
 
     this.updateBackendHealth();
     setInterval(() => this.updateBackendHealth(), 15000);
+
+    window.addEventListener("resize", () => {
+      if (PravahMap && PravahMap.map) {
+        PravahMap.map.invalidateSize();
+      }
+    });
   },
 
   // --------------------------------------------------------------------------
@@ -135,9 +141,19 @@ const App = {
         }
       }
     }
-    if (tabId === "overview") {
-      P6ControlTower.renderOverviewStats();
+  if (tabId === "overview") {
+  P6ControlTower.renderOverviewStats();
+
+  setTimeout(() => {
+    if (window.OverviewMiniMap) {
+      window.OverviewMiniMap.init();
+
+      if (window.OverviewMiniMap.map) {
+        window.OverviewMiniMap.map.invalidateSize();
+      }
     }
+  }, 150);
+}
     if (tabId === "logistics") {
       P5Logistics.renderShipmentsTable();
     }

@@ -1,4 +1,4 @@
-"""Optional HTTP clients for P4 routing and P5 logistics. Fail closed to snapshots."""
+"""Optional HTTP clients for P4 routing and P5 logistics."""
 from __future__ import annotations
 
 import logging
@@ -32,26 +32,54 @@ def fetch_p5_shipments() -> list[dict[str, Any]] | None:
         return None
 
 
-def request_p4_alternative(origin: dict[str, float], destination: dict[str, float]) -> str | None:
+def _origin_destination_payload(origin: Any, destination: Any) -> dict[str, Any]:
+    body: dict[str, Any] = {}
+    if isinstance(origin, dict):
+        body["origin"] = origin
+    elif origin not in (None, ""):
+        body["origin"] = str(origin)
+    if isinstance(destination, dict):
+        body["destination"] = destination
+    elif destination not in (None, ""):
+        body["destination"] = str(destination)
+    return body
+
+
+def request_p4_route(
+    origin: Any,
+    destination: Any,
+    *,
+    cargo_type: str | None = None,
+    priority: str | None = None,
+    avoid_high_risk_roads: bool | None = None,
+) -> dict[str, Any] | None:
+    """Return the full P4 optimize payload, or None if routing is unavailable."""
     base = p4_base_url()
     if not base:
         return None
+    body = _origin_destination_payload(origin, destination)
+    if not body.get("origin") or not body.get("destination"):
+        return None
+    if cargo_type:
+        body["cargo_type"] = str(cargo_type).lower()
+    if priority:
+        body["priority"] = str(priority).lower()
+    if avoid_high_risk_roads is not None:
+        body["constraints"] = {"avoid_high_risk_roads": bool(avoid_high_risk_roads)}
     try:
-        with httpx.Client(timeout=20.0, follow_redirects=True) as client:
-            r = client.post(
-                f"{base}/api/v1/routes/optimize",
-                json={
-                    "origin": origin,
-                    "destination": destination,
-                    "cargo_type": "MEDICINE",
-                    "priority": "CRITICAL",
-                    "constraints": {"avoid_high_risk_roads": True},
-                },
-            )
+        with httpx.Client(timeout=60.0, follow_redirects=True) as client:
+            r = client.post(f"{base}/api/v1/routes/optimize", json=body)
             r.raise_for_status()
             payload = r.json()
-        route_id = payload.get("route_id")
-        return str(route_id) if route_id else None
+        return payload if isinstance(payload, dict) else None
     except Exception as exc:
         log.warning("P4 optimize unavailable: %s", exc)
         return None
+
+
+def request_p4_alternative(origin: Any, destination: Any) -> str | None:
+    payload = request_p4_route(origin, destination, avoid_high_risk_roads=True)
+    if not payload:
+        return None
+    route_id = payload.get("route_id")
+    return str(route_id) if route_id else None

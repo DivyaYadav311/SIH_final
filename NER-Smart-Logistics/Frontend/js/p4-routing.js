@@ -286,6 +286,22 @@ const P4Routing = {
         });
       }
     });
+
+    // Map Layers Toggle Button & Close
+    const btnToggleLayers = document.getElementById("btnToggleMapLayers");
+    const btnCloseLayers = document.getElementById("btnCloseMapLayers");
+    const layersWidget = document.getElementById("mapLayersWidget");
+    if (btnToggleLayers && layersWidget) {
+      btnToggleLayers.addEventListener("click", () => {
+        const isHidden = layersWidget.style.display === "none";
+        layersWidget.style.display = isHidden ? "block" : "none";
+      });
+    }
+    if (btnCloseLayers && layersWidget) {
+      btnCloseLayers.addEventListener("click", () => {
+        layersWidget.style.display = "none";
+      });
+    }
   },
 
   /**
@@ -575,10 +591,109 @@ const P4Routing = {
         routeStatusBadge.textContent = "🛡️ Safest Highway (Low Hazard Bypass)";
       } else {
         routeStatusBadge.className = "status-badge safe";
-        routeStatusBadge.textContent = "🛡️ Safest Corridor (Verified Paved Highway)";
+        routeStatusBadge.textContent = "● Feasible Route";
       }
     }
 
+    // Presentation-only bindings for command center layout
+    const origShort = (data.origin || "").split(",")[0].trim();
+    const destShort = (data.destination || "").split(",")[0].trim();
+    const timelineOrig = document.getElementById("timelineOriginLabel");
+    const timelineDest = document.getElementById("timelineDestLabel");
+    const timelineDep = document.getElementById("timelineDepartureLabel");
+    const timelineSegment = document.getElementById("timelineCorridorSegment");
+
+    if (timelineOrig) timelineOrig.textContent = `${origShort} (Start)`;
+    if (timelineDest) timelineDest.textContent = `${destShort} (Destination)`;
+    const depTime = document.getElementById("inputDepartureTime")?.value || "08:30";
+    if (timelineDep) timelineDep.textContent = `🕒 ${depTime}`;
+    if (timelineSegment) {
+      const roadName = (data.road_ids && data.road_ids.length > 0) ? data.road_ids.join(" / ") : "NH Corridor Highway";
+      timelineSegment.textContent = `${roadName} (${data.distance_km} km)`;
+    }
+
+    // Route Condition Callout
+    const condCallout = document.getElementById("routeConditionCallout");
+    const condStatus = document.getElementById("routeConditionStatus");
+    const condDesc = document.getElementById("routeConditionDesc");
+    if (condCallout && condStatus && condDesc) {
+      if (pipelineRes && pipelineRes.is_adapted) {
+        condCallout.className = "route-condition-box warning";
+        condStatus.textContent = "Route Condition: Hazard Bypass Active";
+        condDesc.textContent = "Autonomous detour applied to bypass unstable terrain.";
+      } else if (data.route_risk > 0.35) {
+        condCallout.className = "route-condition-box warning";
+        condStatus.textContent = "Route Condition: Caution Advised";
+        condDesc.textContent = "Elevated weather / road disturbance along corridor. Monitored transit.";
+      } else {
+        condCallout.className = "route-condition-box clear";
+        condStatus.textContent = "Route Condition: Clear";
+        condDesc.textContent = "Direct paved highway corridor. Nominal transit flow.";
+      }
+    }
+
+    // Route Risk Analysis
+    const riskIndexVal = document.getElementById("riskIndexVal");
+    const riskIndexPill = document.getElementById("riskIndexPill");
+    const riskSafetyText = document.getElementById("riskSafetyText");
+    const riskDonutCircle = document.getElementById("riskDonutCircle");
+    const riskSafePct = document.getElementById("riskSafePct");
+    const riskFloodPct = document.getElementById("riskFloodPct");
+    const riskLandslidePct = document.getElementById("riskLandslidePct");
+    const riskWeatherPct = document.getElementById("riskWeatherPct");
+
+    const rRisk = data.route_risk !== undefined ? Number(data.route_risk) : 0.18;
+    const safetyScore = data.safety_score !== undefined ? Math.round(Number(data.safety_score)) : Math.round((1 - rRisk) * 100);
+
+    if (riskIndexVal) riskIndexVal.textContent = rRisk.toFixed(2);
+    if (riskIndexPill) {
+      if (rRisk < 0.25) {
+        riskIndexPill.className = "risk-level-badge low";
+        riskIndexPill.textContent = "● Low";
+      } else if (rRisk < 0.45) {
+        riskIndexPill.className = "risk-level-badge caution";
+        riskIndexPill.textContent = "● Caution";
+      } else {
+        riskIndexPill.className = "risk-level-badge danger";
+        riskIndexPill.textContent = "● High Risk";
+      }
+    }
+
+    if (riskSafetyText) riskSafetyText.textContent = `${safetyScore}%`;
+    if (riskDonutCircle) {
+      const circ = 238.76;
+      const offset = circ - (safetyScore / 100) * circ;
+      riskDonutCircle.setAttribute("stroke-dashoffset", offset);
+      riskDonutCircle.setAttribute("stroke", safetyScore >= 70 ? "#0e9f6e" : (safetyScore >= 50 ? "#d97706" : "#dc2626"));
+    }
+
+    if (riskSafePct) riskSafePct.textContent = `${safetyScore}%`;
+    if (riskFloodPct) riskFloodPct.textContent = `${Math.round((data.flood_risk || 0.12) * 100)}%`;
+    if (riskLandslidePct) riskLandslidePct.textContent = `${Math.round((data.landslide_risk || 0.15) * 100)}%`;
+    if (riskWeatherPct) riskWeatherPct.textContent = `${Math.round((data.weather_risk || 0.10) * 100)}%`;
+
+    // Alternative routes presentation
+    const altContent = document.getElementById("altRoutesContent");
+    if (altContent) {
+      if (data.alternative_routes && Array.isArray(data.alternative_routes) && data.alternative_routes.length > 0) {
+        altContent.innerHTML = data.alternative_routes.map((alt, idx) => `
+          <div class="alt-route-card" style="padding:8px 10px;border-radius:6px;border-left:3px solid #f59e0b;background:var(--bg-surface-subtle);display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <b style="font-size:11px;color:var(--text-primary);">Route ${String.fromCharCode(66 + idx)} (${alt.label || 'Alternative'})</b>
+              <div style="font-size:9.5px;color:var(--text-muted);">${alt.distance_km || '—'} km · ${alt.duration_formatted || '—'}</div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:#d97706;">Risk: ${(alt.route_risk || 0.35).toFixed(2)} →</span>
+          </div>
+        `).join("");
+      } else {
+        altContent.innerHTML = `
+          <div class="alt-route-empty-state">
+            <span>🛣️</span>
+            <p>Direct corridor verified optimal. No alternative detours required.</p>
+          </div>
+        `;
+      }
+    }
 
     // Sync header navbar weather pill to match origin area
     this.updateNavbarWeather(data.origin, data.temperature_c);

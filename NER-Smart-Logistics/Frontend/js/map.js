@@ -584,3 +584,58 @@ const PravahMap = {
     this.map.flyTo([lat, lng], Math.max(this.map.getZoom(), 11), { duration: 1.2 });
   }
 };
+window.OverviewMiniMap = {
+    map: null,
+
+    init() {
+        const container = document.getElementById('overviewMiniMap');
+
+        if (!container) return;
+
+        // Prevent duplicate initialization
+        if (this.map) {
+            setTimeout(() => this.map.invalidateSize(), 100);
+            return;
+        }
+
+        this.map = L.map('overviewMiniMap', {
+            zoomControl: false,
+            attributionControl: true
+        }).setView([26.2, 92.5], 7);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.map);
+
+        setTimeout(() => {
+            this.map.invalidateSize();
+        }, 200);
+    },
+
+    zoomIn() {
+        if (this.map) {
+            this.map.zoomIn();
+        }
+    },
+
+    zoomOut() {
+        if (this.map) {
+            this.map.zoomOut();
+        }
+    }
+};
+
+function switchTab(tabName) {
+    if (tabName === 'overview') {
+        setTimeout(() => {
+            if (window.OverviewMiniMap) {
+                window.OverviewMiniMap.init();
+
+                if (window.OverviewMiniMap.map) {
+                    window.OverviewMiniMap.map.invalidateSize();
+                }
+            }
+        }, 150);
+    }
+}

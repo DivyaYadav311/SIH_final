@@ -86,6 +86,10 @@ const P5Logistics = {
     let displayedShipments = this.shipmentList;
     if (this.currentFilter === 'CRITICAL') {
       displayedShipments = displayedShipments.filter(s => s.priority === "CRITICAL" || (s.route_risk || 0) > 0.30);
+    } else if (this.currentFilter === 'IN_TRANSIT') {
+      displayedShipments = displayedShipments.filter(s => (s.status || '').toUpperCase().includes('ROUTE') || (s.status || '').toUpperCase().includes('TRANSIT') || (s.status || '').toUpperCase().includes('DELAYED'));
+    } else if (this.currentFilter === 'DELIVERED') {
+      displayedShipments = displayedShipments.filter(s => (s.status || '').toUpperCase().includes('DELIVERED'));
     }
 
     // Calculate dynamic KPI card values
@@ -120,6 +124,13 @@ const P5Logistics = {
         statusLabel = "✅ DELIVERED";
       }
 
+      let cargoIcon = "📦";
+      const cargoLower = (s.cargo_type || "").toLowerCase();
+      if (cargoLower.includes("med")) cargoIcon = "💊";
+      else if (cargoLower.includes("food") || cargoLower.includes("ration")) cargoIcon = "🍞";
+      else if (cargoLower.includes("fuel") || cargoLower.includes("oil")) cargoIcon = "⛽";
+      else if (cargoLower.includes("water")) cargoIcon = "💧";
+
       const riskPct = Math.round((s.route_risk || 0.15) * 100);
       const etaDate = new Date(s.eta || Date.now() + 4 * 3600 * 1000);
       const timeStr = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -127,14 +138,15 @@ const P5Logistics = {
 
       return `
         <tr>
-          <td><b>${s.shipment_id}</b><div style="font-size:10px;color:var(--text-muted);">${s.cargo_type || 'Relief Cargo'}</div></td>
+          <td><b class="p5-shipment-id">${s.shipment_id}</b></td>
+          <td><span class="p5-cargo-cell"><span class="p5-cargo-icon">${cargoIcon}</span> <span>${s.cargo_type || 'Relief Cargo'}</span></span></td>
           <td><span class="status-badge ${priorityClass}">${s.priority}</span></td>
           <td><b>${s.origin}</b> ➔ <b>${s.destination}</b></td>
           <td><span style="font-weight:700;color:${riskPct > 35 ? 'var(--status-danger)' : (riskPct > 20 ? 'var(--status-warning)' : 'var(--status-safe)')};">${riskPct}%</span></td>
           <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
           <td><b>${timeStr}</b> <span style="font-size:10.5px;color:var(--text-muted);">(${dateStr})</span></td>
           <td>
-            <button class="btn-primary" style="padding:4px 10px;font-size:10.5px;" onclick="P5Logistics.inspectShipment('${s.shipment_id}', '${s.origin}', '${s.destination}')">Track Route ➔</button>
+            <button class="btn-primary p5-track-btn" onclick="P5Logistics.inspectShipment('${s.shipment_id}', '${s.origin}', '${s.destination}')">Track Route ➔</button>
           </td>
         </tr>
       `;

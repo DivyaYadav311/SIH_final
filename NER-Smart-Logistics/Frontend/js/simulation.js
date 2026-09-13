@@ -1,11 +1,14 @@
 /**
  * PRAVAH — What-If Simulation Engine
- * 100% Dynamic Real-Time Multi-Hazard Disruption Modeler & Cascade Rerouter
+ * Multi-hazard disruption modeler using P6 simulation results (P5 shipments + P4 routes).
  */
 
 const WhatIfSimulation = {
+  map: null,
+
   init() {
     this.bindEvents();
+    this.renderInitialDashboard();
   },
 
   bindEvents() {
@@ -27,7 +30,7 @@ const WhatIfSimulation = {
         try {
           res = await PravahAPI.runWhatIfSimulation({ scenario_type: scenarioType, road_id: roadId });
         } catch (err) {
-          console.warn("What-If simulation client fallback:", err);
+          console.warn("What-If simulation request failed:", err);
         }
 
         if (btn) {
@@ -35,169 +38,182 @@ const WhatIfSimulation = {
           btn.innerHTML = `<span>⚡</span> <span>Run Scenario Simulation</span>`;
         }
 
-        this.renderSimulationResults(res, scenarioType, roadId);
-        App.showToast(`✅ Simulation scenario complete: ${res ? res.scenario_id : 'SIM_OUT'}`, "safe");
+        if (res) {
+          const serviceError = Array.isArray(res.errors) && res.errors.length
+            ? res.errors.join(" ")
+            : "";
+          this.setServiceStatus(serviceError);
+          this.renderSimulationResults(res, scenarioType, roadId);
+          App.showToast(`Simulation scenario complete: ${res.scenario_id || "completed"}`, "safe");
+        } else {
+          this.setServiceStatus("Unable to retrieve simulation results. Please check the P6 service.");
+          App.showToast("Unable to retrieve simulation results. Please check the P6 service.", "warning");
+        }
+      });
+
+      form.addEventListener("reset", () => {
+        this.setServiceStatus();
+        this.destroyMap();
+        this.renderInitialDashboard();
       });
     }
+  },
+
+  setServiceStatus(message = "") {
+    const status = document.getElementById("simulationServiceStatus");
+    if (!status) return;
+    status.hidden = !message;
+    status.textContent = message;
+  },
+
+  destroyMap() {
+    if (this.map) {
+      this.map.remove();
+      this.map = null;
+    }
+  },
+
+  renderRouteMap(coordinates) {
+    const el = document.getElementById("whatIfScenarioMap");
+    if (!el || !window.L) return false;
+    this.destroyMap();
+    this.map = L.map(el, { zoomControl: false });
+    L.control.zoom({ position: "bottomright" }).addTo(this.map);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    }).addTo(this.map);
+    const line = L.polyline(coordinates, {
+      color: "#2563eb",
+      weight: 5.5,
+      opacity: 0.95,
+      lineJoin: "round"
+    });
+    const glow = L.polyline(coordinates, {
+      color: "#93c5fd",
+      weight: 9,
+      opacity: 0.45,
+      lineJoin: "round"
+    });
+    glow.addTo(this.map);
+    line.addTo(this.map);
+    this.map.fitBounds(line.getBounds(), { padding: [24, 24] });
+    setTimeout(() => this.map && this.map.invalidateSize(), 80);
+    return true;
+  },
+
+  renderInitialDashboard() {
+    const container = document.getElementById("simulationResultContainer");
+    if (!container) return;
+    this.destroyMap();
+    container.style.display = "block";
+    container.innerHTML = `
+      <div class="whatif-results-shell whatif-awaiting-dashboard">
+        <div class="whatif-metric-grid">
+          <div class="whatif-metric-card roads"><span>▥</span><div><b>—</b><strong>Affected road segments</strong><small>Run a scenario to view results.</small></div></div>
+          <div class="whatif-metric-card detour"><span>⌁</span><div><b>—</b><strong>Estimated detour</strong><small>Run a scenario to view results.</small></div></div>
+          <div class="whatif-metric-card delay"><span>◷</span><div><b>—</b><strong>Additional travel time</strong><small>Run a scenario to view results.</small></div></div>
+          <div class="whatif-metric-card shipments"><span>♟</span><div><b>—</b><strong>Shipments impacted</strong><small>Run a scenario to view results.</small></div></div>
+        </div>
+        <div class="whatif-dashboard-grid">
+          <section class="whatif-panel whatif-parameters-card"><h3><span aria-hidden="true">⚙</span> Hazard Parameters</h3><p class="whatif-panel-subtitle">Controls are available above; impact values appear after a run.</p><div class="whatif-inline-empty">Run a scenario to view results.</div></section>
+          <section class="whatif-panel whatif-map-card"><div class="whatif-panel-heading"><div><h3><span aria-hidden="true">⌖</span> Scenario Impact Map</h3><p>Route geometry is shown when supplied by the simulation.</p></div><span class="whatif-map-status">AWAITING RUN</span></div><div class="whatif-map-empty"><span aria-hidden="true">⌖</span><strong>Impact geometry unavailable</strong><p>Run a scenario to view results.</p></div></section>
+          <aside class="whatif-panel whatif-decision-card"><h3><span aria-hidden="true">▤</span> Simulation Results</h3><p class="whatif-panel-subtitle">Decision support from the completed run</p><div class="whatif-inline-empty">Run a scenario to view results.</div></aside>
+        </div>
+        <div class="whatif-bottom-grid">
+          <section class="whatif-panel whatif-shipments-card"><h3><span aria-hidden="true">♟</span> Potentially Impacted Shipments</h3><div class="whatif-inline-empty">Run a scenario to view results.</div></section>
+          <aside class="whatif-panel whatif-insights-card"><h3><span aria-hidden="true">✦</span> Key Insights</h3><div class="whatif-inline-empty">Run a scenario to view results.</div></aside>
+        </div>
+      </div>
+    `;
   },
 
   renderSimulationResults(res, scenarioType, roadId) {
     const container = document.getElementById("simulationResultContainer");
     if (!container) return;
 
-    // Fallbacks if res is raw object
-    const scenario = (res && res.scenario_type) ? res.scenario_type : scenarioType;
-    const road = (res && res.road_id) ? res.road_id : roadId;
-    const scenarioId = (res && res.scenario_id) ? res.scenario_id : `SIM_${road.replace('-', '')}_101`;
-    const affectedCount = (res && (res.affected_shipments !== undefined)) ? (typeof res.affected_shipments === 'number' ? res.affected_shipments : res.affected_shipments.length) : 2;
-    const avgDelayHrs = (res && res.average_delay_hours !== undefined) ? res.average_delay_hours : (res && res.additional_delay_minutes ? (res.additional_delay_minutes/60).toFixed(1) : 4.5);
-    const shortageRisk = (res && res.shortage_risk_change !== undefined) ? Math.round(res.shortage_risk_change * 100) : 38;
-
-    const reroutes = (res && res.recommended_reroutes && res.recommended_reroutes.length > 0) ? res.recommended_reroutes : [
-      {
-        corridor: road.includes("13") ? "Bypass via NH-15 North Bank Expressway & Balipara Ridge" : (road.includes("27") ? "Bypass via NH-715 Southern Valley Axis" : "Secondary State Highway Bypass Axis"),
-        additional_distance_km: road.includes("13") ? 42.5 : 28.0,
-        additional_time_hours: parseFloat((avgDelayHrs * 0.35).toFixed(1)),
-        safety_gain_pct: road.includes("13") ? 38 : 45
-      }
-    ];
-
-    const shipmentsDetail = (res && res.affected_shipments_detail && res.affected_shipments_detail.length > 0) ? res.affected_shipments_detail : [
-      {
-        shipment_id: `SHIP_${road.replace('-', '')}_901`,
-        priority: "CRITICAL",
-        cargo: "🏥 Emergency Medical Supplies & Vaccines",
-        origin: "Guwahati Central Hub",
-        destination: road.includes("13") ? "Tawang Forward Relief Station" : "Shillong Army Base",
-        current_eta: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
-        revised_eta: new Date(Date.now() + (2 + Number(avgDelayHrs)) * 3600 * 1000).toISOString(),
-        delay_hours: avgDelayHrs
-      },
-      {
-        shipment_id: `SHIP_${road.replace('-', '')}_902`,
-        priority: "HIGH",
-        cargo: "🍞 Emergency Dry Food Rations & Water Packs",
-        origin: "Tezpur Depot",
-        destination: road.includes("13") ? "Bomdila Base" : "Itanagar Base",
-        current_eta: new Date(Date.now() + 3.5 * 3600 * 1000).toISOString(),
-        revised_eta: new Date(Date.now() + (3.5 + Number(avgDelayHrs)) * 3600 * 1000).toISOString(),
-        delay_hours: avgDelayHrs
-      }
-    ];
+    const escapeHtml = (value) => String(value ?? "N/A").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+    const unavailable = (label = "Data unavailable") => `<span title="${escapeHtml(label)}">N/A</span>`;
+    const scenario = String(res.scenario_type || scenarioType || "").replaceAll("_", " ");
+    const roads = Array.isArray(res.affected_roads) ? res.affected_roads : [];
+    const delayMinutes = Number(res.additional_delay_minutes);
+    const delayText = Number.isFinite(delayMinutes) ? `${Math.floor(delayMinutes / 60)} h ${delayMinutes % 60} m` : unavailable("Average delay cannot be calculated from available P4/P5 data.");
+    const risk = typeof res.shortage_risk_change === "number" ? `${Math.round(res.shortage_risk_change * 100)}%` : unavailable("Shortage risk cannot be calculated from available backend data.");
+    const metricValue = (value) => Number.isFinite(Number(value)) ? value : unavailable();
+    const reroute = res.alternative_route || (Array.isArray(res.recommended_reroutes) ? res.recommended_reroutes.find(Boolean) : null);
+    const detourDistance = Number(reroute?.additional_distance_km);
+    const routeDistance = Number(reroute?.distance_km);
+    const detourText = Number.isFinite(detourDistance)
+      ? `${detourDistance} km`
+      : (Number.isFinite(routeDistance) ? `${routeDistance} km` : unavailable("No P4 route distance was returned."));
+    const shipmentRows = Array.isArray(res.affected_shipments_detail) ? res.affected_shipments_detail : [];
+    const coordinates = Array.isArray(res.route_coordinates) ? res.route_coordinates : (Array.isArray(reroute?.route_coordinates) ? reroute.route_coordinates : []);
+    const hasGeometry = coordinates.length >= 2;
+    const insights = [];
+    const affectedShipmentCount = Number(res.affected_shipments);
+    if (roads.length) {
+      insights.push(`Simulation identifies ${roads.length} affected road segment${roads.length === 1 ? "" : "s"} on ${res.road_id || roadId}.`);
+    }
+    if (Number.isFinite(delayMinutes)) {
+      insights.push(`Average additional travel time from P4 original vs alternative times is ${Math.floor(delayMinutes / 60)} h ${delayMinutes % 60} m.`);
+    }
+    if (Number.isFinite(affectedShipmentCount)) {
+      insights.push(`${affectedShipmentCount} shipment${affectedShipmentCount === 1 ? " is" : "s are"} included in this impact assessment.`);
+    }
+    if (reroute?.route_id || reroute?.corridor || res.recommended_route_id) {
+      insights.push("A P4 routing option was returned for the selected scenario.");
+    }
+    if (typeof res.shortage_risk_change === "number") {
+      insights.push(`The reported shortage-risk change is ${Math.round(res.shortage_risk_change * 100)}%.`);
+    }
+    const formatDate = (value) => {
+      if (!value) return "N/A";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    };
+    const displayField = (value) => (value === undefined || value === null || value === "") ? "N/A" : escapeHtml(value);
+    const shipmentTable = shipmentRows.length ? `
+      <div class="whatif-shipments-table-wrap">
+        <table class="whatif-shipments-table">
+          <thead><tr><th>Shipment ID</th><th>Origin</th><th>Destination</th><th>Current ETA</th><th>Simulated ETA</th><th>Delay</th><th>Status</th></tr></thead>
+          <tbody>${shipmentRows.map((shipment) => {
+            const delay = Number(shipment.delay_hours);
+            const delayLabel = Number.isFinite(delay) ? `${delay} h` : "N/A";
+            return `<tr><td><strong>${displayField(shipment.shipment_id)}</strong></td><td>${displayField(shipment.origin)}</td><td>${displayField(shipment.destination)}</td><td>${escapeHtml(formatDate(shipment.current_eta))}</td><td>${escapeHtml(formatDate(shipment.revised_eta))}</td><td class="whatif-delay-cell">${escapeHtml(delayLabel)}</td><td>${shipment.status || shipment.priority ? `<span class="status-badge ${String(shipment.priority || shipment.status).toUpperCase() === "CRITICAL" ? "danger" : "warning"}">${escapeHtml(shipment.status || shipment.priority)}</span>` : "N/A"}</td></tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>` : `<div class="whatif-inline-empty">0 affected shipments</div>`;
+    const routeRisk = typeof reroute?.route_risk === "number" ? `${Math.round(reroute.route_risk * 100)}%` : (reroute?.risk_level ? escapeHtml(reroute.risk_level) : unavailable("No P4 risk value was returned."));
+    const mapBody = hasGeometry
+      ? `<div id="whatIfScenarioMap" style="flex:1;min-height:266px;margin-top:10px;border-radius:9px;"></div>`
+      : `<div class="whatif-map-empty"><span aria-hidden="true">⌖</span><strong>Route geometry unavailable for this scenario.</strong><p>The P4 routing response did not include route_coordinates for this run.</p></div>`;
 
     container.style.display = "block";
     container.innerHTML = `
-      <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:22px;box-shadow:var(--shadow-md);">
-        
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid var(--border-subtle);padding-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="status-badge danger">DISRUPTION CASCADE EVALUATION</span>
-              <span style="font-size:11px;color:var(--text-muted);">Real-Time P4 & P6 Physical Graph Compute</span>
-            </div>
-            <h3 style="font-size:17px;font-weight:800;color:var(--text-primary);margin-top:4px;">
-              Scenario: ${scenario.replace('_', ' ')} on ${road} Corridor
-            </h3>
-          </div>
-          <div style="font-size:11px;color:var(--text-muted);background:var(--bg-surface-subtle);padding:4px 10px;border-radius:6px;border:1px solid var(--border-subtle);">
-            Scenario Run ID: <b>${scenarioId}</b>
-          </div>
+      <div class="whatif-results-shell">
+        <div class="whatif-metric-grid">
+          <div class="whatif-metric-card roads"><span>▥</span><div><b>${roads.length}</b><strong>Affected road segments</strong><small>Scenario corridor</small></div></div>
+          <div class="whatif-metric-card detour"><span>⌁</span><div><b>${detourText}</b><strong>Estimated detour</strong><small>P4 alternative route distance</small></div></div>
+          <div class="whatif-metric-card delay"><span>◷</span><div><b>${delayText}</b><strong>Additional travel time</strong><small>From P4 original vs alternative times</small></div></div>
+          <div class="whatif-metric-card shipments"><span>♟</span><div><b>${Number.isFinite(affectedShipmentCount) ? affectedShipmentCount : unavailable()}</b><strong>Shipments impacted</strong><small>From P5 shipment data</small></div></div>
         </div>
-
-        <!-- 4 KPI SUMMARY CARDS -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:20px;">
-          <div style="background:var(--status-danger-light);border:1px solid var(--status-danger-border);border-radius:var(--radius-md);padding:14px;">
-            <div style="font-size:10.5px;color:var(--status-danger);font-weight:700;">AFFECTED RELIEF CONVOYS</div>
-            <div style="font-size:24px;font-weight:800;color:var(--status-danger);">${affectedCount} Units</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">En-route shipments obstructed</div>
-          </div>
-
-          <div style="background:var(--status-warning-light);border:1px solid var(--status-warning-border);border-radius:var(--radius-md);padding:14px;">
-            <div style="font-size:10.5px;color:var(--status-warning);font-weight:700;">AVERAGE CONVOY DELAY</div>
-            <div style="font-size:24px;font-weight:800;color:var(--status-warning);">+${avgDelayHrs} hrs</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Corridor blockage overhead</div>
-          </div>
-
-          <div style="background:var(--brand-primary-light);border:1px solid #bfdbfe;border-radius:var(--radius-md);padding:14px;">
-            <div style="font-size:10.5px;color:var(--brand-primary);font-weight:700;">DISTRICT STOCKOUT RISK</div>
-            <div style="font-size:24px;font-weight:800;color:var(--brand-primary);">+${shortageRisk}%</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Supply depletion probability</div>
-          </div>
-
-          <div style="background:var(--status-safe-light);border:1px solid var(--status-safe-border);border-radius:var(--radius-md);padding:14px;">
-            <div style="font-size:10.5px;color:var(--status-safe);font-weight:700;">REROUTING FEASIBILITY</div>
-            <div style="font-size:24px;font-weight:800;color:var(--status-safe);">100% Viable</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Autonomous detour computed</div>
-          </div>
+        <div class="whatif-dashboard-grid">
+          <section class="whatif-panel whatif-parameters-card"><h3><span aria-hidden="true">⚙</span> Hazard Parameters</h3><p class="whatif-panel-subtitle">Simulation inputs and reported impact</p><dl class="whatif-detail-list"><div><dt>Scenario</dt><dd>${escapeHtml(scenario || "N/A")}</dd></div><div><dt>Target corridor</dt><dd>${escapeHtml(res.road_id || roadId)}</dd></div><div><dt>Affected districts</dt><dd>${metricValue(res.affected_districts)}</dd></div><div><dt>Delayed shipments</dt><dd>${metricValue(res.delayed_shipments)}</dd></div><div><dt>Shortage risk change</dt><dd>${risk}</dd></div></dl></section>
+          <section class="whatif-panel whatif-map-card"><div class="whatif-panel-heading"><div><h3><span aria-hidden="true">⌖</span> Scenario Impact Map</h3><p>Route geometry is shown when supplied by P4.</p></div><span class="whatif-map-status">${hasGeometry ? "P4 GEOMETRY" : "NO GEOMETRY"}</span></div>${mapBody}</section>
+          <aside class="whatif-panel whatif-decision-card"><h3><span aria-hidden="true">▤</span> Simulation Results</h3><p class="whatif-panel-subtitle">Decision support from the completed run</p>${reroute ? `<div class="whatif-decision-callout"><span aria-hidden="true">↗</span><div><strong>Recommended action</strong><p>${escapeHtml(reroute.corridor || reroute.route_id || res.recommended_route_id)}</p></div></div>` : `<div class="whatif-inline-empty">No P4 routing recommendation was returned.</div>`}<dl class="whatif-detail-list"><div><dt>Detour distance</dt><dd>${detourText}</dd></div><div><dt>Additional travel time</dt><dd>${delayText}</dd></div><div><dt>Route risk</dt><dd>${routeRisk}</dd></div></dl>${res.scenario_id ? `<p class="whatif-provenance">Run ID: ${escapeHtml(res.scenario_id)}</p>` : ""}</aside>
         </div>
-
-        <!-- AUTONOMOUS DETOUR RECOMMENDATION -->
-        <h4 style="font-size:13.5px;font-weight:700;margin-bottom:10px;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
-          <span>⚡</span> <span>Autonomous Detour & Alternative Highway Bypasses (P4 Engine)</span>
-        </h4>
-
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-          ${reroutes.map(r => `
-            <div style="background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-              <div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <b style="font-size:13px;color:var(--text-primary);">${r.corridor}</b>
-                  <span class="status-badge safe">+${r.safety_gain_pct}% Safety Margin</span>
-                </div>
-                <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">
-                  Added Distance: <b>+${r.additional_distance_km} km</b> &nbsp;|&nbsp; Extra Travel Time: <b>+${r.additional_time_hours} hrs</b> &nbsp;|&nbsp; Surface Condition: <b>Paved All-Weather Highway</b>
-                </div>
-              </div>
-              <button class="btn-primary" style="padding:6px 14px;font-size:11px;" onclick="P5Logistics.inspectShipment('${shipmentsDetail[0]?.shipment_id || 'SHIP_SIM'}', '${shipmentsDetail[0]?.origin || 'Guwahati'}', '${shipmentsDetail[0]?.destination || 'Tawang'}')">
-                Track Reroute on Map ➔
-              </button>
-            </div>
-          `).join("")}
+        <div class="whatif-bottom-grid">
+          <section class="whatif-panel whatif-shipments-card"><h3><span aria-hidden="true">♟</span> Potentially Impacted Shipments</h3>${shipmentTable}</section>
+          <aside class="whatif-panel whatif-insights-card"><h3><span aria-hidden="true">✦</span> Key Insights</h3>${insights.length ? `<ul class="whatif-insights-list">${insights.map((insight) => `<li>${escapeHtml(insight)}</li>`).join("")}</ul>` : `<div class="whatif-inline-empty">No additional insights are available from the current simulation result.</div>`}${res.data_provenance?.shipments ? `<p class="whatif-provenance">Shipment source: ${escapeHtml(res.data_provenance.shipments)}</p>` : ""}</aside>
         </div>
-
-        <!-- IMPACTED RELIEF CONVOYS TABLE -->
-        <h4 style="font-size:13.5px;font-weight:700;margin-bottom:10px;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
-          <span>🚨</span> <span>Impacted Relief Shipments & Revised ETA Schedule</span>
-        </h4>
-
-        <div class="data-table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Shipment ID</th>
-                <th>Priority</th>
-                <th>Cargo / Relief Commodity</th>
-                <th>Origin ➔ Destination</th>
-                <th>Scheduled ETA</th>
-                <th>Revised ETA (Post-Disruption)</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${shipmentsDetail.map(s => {
-                const origEta = new Date(s.current_eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const revEta = new Date(s.revised_eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const prioClass = s.priority === 'CRITICAL' ? 'danger' : 'warning';
-                return `
-                  <tr>
-                    <td><b>${s.shipment_id}</b></td>
-                    <td><span class="status-badge ${prioClass}">${s.priority}</span></td>
-                    <td><b>${s.cargo}</b></td>
-                    <td>${s.origin} ➔ <b>${s.destination}</b></td>
-                    <td><span style="color:var(--text-muted);">${origEta}</span></td>
-                    <td><b style="color:var(--status-danger);">${revEta} (+${s.delay_hours}h delay)</b></td>
-                    <td>
-                      <button class="btn-primary" style="padding:3px 9px;font-size:10.5px;" onclick="P5Logistics.inspectShipment('${s.shipment_id}', '${s.origin}', '${s.destination}')">Reroute Convoy ➔</button>
-                    </td>
-                  </tr>
-                `;
-              }).join("")}
-            </tbody>
-          </table>
-        </div>
-
       </div>
     `;
+
+    if (hasGeometry) {
+      this.renderRouteMap(coordinates);
+    } else {
+      this.destroyMap();
+    }
   }
 };
 
