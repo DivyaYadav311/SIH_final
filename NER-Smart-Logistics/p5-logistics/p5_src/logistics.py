@@ -574,6 +574,136 @@ class LogisticsService:
 
         return shipment
 
+    def optimize_warehouses(
+        self,
+        data: WarehouseOptimizationInput,
+    ) -> WarehouseOptimizationOutput:
+        inventory_items = self.get_inventory_for_product(data.product_type)
+        remaining_inventory = {
+            item.inventory_id: item.quantity_available
+            for item in inventory_items
+        }
+        recommendations = []
+
+        for target in sorted(
+            data.target_districts,
+            key=lambda item: item.shortage_probability,
+            reverse=True,
+        ):
+            remaining_demand = target.demand_units
+            for item in inventory_items:
+                if remaining_demand <= 0:
+                    break
+
+                warehouse = self.warehouses.get(item.warehouse_id)
+                available = remaining_inventory[item.inventory_id]
+                if not warehouse or warehouse.status != "ACTIVE" or available <= 0:
+                    continue
+
+                quantity = min(available, remaining_demand)
+                remaining_inventory[item.inventory_id] -= quantity
+                remaining_demand -= quantity
+                reason = (
+                    "CRITICAL_SHORTAGE_RISK"
+                    if target.shortage_probability >= 0.85
+                    else "HIGH_SHORTAGE_RISK"
+                    if target.shortage_probability >= 0.65
+                    else "DEMAND_REBALANCING"
+                )
+                recommendations.append(
+                    Recommendation(
+                        from_warehouse=item.warehouse_id,
+                        to_location=target.district_id,
+                        product_type=data.product_type,
+                        recommended_quantity=round(quantity, 2),
+                        reason=reason,
+                    )
+                )
+
+        total_demand = sum(
+            target.demand_units for target in data.target_districts
+        )
+        total_allocated = sum(
+            item.recommended_quantity for item in recommendations
+        )
+        status = (
+            "OPTIMAL"
+            if total_allocated >= total_demand
+            else "FEASIBLE"
+            if total_allocated > 0
+            else "NO_FEASIBLE_ALLOCATION"
+        )
+        return WarehouseOptimizationOutput(
+            recommendations=recommendations,
+            optimization_status=status,
+        )
+
+    def predict_shortage(
+        self,
+        payload: ShortageInput,
+    ) -> ShortageOutput:
+        daily_consumption = payload.average_daily_consumption
+        current_days = payload.current_inventory_units / daily_consumption
+        incoming = (
+            payload.incoming_quantity_units
+            if payload.incoming_eta_days <= current_days
+            else 0
+        )
+        projected_days = (
+            payload.current_inventory_units + incoming
+        ) / daily_consumption
+
+        if projected_days <= 1:
+            probability = 0.95
+        elif projected_days <= 3:
+            probability = 0.85
+        elif projected_days <= 7:
+            probability = 0.65
+        elif projected_days <= 14:
+            probability = 0.35
+        else:
+            probability = 0.10
+
+        route_id = None
+        route_risk = None
+        try:
+            route = self.p4_client.optimize_route(
+                origin=payload.origin,
+                destination=payload.district_name,
+                cargo_type=payload.product_type,
+                priority=payload.priority,
+            )
+            route_id = route.route_id
+            route_risk = route.route_risk
+            probability = min(1.0, probability + 0.15 * route_risk)
+        except Exception:
+            pass
+
+        probability = min(1.0, max(0.0, probability))
+        risk_level = (
+            "CRITICAL"
+            if probability >= 0.85
+            else "HIGH"
+            if probability >= 0.65
+            else "MEDIUM"
+            if probability >= 0.35
+            else "LOW"
+        )
+        confidence = 0.65 if route_id is not None else 0.60
+        return ShortageOutput(
+            district_id=payload.district_id,
+            district_name=payload.district_name,
+            product_type=payload.product_type,
+            shortage_probability=round(probability, 4),
+            estimated_days_until_shortage=round(projected_days, 2),
+            risk_level=risk_level,
+            confidence=confidence,
+            model_version="shortage_baseline_route_v1",
+            timestamp=datetime.now(timezone.utc),
+            route_id=route_id,
+            road_risk=route_risk,
+        )
+
     # ============================================================
     # SHORTAGE PREDICTION
     # ============================================================

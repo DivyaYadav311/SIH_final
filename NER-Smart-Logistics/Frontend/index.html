@@ -1993,7 +1993,7 @@
                   <label class="p5-label">Target District</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">🎯</span>
-                    <input name="district_name" value="Tawang District" class="p5-input" placeholder="e.g. Tawang District" />
+                    <input name="district_name" class="p5-input" placeholder="e.g. Tawang District" required />
                   </div>
                 </div>
 
@@ -2002,7 +2002,7 @@
                   <label class="p5-label">District Code</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">📄</span>
-                    <input name="district_id" value="DIST_NE_TW09" class="p5-input" placeholder="e.g. DIST_NE_TW09" />
+                    <input name="district_id" class="p5-input" placeholder="e.g. DIST_NE_TW09" required />
                   </div>
                 </div>
 
@@ -2024,7 +2024,7 @@
                   <label class="p5-label">Current On-Hand Stock (Units)</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">🗄️</span>
-                    <input name="inventory" type="number" value="420" class="p5-input" placeholder="Units" />
+                    <input name="inventory" type="number" min="0" class="p5-input" placeholder="Units" required />
                   </div>
                 </div>
 
@@ -2033,7 +2033,7 @@
                   <label class="p5-label">Daily Burn Rate (Units/Day)</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">📈</span>
-                    <input name="consumption" type="number" value="140" class="p5-input" placeholder="Units per day" />
+                    <input name="consumption" type="number" min="0.01" class="p5-input" placeholder="Units per day" required />
                   </div>
                 </div>
 
@@ -2042,7 +2042,7 @@
                   <label class="p5-label">Corridor Hazard Risk</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">⚠️</span>
-                    <input name="road_risk" type="number" step="0.05" value="0.75" class="p5-input" placeholder="0.0 - 1.0" />
+                    <input name="road_risk" type="number" step="0.05" min="0" max="1" class="p5-input" placeholder="0.0 - 1.0" />
                   </div>
                 </div>
 
@@ -2075,13 +2075,12 @@
             <form id="formOptimizeWarehouse" class="p5-wh-optimize-form">
               <div class="p5-input-wrap">
                 <span class="p5-input-icon">📦</span>
-                <select name="product_type" class="p5-select-compact">
-                  <option value="MEDICINE">MEDICINE</option>
-                  <option value="FOOD_RATIONS" selected>FOOD_RATIONS</option>
-                  <option value="FUEL">FUEL</option>
+                <select name="product_type" class="p5-select-compact" aria-label="Product type">
+                  <option value="">Loading products...</option>
                 </select>
               </div>
-              <input name="demand" type="number" value="3500" placeholder="Demand Units" class="p5-input-compact" />
+              <input name="demand" type="number" placeholder="Demand Units" class="p5-input-compact" />
+              <input name="target_district" type="text" placeholder="Target District" class="p5-input-compact" />
               <button class="p5-btn-optimize" type="submit">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <circle cx="12" cy="12" r="3"></circle>
@@ -2093,132 +2092,8 @@
           </div>
 
           <!-- Live Warehouse Inventory 4-Card Grid -->
-          <div class="p5-depots-grid">
-            
-            <!-- Depot 1: Guwahati Central -->
-            <div class="p5-depot-card">
-              <div class="p5-depot-card-top">
-                <div class="p5-depot-info">
-                  <div class="p5-depot-header-line">
-                    <h4 class="p5-depot-name">Guwahati Central</h4>
-                    <span class="p5-status-tag online">ONLINE</span>
-                  </div>
-                  <div class="p5-depot-capacity">Capacity: 12,000 units</div>
-                  <div class="p5-depot-items">
-                    <div class="p5-depot-item"><span>💊 Medical:</span> <b>4,500</b></div>
-                    <div class="p5-depot-item"><span>🍞 Food Rations:</span> <b>3,200</b></div>
-                    <div class="p5-depot-item"><span>⛽ Fuel:</span> <b>2,100</b></div>
-                  </div>
-                </div>
-                <div class="p5-depot-illustration" aria-hidden="true">
-                  <svg width="74" height="60" viewBox="0 0 90 70" fill="none">
-                    <ellipse cx="45" cy="56" rx="36" ry="12" fill="#e0f2fe"/>
-                    <!-- Warehouse Isometric Base -->
-                    <polygon points="15,40 45,55 75,40 45,25" fill="#bae6fd"/>
-                    <polygon points="15,40 45,55 45,50 15,35" fill="#7dd3fc"/>
-                    <polygon points="45,55 75,40 75,35 45,50" fill="#38bdf8"/>
-                    <!-- Building body -->
-                    <polygon points="20,28 45,15 70,28 45,40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="20,28 45,40 45,52 20,40" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="45,40 70,28 70,40 45,52" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
-                    <!-- Blue roof ridge -->
-                    <polygon points="20,28 45,15 70,28 45,20" fill="#3b82f6"/>
-                    <polygon points="45,20 70,28 65,30 45,22" fill="#1d4ed8"/>
-                    <!-- Doors -->
-                    <polygon points="30,42 38,46 38,50 30,46" fill="#1e40af"/>
-                    <polygon points="52,46 60,42 60,46 52,50" fill="#3b82f6"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <!-- Depot 2: Tezpur Forward Base -->
-            <div class="p5-depot-card">
-              <div class="p5-depot-card-top">
-                <div class="p5-depot-info">
-                  <div class="p5-depot-header-line">
-                    <h4 class="p5-depot-name">Tezpur Forward Base</h4>
-                    <span class="p5-status-tag online">ONLINE</span>
-                  </div>
-                  <div class="p5-depot-capacity">Capacity: 8,500 units</div>
-                  <div class="p5-depot-items">
-                    <div class="p5-depot-item"><span>💊 Medical:</span> <b>2,800</b></div>
-                    <div class="p5-depot-item"><span>🍞 Food Rations:</span> <b>3,000</b></div>
-                    <div class="p5-depot-item"><span>⛽ Fuel:</span> <b>1,400</b></div>
-                  </div>
-                </div>
-                <div class="p5-depot-illustration" aria-hidden="true">
-                  <svg width="74" height="60" viewBox="0 0 90 70" fill="none">
-                    <ellipse cx="45" cy="56" rx="36" ry="12" fill="#e0f2fe"/>
-                    <polygon points="15,40 45,55 75,40 45,25" fill="#bae6fd"/>
-                    <polygon points="20,28 45,15 70,28 45,40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="20,28 45,40 45,52 20,40" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="45,40 70,28 70,40 45,52" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="20,28 45,15 70,28 45,20" fill="#0284c7"/>
-                    <polygon points="30,42 38,46 38,50 30,46" fill="#0369a1"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <!-- Depot 3: Silchar River Hub -->
-            <div class="p5-depot-card">
-              <div class="p5-depot-card-top">
-                <div class="p5-depot-info">
-                  <div class="p5-depot-header-line">
-                    <h4 class="p5-depot-name">Silchar River Hub</h4>
-                    <span class="p5-status-tag high-load">HIGH LOAD</span>
-                  </div>
-                  <div class="p5-depot-capacity">Capacity: 7,200 units</div>
-                  <div class="p5-depot-items">
-                    <div class="p5-depot-item"><span>💊 Medical:</span> <b>1,800</b></div>
-                    <div class="p5-depot-item"><span>🍞 Food Rations:</span> <b>2,400</b></div>
-                    <div class="p5-depot-item"><span>⛽ Fuel:</span> <b>1,900</b></div>
-                  </div>
-                </div>
-                <div class="p5-depot-illustration" aria-hidden="true">
-                  <svg width="74" height="60" viewBox="0 0 90 70" fill="none">
-                    <ellipse cx="45" cy="56" rx="36" ry="12" fill="#fef3c7"/>
-                    <polygon points="15,40 45,55 75,40 45,25" fill="#fde68a"/>
-                    <polygon points="20,28 45,15 70,28 45,40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="20,28 45,40 45,52 20,40" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="45,40 70,28 70,40 45,52" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="20,28 45,15 70,28 45,20" fill="#d97706"/>
-                    <polygon points="30,42 38,46 38,50 30,46" fill="#b45309"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            <!-- Depot 4: Dimapur Regional Depot -->
-            <div class="p5-depot-card">
-              <div class="p5-depot-card-top">
-                <div class="p5-depot-info">
-                  <div class="p5-depot-header-line">
-                    <h4 class="p5-depot-name">Dimapur Regional Depot</h4>
-                    <span class="p5-status-tag online">ONLINE</span>
-                  </div>
-                  <div class="p5-depot-capacity">Capacity: 6,800 units</div>
-                  <div class="p5-depot-items">
-                    <div class="p5-depot-item"><span>💊 Medical:</span> <b>1,500</b></div>
-                    <div class="p5-depot-item"><span>🍞 Food Rations:</span> <b>2,100</b></div>
-                    <div class="p5-depot-item"><span>⛽ Fuel:</span> <b>1,200</b></div>
-                  </div>
-                </div>
-                <div class="p5-depot-illustration" aria-hidden="true">
-                  <svg width="74" height="60" viewBox="0 0 90 70" fill="none">
-                    <ellipse cx="45" cy="56" rx="36" ry="12" fill="#e0f2fe"/>
-                    <polygon points="15,40 45,55 75,40 45,25" fill="#bae6fd"/>
-                    <polygon points="20,28 45,15 70,28 45,40" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="20,28 45,40 45,52 20,40" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="45,40 70,28 70,40 45,52" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
-                    <polygon points="20,28 45,15 70,28 45,20" fill="#0284c7"/>
-                    <polygon points="30,42 38,46 38,50 30,46" fill="#0369a1"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-
+          <div id="warehouseInventoryGrid" class="p5-depots-grid" aria-live="polite">
+            <div class="p5-result-box">Loading warehouse inventory...</div>
           </div>
 
           <div id="warehouseResultBox" class="p5-result-box" style="margin-top:14px;display:none;"></div>

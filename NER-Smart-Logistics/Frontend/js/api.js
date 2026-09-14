@@ -450,21 +450,23 @@ const PravahAPI = {
       if (res.ok) return await res.json();
     } catch (e) {}
 
-    // Calculation matching p5 logic
-    const daysCovered = payload.consumption > 0 ? (payload.inventory / payload.consumption) : 10;
-    const isCritical = daysCovered < (payload.incoming_eta || 3) || (payload.road_risk > 0.6);
-    const shortageDays = Math.max(0, parseFloat((daysCovered).toFixed(1)));
+    throw new Error("Stockout forecasting service is unavailable");
+  },
 
-    return {
-      district_id: payload.district_id,
-      district_name: payload.district_name,
-      product_type: payload.product_type,
-      shortage_predicted: isCritical,
-      estimated_days_to_stockout: shortageDays,
-      risk_level: isCritical ? "CRITICAL_SHORTAGE" : "SAFE_BUFFER",
-      recommended_action: isCritical ? "IMMEDIATE_AIR_RELIEF_OR_FORWARD_DEPOT_DISPATCH" : "STANDARD_SCHEDULED_REPLENISHMENT",
-      confidence: 0.89
-    };
+  async getWarehouses() {
+    const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p5_logistics}/api/v1/warehouses`, {
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!res.ok) throw new Error(`Warehouse request failed with ${res.status}`);
+    return res.json();
+  },
+
+  async getInventory() {
+    const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p5_logistics}/api/v1/inventory`, {
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!res.ok) throw new Error(`Inventory request failed with ${res.status}`);
+    return res.json();
   },
 
   async optimizeWarehouses(payload) {
@@ -478,17 +480,7 @@ const PravahAPI = {
       if (res.ok) return await res.json();
     } catch (e) {}
 
-    return {
-      allocation_id: `ALLOC_${Date.now()}`,
-      product_type: payload.product_type,
-      total_demand_units: payload.demand,
-      allocations: [
-        { warehouse_id: "WH_GUW_01", warehouse_name: "Guwahati Central Depot", allocated_units: Math.round(payload.demand * 0.65), remaining_capacity: 5200 },
-        { warehouse_id: "WH_TEZ_02", warehouse_name: "Tezpur Forward Base", allocated_units: Math.round(payload.demand * 0.35), remaining_capacity: 2850 }
-      ],
-      fulfillment_feasibility: 1.0,
-      timestamp: new Date().toISOString()
-    };
+    throw new Error("Warehouse optimization service is unavailable");
   },
 
   async runWhatIfSimulation(payload) {
