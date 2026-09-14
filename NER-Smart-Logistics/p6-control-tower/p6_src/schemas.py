@@ -91,6 +91,7 @@ class WhatIfOut(BaseModel):
     recommended_route: Optional[dict[str, Any]] = None
     recommended_reroutes: list[dict[str, Any]] = Field(default_factory=list)
     route_geometry: Optional[list[list[float]]] = None
+    route_coordinates: Optional[list[list[float]]] = None
     affected_shipment_records: list[dict[str, Any]] = Field(default_factory=list)
     affected_shipments_detail: list[dict[str, Any]] = Field(default_factory=list)
     unavailable_metrics: list[str] = Field(default_factory=list)

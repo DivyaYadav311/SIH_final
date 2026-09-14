@@ -136,34 +136,51 @@ const WhatIfSimulation = {
     const unavailable = (label = "Data unavailable") => `<span title="${escapeHtml(label)}">N/A</span>`;
     const scenario = String(res.scenario_type || scenarioType || "").replaceAll("_", " ");
     const roads = Array.isArray(res.affected_roads) ? res.affected_roads : [];
-    const delayMinutes = Number(res.additional_delay_minutes);
-    const delayText = Number.isFinite(delayMinutes) ? `${Math.floor(delayMinutes / 60)} h ${delayMinutes % 60} m` : unavailable("Average delay cannot be calculated from available P4/P5 data.");
-    const risk = typeof res.shortage_risk_change === "number" ? `${Math.round(res.shortage_risk_change * 100)}%` : unavailable("Shortage risk cannot be calculated from available backend data.");
-    const metricValue = (value) => Number.isFinite(Number(value)) ? value : unavailable();
+    const delayMinutes = (typeof res.additional_delay_minutes === "number" && Number.isFinite(res.additional_delay_minutes))
+      ? res.additional_delay_minutes
+      : null;
+    const delayText = delayMinutes !== null
+      ? `${Math.floor(delayMinutes / 60)} h ${delayMinutes % 60} m`
+      : unavailable("Average delay cannot be calculated from available P4/P5 data.");
+    const risk = (typeof res.shortage_risk_change === "number" && Number.isFinite(res.shortage_risk_change))
+      ? `${Math.round(res.shortage_risk_change * 100)}%`
+      : unavailable("Shortage risk cannot be calculated from available backend data.");
+    const metricValue = (value) => (typeof value === "number" && Number.isFinite(value)) ? value : unavailable();
     const reroute = res.alternative_route || (Array.isArray(res.recommended_reroutes) ? res.recommended_reroutes.find(Boolean) : null);
-    const detourDistance = Number(reroute?.additional_distance_km);
-    const routeDistance = Number(reroute?.distance_km);
-    const detourText = Number.isFinite(detourDistance)
+    const detourDistance = (typeof reroute?.additional_distance_km === "number" && Number.isFinite(reroute.additional_distance_km))
+      ? reroute.additional_distance_km
+      : null;
+    const detourText = detourDistance !== null
       ? `${detourDistance} km`
-      : (Number.isFinite(routeDistance) ? `${routeDistance} km` : unavailable("No P4 route distance was returned."));
+      : unavailable("No P4 additional distance was returned.");
     const shipmentRows = Array.isArray(res.affected_shipments_detail) ? res.affected_shipments_detail : [];
-    const coordinates = Array.isArray(res.route_coordinates) ? res.route_coordinates : (Array.isArray(reroute?.route_coordinates) ? reroute.route_coordinates : []);
+    const coordinates = Array.isArray(res.route_coordinates) && res.route_coordinates.length >= 2
+      ? res.route_coordinates
+      : (Array.isArray(res.route_geometry) && res.route_geometry.length >= 2
+        ? res.route_geometry
+        : (Array.isArray(reroute?.route_coordinates) && reroute.route_coordinates.length >= 2
+          ? reroute.route_coordinates
+          : (Array.isArray(reroute?.route_geometry) && reroute.route_geometry.length >= 2
+            ? reroute.route_geometry
+            : [])));
     const hasGeometry = coordinates.length >= 2;
     const insights = [];
-    const affectedShipmentCount = Number(res.affected_shipments);
-    if (roads.length) {
+    const affectedShipmentCount = (typeof res.affected_shipments === "number" && Number.isFinite(res.affected_shipments))
+      ? res.affected_shipments
+      : 0;
+    if (roads.length > 0 && affectedShipmentCount > 0) {
       insights.push(`Simulation identifies ${roads.length} affected road segment${roads.length === 1 ? "" : "s"} on ${res.road_id || roadId}.`);
     }
-    if (Number.isFinite(delayMinutes)) {
+    if (delayMinutes !== null) {
       insights.push(`Average additional travel time from P4 original vs alternative times is ${Math.floor(delayMinutes / 60)} h ${delayMinutes % 60} m.`);
     }
-    if (Number.isFinite(affectedShipmentCount)) {
+    if (affectedShipmentCount > 0) {
       insights.push(`${affectedShipmentCount} shipment${affectedShipmentCount === 1 ? " is" : "s are"} included in this impact assessment.`);
     }
     if (reroute?.route_id || reroute?.corridor || res.recommended_route_id) {
       insights.push("A P4 routing option was returned for the selected scenario.");
     }
-    if (typeof res.shortage_risk_change === "number") {
+    if (typeof res.shortage_risk_change === "number" && Number.isFinite(res.shortage_risk_change)) {
       insights.push(`The reported shortage-risk change is ${Math.round(res.shortage_risk_change * 100)}%.`);
     }
     const formatDate = (value) => {
@@ -177,8 +194,10 @@ const WhatIfSimulation = {
         <table class="whatif-shipments-table">
           <thead><tr><th>Shipment ID</th><th>Origin</th><th>Destination</th><th>Current ETA</th><th>Simulated ETA</th><th>Delay</th><th>Status</th></tr></thead>
           <tbody>${shipmentRows.map((shipment) => {
-            const delay = Number(shipment.delay_hours);
-            const delayLabel = Number.isFinite(delay) ? `${delay} h` : "N/A";
+            const delay = (typeof shipment.delay_hours === "number" && Number.isFinite(shipment.delay_hours))
+              ? shipment.delay_hours
+              : (typeof shipment.delay_minutes === "number" && Number.isFinite(shipment.delay_minutes) ? round(shipment.delay_minutes / 60.0, 1) : null);
+            const delayLabel = delay !== null ? `${delay} h` : "N/A";
             return `<tr><td><strong>${displayField(shipment.shipment_id)}</strong></td><td>${displayField(shipment.origin)}</td><td>${displayField(shipment.destination)}</td><td>${escapeHtml(formatDate(shipment.current_eta))}</td><td>${escapeHtml(formatDate(shipment.revised_eta))}</td><td class="whatif-delay-cell">${escapeHtml(delayLabel)}</td><td>${shipment.status || shipment.priority ? `<span class="status-badge ${String(shipment.priority || shipment.status).toUpperCase() === "CRITICAL" ? "danger" : "warning"}">${escapeHtml(shipment.status || shipment.priority)}</span>` : "N/A"}</td></tr>`;
           }).join("")}</tbody>
         </table>
@@ -204,7 +223,7 @@ const WhatIfSimulation = {
         </div>
         <div class="whatif-bottom-grid">
           <section class="whatif-panel whatif-shipments-card"><h3><span aria-hidden="true">♟</span> Potentially Impacted Shipments</h3>${shipmentTable}</section>
-          <aside class="whatif-panel whatif-insights-card"><h3><span aria-hidden="true">✦</span> Key Insights</h3>${insights.length ? `<ul class="whatif-insights-list">${insights.map((insight) => `<li>${escapeHtml(insight)}</li>`).join("")}</ul>` : `<div class="whatif-inline-empty">No additional insights are available from the current simulation result.</div>`}${res.data_provenance?.shipments ? `<p class="whatif-provenance">Shipment source: ${escapeHtml(res.data_provenance.shipments)}</p>` : ""}</aside>
+          <aside class="whatif-panel whatif-insights-card"><h3><span aria-hidden="true">✦</span> Key Insights</h3>${insights.length ? `<ul class="whatif-insights-list">${insights.map((insight) => `<li>${escapeHtml(insight)}</li>`).join("")}</ul>` : `<div class="whatif-inline-empty">No disruption impact or rerouting was required for the current simulation result.</div>`}${res.data_provenance?.shipments ? `<p class="whatif-provenance">Shipment source: ${escapeHtml(res.data_provenance.shipments)}</p>` : ""}</aside>
         </div>
       </div>
     `;

@@ -1,21 +1,80 @@
 """What-if impact model using P5 shipment data and P4 route responses."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from p6_src.ids import utc_now_iso
-from simulation.clients import fetch_p5_shipments, request_p4_alternative
+from simulation import clients
 
 
 def load_shipments() -> tuple[list[dict[str, Any]], str]:
-    live = fetch_p5_shipments()
-    if live:
-        return live, "p5_http"
-    return [], "unavailable"
+    live = clients.fetch_p5_shipments()
+
+    # None = P5 unavailable
+    # [] = P5 available and currently has zero shipments
+    if live is not None:
+        return live, "p5_http_live"
+
+    return [], "p5_unavailable"
 
 
-def load_routes() -> dict[str, Any]:
-    return {}
+def load_routes(shipments: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Resolve route data for shipments from P4 routing service or embedded route records."""
+    routes: dict[str, Any] = {}
+    if not shipments:
+        return routes
+
+    for shipment in shipments:
+        embedded = shipment.get("route")
+        if isinstance(embedded, dict) and embedded.get("road_ids"):
+            route_id = str(shipment.get("route_id") or embedded.get("route_id") or id(embedded))
+            routes[route_id] = embedded
+            continue
+
+        origin = shipment.get("origin")
+        destination = shipment.get("destination")
+        route_id = str(shipment.get("route_id") or "")
+
+        cache_key = f"{origin}::{destination}"
+        if cache_key in routes:
+            if route_id:
+                routes[route_id] = routes[cache_key]
+            continue
+
+        if origin and destination:
+            p4_route = clients.fetch_p4_route(
+                origin,
+                destination,
+                cargo_type=str(shipment.get("cargo_type") or shipment.get("cargo") or "") or None,
+                priority=str(shipment.get("priority") or "") or None,
+                transport_mode=str(shipment.get("transport_mode") or "") or None,
+            )
+            if p4_route:
+                routes[cache_key] = p4_route
+                p4_rid = str(p4_route.get("route_id") or "")
+                if p4_rid:
+                    routes[p4_rid] = p4_route
+                if route_id:
+                    routes[route_id] = p4_route
+
+    return routes
+
+
+def _road_matches(blocked: str, road: str) -> bool:
+    b = (blocked or "").strip().upper()
+    r = (road or "").strip().upper()
+    if not b or not r:
+        return False
+    if b == r:
+        return True
+    b_norm = b.replace(" ", "").replace("-", "")
+    r_norm = r.replace(" ", "").replace("-", "")
+    if b_norm == r_norm:
+        return True
+    if b in r or b_norm in r_norm:
+        return True
+    return False
 
 
 def _destination_district(shipment: dict[str, Any]) -> str:
@@ -26,16 +85,25 @@ def _route_for_shipment(shipment: dict[str, Any], routes: dict[str, Any]) -> dic
     embedded = shipment.get("route")
     if isinstance(embedded, dict):
         return embedded
-    route_id = shipment.get("route_id")
+    route_id = str(shipment.get("route_id") or "")
     if route_id and isinstance(routes.get(route_id), dict):
         return routes[route_id]
+    origin = str(shipment.get("origin") or "")
+    dest = str(shipment.get("destination") or "")
+    cache_key = f"{origin}::{dest}"
+    if cache_key in routes and isinstance(routes[cache_key], dict):
+        return routes[cache_key]
     return {}
 
 
 def _route_road_ids(shipment: dict[str, Any], routes: dict[str, Any]) -> list[str]:
+    if isinstance(shipment.get("road_ids"), list):
+        return [str(road_id) for road_id in shipment["road_ids"] if road_id]
     route = _route_for_shipment(shipment, routes)
-    road_ids = route.get("road_ids") or shipment.get("road_ids") or []
-    return [str(road_id) for road_id in road_ids]
+    road_ids = route.get("road_ids") or []
+    if isinstance(road_ids, list):
+        return [str(road_id) for road_id in road_ids if road_id]
+    return []
 
 
 def _route_endpoint(value: Any) -> dict[str, float] | None:
@@ -111,8 +179,26 @@ def _public_shipment(shipment: dict[str, Any]) -> dict[str, Any]:
 
 def _shipment_eta_fields(shipment: dict[str, Any], delay_minutes: int | None) -> dict[str, Any]:
     public = _public_shipment(shipment)
+    current_eta_raw = shipment.get("current_eta") or shipment.get("estimated_arrival")
+    if current_eta_raw:
+        public["current_eta"] = current_eta_raw
+
     if delay_minutes is not None:
         public["delay_minutes"] = delay_minutes
+        public["delay_hours"] = round(delay_minutes / 60.0, 1)
+        if current_eta_raw:
+            try:
+                dt_str = str(current_eta_raw).replace("Z", "+00:00")
+                c_dt = datetime.fromisoformat(dt_str)
+                public["revised_eta"] = (c_dt + timedelta(minutes=delay_minutes)).isoformat()
+            except Exception:
+                public["revised_eta"] = None
+        else:
+            public["revised_eta"] = None
+    else:
+        public["delay_minutes"] = None
+        public["delay_hours"] = None
+        public["revised_eta"] = None
     return public
 
 
@@ -130,7 +216,7 @@ def _find_replacement_route(
         if origin is None or destination is None:
             continue
 
-        replacement = request_p4_alternative(
+        replacement = clients.request_p4_alternative(
             origin,
             destination,
             cargo_type=str(shipment.get("cargo_type") or shipment.get("cargo") or "") or None,
@@ -148,6 +234,11 @@ def _find_replacement_route(
         if current_eta is not None and replacement_eta is not None:
             delay_values.append(max(0, int(round(replacement_eta - current_eta))))
 
+        current_dist = current_route.get("distance_km")
+        replacement_dist = replacement.get("distance_km")
+        if isinstance(current_dist, (int, float)) and isinstance(replacement_dist, (int, float)):
+            replacement["additional_distance_km"] = max(0.0, round(float(replacement_dist) - float(current_dist), 1))
+
     if not first_route:
         return None, None, None
 
@@ -161,7 +252,7 @@ def _find_replacement_route(
 
 def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | None) -> dict[str, Any]:
     shipments, shipment_source = load_shipments()
-    routes = load_routes()
+    routes = load_routes(shipments)
     blocked = (road_id or "").strip()
     affected: list[dict[str, Any]] = []
 
@@ -173,7 +264,7 @@ def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | Non
     else:
         for shipment in shipments:
             road_ids = _route_road_ids(shipment, routes)
-            if blocked and blocked in road_ids:
+            if blocked and any(_road_matches(blocked, rid) for rid in road_ids):
                 affected.append(shipment)
 
     delayed = [
@@ -188,17 +279,18 @@ def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | Non
     delay = None
     route_geometry = None
     unavailable_metrics: list[str] = []
-    shipment_route_data_available = any(
+    has_resolved_routes = bool(routes)
+    shipment_route_data_available = has_resolved_routes or any(
         isinstance(shipment.get("route"), dict) or isinstance(shipment.get("road_ids"), list)
         for shipment in affected
     )
     provenance = {
         "shipments": shipment_source,
-        "routes": "p5_shipments" if shipment_route_data_available else "unavailable",
+        "routes": "p4_http" if has_resolved_routes else ("p5_shipments" if shipment_route_data_available else "unavailable"),
         "scenario": scenario_type,
     }
 
-    if shipment_source == "unavailable":
+    if "unavailable" in shipment_source:
         unavailable_metrics.append("shipments")
 
     if blocked and delayed:
@@ -223,7 +315,7 @@ def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | Non
     return {
         "scenario_type": scenario_type,
         "road_id": blocked or None,
-        "affected_roads": [blocked] if blocked else [],
+        "affected_roads": [blocked] if affected else [],
         "affected_shipments": len(affected),
         "delayed_shipments": len(delayed),
         "affected_districts": len(districts),
@@ -234,6 +326,7 @@ def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | Non
         "recommended_route": recommended_route,
         "recommended_reroutes": [recommended_route] if recommended_route else [],
         "route_geometry": route_geometry,
+        "route_coordinates": route_geometry,
         "affected_shipment_records": affected_records,
         "affected_shipments_detail": affected_detail,
         "unavailable_metrics": sorted(set(unavailable_metrics)),

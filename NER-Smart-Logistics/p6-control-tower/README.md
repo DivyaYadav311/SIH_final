@@ -11,7 +11,7 @@ cd p6-control-tower
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8006
+python -m uvicorn p6_src.main:app --reload --host 127.0.0.1 --port 8006
 ```
 
 Open the test dashboard at `http://127.0.0.1:8006/dashboard` (or `frontend-test/index.html` in a browser; CORS is already enabled).

@@ -352,51 +352,68 @@ const PravahAPI = {
   async getControlTowerOverview() {
     try {
       const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/control-tower/overview`, {
-        signal: AbortSignal.timeout(2000)
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) return await res.json();
-    } catch (e) {}
+    } catch (e) {
+      // P6 overview unavailable
+    }
+    return null;
+  },
 
-    return {
-      open_incidents: 2,
-      incidents_total: PRAVAH_CONFIG.INITIAL_INCIDENTS.length,
-      incidents_by_status: { VERIFIED: 2, UNDER_VERIFICATION: 1, RESOLVED: 0 },
-      active_alerts: 3,
-      alerts_by_severity: { LOW: 1, MEDIUM: 2, HIGH: 1, CRITICAL: 0 },
-      critical_shipments_at_risk: 1,
-      imd_alert_count: 2,
-      data_provenance: { incidents: "p6_sqlite", shipments: "p5_service", imd: "IMD WIS2" }
-    };
+  async getIncidents(params = {}) {
+    try {
+      const query = new URLSearchParams();
+      if (params.status) query.set("status", params.status);
+      if (params.incident_type) query.set("incident_type", params.incident_type);
+      const qs = query.toString() ? `?${query.toString()}` : "";
+      const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/incidents${qs}`, {
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) return await res.json();
+    } catch (e) {
+      // P6 incidents unavailable
+    }
+    return null;
   },
 
   async reportIncident(payload) {
+    const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/incidents`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Incident reporting failed with HTTP ${res.status}`);
+    }
+    return await res.json();
+  },
+
+  async verifyIncident(incident_id) {
+    const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/incidents/${encodeURIComponent(incident_id)}/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Incident verification failed with HTTP ${res.status}`);
+    }
+    return await res.json();
+  },
+
+  async getControlTowerMapState() {
     try {
-      const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/incidents`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(3000)
+      const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/control-tower/map-state`, {
+        signal: AbortSignal.timeout(4000)
       });
       if (res.ok) return await res.json();
-    } catch (e) {}
-
-    // Simulated fallback
-    const newInc = {
-      incident_id: payload.incident_id || `INC_${Date.now()}`,
-      reported_by: payload.reported_by || "DRIVER",
-      latitude: parseFloat(payload.latitude),
-      longitude: parseFloat(payload.longitude),
-      incident_type: payload.incident_type,
-      detected_type: payload.incident_type,
-      confidence: 0.91,
-      status: "UNDER_VERIFICATION",
-      road_id: payload.road_id || "NH-6",
-      description: payload.description || "Reported road obstacle",
-      image_url: payload.image_url || "",
-      reported_at: new Date().toISOString()
-    };
-    PRAVAH_CONFIG.INITIAL_INCIDENTS.unshift(newInc);
-    return newInc;
+    } catch (e) {
+      // Map state unavailable
+    }
+    return null;
   },
 
   // --------------------------------------------------------------------------

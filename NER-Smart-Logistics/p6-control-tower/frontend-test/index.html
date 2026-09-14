@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P6 Control Tower — Test Client & Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --brand: #0284c7;
+      --brand-hover: #0369a1;
+      --safe: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font);
+      line-height: 1.5;
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    h1 { font-size: 22px; font-weight: 700; }
+    .header-sub { font-size: 13px; color: var(--text-muted); }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .status-online { background: rgba(16, 185, 129, 0.15); color: var(--safe); border: 1px solid var(--safe); }
+    .status-offline { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+    .config-input {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      width: 220px;
+    }
+    .btn {
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: var(--brand-hover); }
+    .btn-secondary { background: var(--card-border); color: var(--text-main); }
+    .btn-secondary:hover { background: #475569; }
+    .btn-danger { background: var(--danger); }
+    .btn-sm { padding: 3px 8px; font-size: 11px; }
+
+    /* Grid & Cards */
+    .grid { display: grid; gap: 20px; }
+    .kpi-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .kpi-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+    .kpi-val { font-size: 28px; font-weight: 700; margin-top: 4px; }
+    .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .main-layout { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 960px) { .main-layout { grid-template-columns: 1fr; } }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .panel-title { font-size: 15px; font-weight: 700; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; }
+
+    /* Form */
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .form-input, .form-select {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; max-height: 380px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+    th { padding: 8px 10px; background: #0f172a; color: var(--text-muted); border-bottom: 1px solid var(--card-border); font-weight: 600; }
+    td { padding: 8px 10px; border-bottom: 1px solid var(--card-border); }
+    tr:hover { background: rgba(255,255,255,0.02); }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+    .badge-safe { background: rgba(16,185,129,0.2); color: var(--safe); }
+    .badge-warn { background: rgba(245,158,11,0.2); color: var(--warn); }
+    .badge-danger { background: rgba(239,68,68,0.2); color: var(--danger); }
+    .badge-info { background: rgba(2,132,199,0.2); color: var(--brand); }
+
+    /* Map */
+    #whatifMap {
+      width: 100%;
+      height: 300px;
+      border-radius: 6px;
+      border: 1px solid var(--card-border);
+      background: #0f172a;
+    }
+    .map-notice {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      border-radius: 6px;
+      border: 1px dashed var(--card-border);
+      color: var(--text-muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 20px;
+    }
+    .error-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>P6 Control Tower — Test Client & Dashboard</h1>
+      <div class="header-sub">Live Incident Management, AI Verification & What-If Simulation</div>
+    </div>
+    <div class="status-bar">
+      <label for="apiBaseInput" style="color:var(--text-muted);">API URL:</label>
+      <input id="apiBaseInput" class="config-input" value="http://127.0.0.1:8006" />
+      <button class="btn btn-secondary" onclick="checkConnection()">Connect</button>
+      <div id="connectionStatus" class="status-pill status-offline">● Offline</div>
+    </div>
+  </header>
+
+  <div id="globalErrorBox" class="error-box" style="margin-bottom:20px;"></div>
+
+  <!-- Overview KPIs -->
+  <section class="grid kpi-row" style="margin-bottom:24px;">
+    <div class="kpi-card">
+      <div class="kpi-title">Active Open Incidents</div>
+      <div id="kpiOpenIncidents" class="kpi-val">—</div>
+      <div class="kpi-sub">From GET /api/v1/control-tower/overview</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Total Registered Incidents</div>
+      <div id="kpiTotalIncidents" class="kpi-val">—</div>
+      <div class="kpi-sub">SQLite database records</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Active Alerts</div>
+      <div id="kpiActiveAlerts" class="kpi-val">—</div>
+      <div id="kpiSeverityBreakdown" class="kpi-sub">Breakdown: —</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Critical Shipments at Risk</div>
+      <div id="kpiCriticalShipments" class="kpi-val">—</div>
+      <div id="kpiShipmentSource" class="kpi-sub">Source: P5 HTTP</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">IMD WIS2 Alerts</div>
+      <div id="kpiImdAlerts" class="kpi-val">—</div>
+      <div class="kpi-sub">Official CAP messages</div>
+    </div>
+  </section>
+
+  <div class="grid main-layout">
+    <!-- Left: Incident Management & Verification -->
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="panel-title">Incidents Management</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadIncidents()">↻ Refresh</button>
+      </div>
+
+      <!-- Report Form -->
+      <form id="formIncident" onsubmit="handleCreateIncident(event)" style="display:flex;flex-direction:column;gap:10px;padding:12px;background:#0f172a;border-radius:6px;border:1px solid var(--card-border);">
+        <div style="font-size:12px;font-weight:700;">Report New Field Incident</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Road Corridor</label>
+            <input class="form-input" name="road_id" value="NH-13" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Incident Type</label>
+            <select class="form-select" name="incident_type">
+              <option value="LANDSLIDE">LANDSLIDE</option>
+              <option value="FLOOD">FLOOD</option>
+              <option value="ROAD_BLOCKED">ROAD_BLOCKED</option>
+              <option value="ACCIDENT">ACCIDENT</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Latitude (°N)</label>
+            <input class="form-input" type="number" step="any" name="latitude" value="27.42" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Longitude (°E)</label>
+            <input class="form-input" type="number" step="any" name="longitude" value="92.15" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input class="form-input" name="description" value="Uphill landslide blocking roadway" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Image URL (for CLIP / EXIF verification)</label>
+          <input class="form-input" name="image_url" placeholder="https://example.com/incident.jpg" />
+        </div>
+        <button class="btn" type="submit">Submit Incident</button>
+      </form>
+
+      <!-- Incidents Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Road</th>
+              <th>Status</th>
+              <th>Confidence</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="incidentsTableBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Loading incidents...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right: What-If Disruption Simulator -->
+    <div class="panel">
+      <div class="panel-title">What-If Multi-Hazard Disruption Simulation</div>
+
+      <form id="formWhatIf" onsubmit="handleWhatIf(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Scenario Type</label>
+            <select class="form-select" name="scenario_type">
+              <option value="ROAD_BLOCKED">ROAD_BLOCKED</option>
+              <option value="LANDSLIDE_BLOCK">LANDSLIDE_BLOCK</option>
+              <option value="FLOOD_CLOSURE">FLOOD_CLOSURE</option>
+              <option value="WAREHOUSE_OUTAGE">WAREHOUSE_OUTAGE</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Road ID</label>
+            <input class="form-input" name="road_id" value="NH-13" />
+          </div>
+        </div>
+        <button class="btn" type="submit" id="btnRunSim">Run Disruption Simulation</button>
+      </form>
+
+      <!-- Simulation Results Box -->
+      <div id="simResultsBox" style="display:none;background:#0f172a;border:1px solid var(--card-border);border-radius:6px;padding:12px;font-size:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div><b>Affected Shipments:</b> <span id="simAffectedShipments">—</span></div>
+          <div><b>Delayed Shipments:</b> <span id="simDelayedShipments">—</span></div>
+          <div><b>Affected Districts:</b> <span id="simAffectedDistricts">—</span></div>
+          <div><b>Additional Delay:</b> <span id="simDelay">—</span></div>
+          <div><b>Alternative Route ID:</b> <span id="simRouteId">—</span></div>
+          <div><b>Routes Source:</b> <span id="simProvenance">—</span></div>
+        </div>
+        <div id="simShipmentsDetail" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- Route Geometry Map -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:600;color:var(--text-muted);">P4 Scenario Impact Geometry</span>
+          <span id="mapGeometryBadge" class="badge badge-info">Awaiting Run</span>
+        </div>
+        <div id="whatifMapContainer">
+          <div id="mapNotice" class="map-notice">Run a What-If scenario to render real P4 route geometry.</div>
+          <div id="whatifMap" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    let leafletMap = null;
+    let currentPolyline = null;
+
+    function getApiBase() {
+      const input = document.getElementById("apiBaseInput");
+      if (input && input.value.trim()) {
+        return input.value.trim().replace(/\/$/, "");
+      }
+      return window.location.origin.includes("http") ? window.location.origin : "http://127.0.0.1:8006";
+    }
+
+    function showError(msg) {
+      const box = document.getElementById("globalErrorBox");
+      if (!box) return;
+      if (!msg) { box.style.display = "none"; box.textContent = ""; return; }
+      box.style.display = "block";
+      box.textContent = msg;
+    }
+
+    async function checkConnection() {
+      const base = getApiBase();
+      const statusPill = document.getElementById("connectionStatus");
+      showError("");
+      try {
+        const res = await fetch(`${base}/health`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const data = await res.json();
+          statusPill.className = "status-pill status-online";
+          statusPill.textContent = "● Online (P6 Ready)";
+          loadOverview();
+          loadIncidents();
+        } else {
+          statusPill.className = "status-pill status-offline";
+          statusPill.textContent = `● HTTP ${res.status}`;
+          showError(`P6 Control Tower returned HTTP ${res.status} on /health.`);
+        }
+      } catch (err) {
+        statusPill.className = "status-pill status-offline";
+        statusPill.textContent = "● Offline (Failed to fetch)";
+        showError(`Failed to connect to P6 at ${base}. Please ensure the backend is running via: python -m uvicorn p6_src.main:app --port 8006`);
+      }
+    }
+
+    async function loadOverview() {
+      const base = getApiBase();
+      try {
+        const res = await fetch(`${base}/api/v1/control-tower/overview`, { signal: AbortSignal.timeout(4000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        document.getElementById("kpiOpenIncidents").textContent = data.open_incidents ?? "—";
+        document.getElementById("kpiTotalIncidents").textContent = data.incidents_total ?? "—";
+        document.getElementById("kpiActiveAlerts").textContent = data.active_alerts ?? "—";
+
+        const sev = data.alerts_by_severity || {};
+        document.getElementById("kpiSeverityBreakdown").textContent = `Critical: ${sev.CRITICAL || 0} · High: ${sev.HIGH || 0} · Med: ${sev.MEDIUM || 0}`;
+        document.getElementById("kpiCriticalShipments").textContent = data.critical_shipments_at_risk ?? "—";
+        document.getElementById("kpiShipmentSource").textContent = `Shipments: ${data.data_provenance?.shipments || 'unavailable'}`;
+        document.getElementById("kpiImdAlerts").textContent = data.imd_alert_count ?? "—";
+      } catch (err) {
+        console.warn("Overview error:", err);
+      }
+    }
+
+    async function loadIncidents() {
+      const base = getApiBase();
+      const tbody = document.getElementById("incidentsTableBody");
+      try {
+        const res = await fetch(`${base}/api/v1/incidents`, { signal: AbortSignal.timeout(4000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const list = await res.json();
+
+        if (!Array.isArray(list) || list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">No incidents registered in database.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = list.map(inc => {
+          const badgeClass = inc.status === "VERIFIED" ? "badge-safe" : (inc.status === "RESOLVED" ? "badge-info" : "badge-warn");
+          const conf = inc.confidence !== null && inc.confidence !== undefined ? `${Math.round(inc.confidence * 100)}%` : "N/A";
+          return `
+            <tr>
+              <td><b>${inc.incident_id}</b></td>
+              <td>${inc.incident_type}</td>
+              <td>${inc.road_id || 'N/A'}</td>
+              <td><span class="badge ${badgeClass}">${inc.status}</span></td>
+              <td>${conf}</td>
+              <td>
+                ${inc.image_url ? `<button class="btn btn-secondary btn-sm" onclick="verifyIncident('${inc.incident_id}')">AI Verify</button>` : `<span style="color:var(--text-muted);font-size:10.5px;">No image</span>`}
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);">Failed to fetch incidents: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function handleCreateIncident(e) {
+      e.preventDefault();
+      const base = getApiBase();
+      const form = e.target;
+      const fd = new FormData(form);
+
+      const payload = {
+        road_id: fd.get("road_id") || "NH-13",
+        incident_type: fd.get("incident_type") || "LANDSLIDE",
+        latitude: parseFloat(fd.get("latitude")),
+        longitude: parseFloat(fd.get("longitude")),
+        description: fd.get("description") || "",
+        image_url: fd.get("image_url") || null,
+        reported_by: "TEST_DASHBOARD"
+      };
+
+      try {
+        const res = await fetch(`${base}/api/v1/incidents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await res.json();
+        form.reset();
+        loadIncidents();
+        loadOverview();
+      } catch (err) {
+        showError(`Failed to create incident: ${err.message}`);
+      }
+    }
+
+    async function verifyIncident(incidentId) {
+      const base = getApiBase();
+      try {
+        const res = await fetch(`${base}/api/v1/incidents/${incidentId}/verify`, {
+          method: "POST"
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || `HTTP ${res.status}`);
+        }
+        const updated = await res.json();
+        alert(`Verification Complete for ${incidentId}:\nDetected: ${updated.detected_type}\nConfidence: ${Math.round((updated.confidence || 0) * 100)}%\nStatus: ${updated.status}\nBackend: ${updated.verification_backend}`);
+        loadIncidents();
+        loadOverview();
+      } catch (err) {
+        alert(`Verification failed for ${incidentId}: ${err.message}`);
+      }
+    }
+
+    async function handleWhatIf(e) {
+      e.preventDefault();
+      const base = getApiBase();
+      const form = e.target;
+      const fd = new FormData(form);
+      const btn = document.getElementById("btnRunSim");
+
+      btn.disabled = true;
+      btn.textContent = "Simulating...";
+      showError("");
+
+      const payload = {
+        scenario_type: fd.get("scenario_type") || "ROAD_BLOCKED",
+        road_id: fd.get("road_id") || null
+      };
+
+      try {
+        const res = await fetch(`${base}/api/v1/simulation/what-if`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Render metrics
+        const resBox = document.getElementById("simResultsBox");
+        resBox.style.display = "block";
+        document.getElementById("simAffectedShipments").textContent = data.affected_shipments ?? 0;
+        document.getElementById("simDelayedShipments").textContent = data.delayed_shipments ?? 0;
+        document.getElementById("simAffectedDistricts").textContent = data.affected_districts ?? 0;
+
+        const delayMin = data.additional_delay_minutes;
+        document.getElementById("simDelay").textContent = (delayMin !== null && delayMin !== undefined) ? `${Math.floor(delayMin / 60)}h ${delayMin % 60}m` : "N/A (unavailable)";
+        document.getElementById("simRouteId").textContent = data.recommended_route_id || "None";
+        document.getElementById("simProvenance").textContent = `routes: ${data.data_provenance?.routes || 'unavailable'}`;
+
+        // Map rendering
+        const badge = document.getElementById("mapGeometryBadge");
+        const coords = Array.isArray(data.route_geometry) && data.route_geometry.length >= 2
+          ? data.route_geometry
+          : (Array.isArray(data.route_coordinates) && data.route_coordinates.length >= 2 ? data.route_coordinates : null);
+
+        const mapEl = document.getElementById("whatifMap");
+        const noticeEl = document.getElementById("mapNotice");
+
+        if (coords) {
+          badge.className = "badge badge-safe";
+          badge.textContent = `P4 Geometry (${coords.length} pts)`;
+          noticeEl.style.display = "none";
+          mapEl.style.display = "block";
+
+          if (!leafletMap) {
+            leafletMap = L.map('whatifMap').setView([26.14, 91.74], 7);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; OpenStreetMap'
+            }).addTo(leafletMap);
+          }
+          if (currentPolyline) {
+            leafletMap.removeLayer(currentPolyline);
+          }
+          currentPolyline = L.polyline(coords, { color: '#0284c7', weight: 4 }).addTo(leafletMap);
+          leafletMap.fitBounds(currentPolyline.getBounds(), { padding: [20, 20] });
+          leafletMap.invalidateSize();
+        } else {
+          badge.className = "badge badge-warn";
+          badge.textContent = "Route geometry unavailable";
+          mapEl.style.display = "none";
+          noticeEl.style.display = "flex";
+          noticeEl.textContent = "Route geometry unavailable for this scenario (P4 routing did not include route_coordinates).";
+        }
+      } catch (err) {
+        showError(`What-If simulation failed: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Run Disruption Simulation";
+      }
+    }
+
+    // Auto-detect default API Base
+    if (window.location.protocol.startsWith("http")) {
+      document.getElementById("apiBaseInput").value = window.location.origin;
+    }
+    // Initial connection test
+    checkConnection();
+  </script>
+</body>
+</html>
