@@ -1,5 +1,11 @@
-from fastapi.testclient import TestClient
+import sys
+from pathlib import Path
 
+p5_root = str(Path(__file__).resolve().parent.parent)
+if p5_root not in sys.path:
+    sys.path.insert(0, p5_root)
+
+from fastapi.testclient import TestClient
 from p5_src.main import app
 
 client = TestClient(app)

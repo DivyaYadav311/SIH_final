@@ -18,6 +18,14 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = PROJECT_ROOT / "Frontend"
 
+from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
+
+import os
+os.environ.setdefault("P3_BASE_URL", "http://127.0.0.1:8002")
+os.environ.setdefault("P4_BASE_URL", "http://127.0.0.1:8002")
+os.environ.setdefault("P5_BASE_URL", "http://127.0.0.1:8002")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
@@ -34,6 +42,7 @@ module_status = {
     "p4_routing": "unavailable",
     "p5_logistics": "unavailable",
     "p6_control_tower": "unavailable",
+    "gemini_ai": "available" if bool(os.getenv("GEMINI_API_KEY")) else "fallback",
 }
 
 
@@ -234,10 +243,10 @@ if p1_router is not None:
 
 # ===== MOUNT P2 ============================================================
 if p2_app is not None:
-    # Re-register P2's routes on the unified app
+    # Re-register P2's routes on the unified app (excluding standalone /health)
     from starlette.routing import Route as StarletteRoute
     for route in p2_app.routes:
-        if hasattr(route, "methods") and hasattr(route, "path"):
+        if hasattr(route, "methods") and hasattr(route, "path") and route.path != "/health":
             app.routes.append(route)
 
 
@@ -353,8 +362,11 @@ if RouteOptimizer is not None:
             body = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON"})
+        global p4_optimizer
         try:
             req = RouteRequest.model_validate(body)
+            if p4_optimizer is None and RouteOptimizer is not None:
+                p4_optimizer = RouteOptimizer()
             if p4_optimizer is None:
                 raise RuntimeError("P4 Optimizer not ready")
             return p4_optimizer.optimize(req)
@@ -392,7 +404,7 @@ if RouteOptimizer is not None:
 # ===== MOUNT P5 ============================================================
 if p5_app is not None:
     for route in p5_app.routes:
-        if hasattr(route, "methods") and hasattr(route, "path"):
+        if hasattr(route, "methods") and hasattr(route, "path") and route.path != "/health":
             app.routes.append(route)
 
 
@@ -410,6 +422,21 @@ if p6_routers:
                     await ws.receive_text()
             except WebSocketDisconnect:
                 p6_hub.disconnect(ws)
+
+
+# ===== MOUNT GEMINI AI =====================================================
+@app.post("/api/v1/ai/advisory")
+async def api_gemini_advisory(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    try:
+        from shared.gemini_service import generate_route_advisory
+        return generate_route_advisory(body)
+    except Exception as exc:
+        logger.warning("AI advisory generation error: %s", exc)
+        return JSONResponse(status_code=500, content={"error": str(exc), "status": "error"})
 
 
 # ---------------------------------------------------------------------------

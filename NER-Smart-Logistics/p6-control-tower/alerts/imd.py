@@ -41,7 +41,7 @@ def _cap_severity_to_level(raw: str) -> str:
 
 def fetch_imd_cap_alerts(limit: int = 100) -> list[dict[str, Any]]:
     try:
-        with httpx.Client(timeout=15, follow_redirects=True) as client:
+        with httpx.Client(timeout=15, verify=False, follow_redirects=True) as client:
             r = client.get(IMD_CAP_MESSAGES_URL, params={"limit": limit, "f": "json"})
             r.raise_for_status()
             payload = r.json()

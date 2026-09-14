@@ -79,7 +79,7 @@ const P6ControlTower = {
     if (!Array.isArray(incidents)) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align:center;padding:16px;color:var(--text-muted);">
+          <td colspan="8" style="text-align:center;padding:16px;color:var(--text-muted);">
             Unable to connect to live P6 incident service.
           </td>
         </tr>
@@ -102,7 +102,7 @@ const P6ControlTower = {
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align:center;padding:16px;color:var(--text-muted);">
+          <td colspan="8" style="text-align:center;padding:16px;color:var(--text-muted);">
             No incident reports matching filter "${this.currentFilter}".
           </td>
         </tr>
@@ -123,10 +123,15 @@ const P6ControlTower = {
         ? `(${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E)`
         : "";
 
+      const photoHtml = inc.image_url
+        ? `<img src="${inc.image_url}" class="incident-thumb" alt="Evidence" onclick="P6ControlTower.previewPhoto('${inc.image_url}')" title="Click to inspect full photo" />`
+        : `<span style="font-size:10.5px;color:var(--text-muted);font-style:italic;">No photo</span>`;
+
       return `
         <tr>
           <td><b>${inc.incident_id || "—"}</b></td>
           <td><b>${typeEmoji} ${inc.incident_type || "UNKNOWN"}</b></td>
+          <td style="text-align:center;">${photoHtml}</td>
           <td><b>${inc.road_id || "N/A"}</b> <span style="font-size:10.5px;color:var(--text-muted);">${coordsText}</span></td>
           <td><span class="status-badge ${badgeClass}">${inc.status || "UNKNOWN"}</span></td>
           <td><b style="color:${(inc.confidence || 0) > 0.9 ? 'var(--status-safe)' : 'var(--status-warning)'}">${inc.confidence != null ? `${Math.round(inc.confidence * 100)}%` : "N/A"}</b></td>
@@ -139,6 +144,44 @@ const P6ControlTower = {
         </tr>
       `;
     }).join("");
+  },
+
+  previewPhoto(url) {
+    const modal = document.getElementById("incidentPhotoModal");
+    const img = document.getElementById("modalFullPhotoImg");
+    if (modal && img) {
+      img.src = url;
+      modal.style.display = "flex";
+    }
+  },
+
+  handleUrlInput(url) {
+    const thumb = document.getElementById("incidentPhotoThumb");
+    const box = document.getElementById("incidentPhotoPreviewBox");
+    const status = document.getElementById("incidentPhotoStatus");
+    if (thumb && url && url.startsWith("http")) {
+      thumb.src = url;
+      if (box) box.style.display = "flex";
+      if (status) status.textContent = "✓ Photo Evidence Attached";
+    }
+  },
+
+  handleFileSelect(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const urlInput = document.getElementById("inputIncidentImageUrl");
+      const thumb = document.getElementById("incidentPhotoThumb");
+      const box = document.getElementById("incidentPhotoPreviewBox");
+      const status = document.getElementById("incidentPhotoStatus");
+      if (urlInput) urlInput.value = dataUrl;
+      if (thumb) thumb.src = dataUrl;
+      if (box) box.style.display = "flex";
+      if (status) status.textContent = `✓ Attached: ${file.name}`;
+    };
+    reader.readAsDataURL(file);
   },
 
   bindIncidentForm() {

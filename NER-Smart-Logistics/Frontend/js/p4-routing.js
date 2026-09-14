@@ -14,8 +14,8 @@ const P4Routing = {
   init() {
     this.bindEvents();
     this.initInPageDetailModal();
-    // Keep detecting state until user's location or corridor is actually detected
-    this.updateNavbarWeather(null, null);
+    // Do NOT auto-fetch weather for any default city on load.
+    // Weather will update when the user runs a route optimization or uses GPS.
 
     // Silent background check for location permission (no intrusive popup on enter)
     this.initSilentLocationCheck();
@@ -32,7 +32,29 @@ const P4Routing = {
     }
   },
 
-  updateNavbarWeather(cityName, tempC) {
+  async fetchLiveRegionalWeather(cityName, lat, lng) {
+    const shortName = (cityName || "Guwahati").split(",")[0].trim();
+    try {
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.current_weather && typeof data.current_weather.temperature === "number") {
+          const temp = data.current_weather.temperature;
+          const code = data.current_weather.weathercode || 0;
+          let icon = "☀️";
+          if (code >= 51 && code <= 67) icon = "🌧️";
+          else if (code >= 71 && code <= 77) icon = "❄️";
+          else if (code >= 95) icon = "⛈️";
+          else if (code > 0 && code <= 3) icon = "⛅";
+          this.updateNavbarWeather(shortName, temp, icon);
+          return;
+        }
+      }
+    } catch (e) {}
+    this.updateNavbarWeather(shortName, 26, "⛅");
+  },
+
+  updateNavbarWeather(cityName, tempC, icon) {
     const el = document.getElementById("headerWeatherText");
     if (!el) return;
     if (!cityName) {
@@ -40,8 +62,9 @@ const P4Routing = {
       return;
     }
     const shortName = cityName.split(",")[0].trim();
+    const weatherIcon = icon || (tempC && tempC > 28 ? "☀️" : "⛅");
     const temp = (tempC !== undefined && tempC !== null) ? `${Math.round(tempC)}°C` : "--°C";
-    el.innerHTML = `<span>${shortName}</span> <b>${temp}</b>`;
+    el.innerHTML = `<span>${weatherIcon} ${shortName}</span> <b>${temp}</b>`;
   },
 
   initInPageDetailModal() {
@@ -378,7 +401,7 @@ const P4Routing = {
 
         this.userLocation = { lat, lng, name: placeName, formatted: formattedLocationStr };
         if (srcInput) srcInput.value = formattedLocationStr;
-        this.updateNavbarWeather(placeName, 26);
+        this.fetchLiveRegionalWeather(placeName, lat, lng);
 
         if (window.PravahMap && PravahMap.setUserLocationMarker) {
           PravahMap.setUserLocationMarker(lat, lng, placeName, accuracy);
@@ -469,6 +492,25 @@ const P4Routing = {
       btn.innerHTML = `<span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse-dot 1s infinite;margin-right:6px;"></span> Evaluating P1–P4 Models…`;
     }
 
+    // Show AI/ML Calculating State in Right Panel
+    const awaitingCard = document.getElementById("awaitingRouteCard");
+    const calculatingCard = document.getElementById("routeCalculatingCard");
+    const activeContent = document.getElementById("routeActiveContent");
+    const riskAnalysisSection = document.getElementById("routeRiskAnalysisSection");
+    const altRoutesWrapper = document.getElementById("altRoutesWrapper");
+    const routeStatusBadge = document.getElementById("routeStatusBadge");
+
+    if (awaitingCard) awaitingCard.style.display = "none";
+    if (activeContent) activeContent.style.display = "none";
+    if (riskAnalysisSection) riskAnalysisSection.style.display = "none";
+    if (altRoutesWrapper) altRoutesWrapper.style.display = "none";
+    if (calculatingCard) calculatingCard.style.display = "flex";
+    if (routeStatusBadge) {
+      routeStatusBadge.style.display = "inline-flex";
+      routeStatusBadge.className = "status-badge info";
+      routeStatusBadge.textContent = "⚡ AI/ML Calculating…";
+    }
+
     try {
       await this.triggerOptimization({
         origin,
@@ -480,6 +522,10 @@ const P4Routing = {
       }, true);
     } catch (err) {
       App.showToast("Route optimization completed with cached infrastructure geometry", "warning");
+      if (!this.currentRoute) {
+        if (calculatingCard) calculatingCard.style.display = "none";
+        if (awaitingCard) awaitingCard.style.display = "flex";
+      }
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -491,14 +537,6 @@ const P4Routing = {
   async triggerOptimization(params, showPopup = true) {
     const originLabel = typeof params.origin === "object" ? params.origin.name : params.origin;
     const destLabel = typeof params.destination === "object" ? params.destination.name : params.destination;
-
-    // Reveal active route panel, hide awaiting placeholder card
-    const awaitingCard = document.getElementById("awaitingRouteCard");
-    const activeContent = document.getElementById("routeActiveContent");
-    const routeStatusBadge = document.getElementById("routeStatusBadge");
-    if (awaitingCard) awaitingCard.style.display = "none";
-    if (activeContent) activeContent.style.display = "flex";
-    if (routeStatusBadge) routeStatusBadge.style.display = "inline-flex";
 
     // 1. Run Automated Multi-Hazard Prediction Pipeline (P1 Flood ➔ P2 Landslide ➔ P3 Road Risk)
     const pipelineRes = await PredictionPipeline.runFullPipeline({
@@ -523,6 +561,21 @@ const P4Routing = {
 
     this.currentRoute = routeData;
 
+    // Reveal active route panel and route risk analysis, hide calculating state
+    const awaitingCard = document.getElementById("awaitingRouteCard");
+    const calculatingCard = document.getElementById("routeCalculatingCard");
+    const activeContent = document.getElementById("routeActiveContent");
+    const riskAnalysisSection = document.getElementById("routeRiskAnalysisSection");
+    const altRoutesWrapper = document.getElementById("altRoutesWrapper");
+    const routeStatusBadge = document.getElementById("routeStatusBadge");
+
+    if (calculatingCard) calculatingCard.style.display = "none";
+    if (awaitingCard) awaitingCard.style.display = "none";
+    if (activeContent) activeContent.style.display = "flex";
+    if (riskAnalysisSection) riskAnalysisSection.style.display = "block";
+    if (altRoutesWrapper) altRoutesWrapper.style.display = "block";
+    if (routeStatusBadge) routeStatusBadge.style.display = "inline-flex";
+
     // 3. Render on Map with Adapted Geometry
     PravahMap.plotRoute(routeData, pipelineRes.is_adapted);
 
@@ -542,6 +595,9 @@ const P4Routing = {
       window.P5Logistics.registerSearchedRouteShipment(routeData);
     }
 
+    // Fetch and display Live Gemini AI Disaster Advisory
+    this.fetchAndRenderGeminiAdvisory(routeData, pipelineRes);
+
     // 5. Toast status feedback
     if (showPopup) {
       if (pipelineRes && pipelineRes.is_adapted) {
@@ -552,6 +608,53 @@ const P4Routing = {
     }
   },
 
+  async fetchAndRenderGeminiAdvisory(data, pipelineRes) {
+    const card = document.getElementById("geminiAdvisoryCard");
+    const contentEl = document.getElementById("geminiAdvisoryContent");
+    const badgeEl = document.getElementById("geminiModelBadge");
+    if (!card || !contentEl) return;
+
+    card.style.display = "block";
+    contentEl.innerHTML = `<span style="color:var(--text-muted);font-style:italic;">✨ Gemini is synthesizing live environmental intelligence and tactical route advisory…</span>`;
+
+    const originLabel = typeof data.origin === "object" ? data.origin.name : data.origin;
+    const destLabel = typeof data.destination === "object" ? data.destination.name : data.destination;
+
+    const payload = {
+      origin: originLabel,
+      destination: destLabel,
+      distance_km: data.distance_km,
+      duration_minutes: data.estimated_travel_time_minutes,
+      risk_level: pipelineRes?.risk_level || data.risk_level || "MODERATE",
+      flood_probability: pipelineRes?.flood?.flood_probability || 0.25,
+      landslide_probability: pipelineRes?.landslide?.landslide_probability || 0.35,
+      disruption_probability: pipelineRes?.road_risk?.disruption_probability || 0.30,
+      cargo_type: document.getElementById("selectCargoType")?.value || "Medical / Relief Supplies",
+      imd_alerts_count: data.active_alerts_count || 0,
+    };
+
+    try {
+      const res = await PravahAPI.getAiAdvisory(payload);
+      if (res && res.advisory_text) {
+        if (badgeEl && res.model) {
+          badgeEl.textContent = res.model;
+        }
+        let formatted = res.advisory_text
+          .replace(/### (.*?)\n/g, '<div style="font-weight:800;color:var(--text-primary);margin:10px 0 4px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:2px;">$1</div>')
+          .replace(/## (.*?)\n/g, '<div style="font-weight:800;color:var(--text-primary);margin:12px 0 6px 0;font-size:12.5px;">$1</div>')
+          .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+          .replace(/\n\n/g, '<br/><br/>')
+          .replace(/\n• /g, '<br/>• ')
+          .replace(/\n- /g, '<br/>• ')
+          .replace(/\n\*/g, '<br/>• ');
+        contentEl.innerHTML = formatted;
+        return;
+      }
+    } catch (e) {}
+
+    contentEl.innerHTML = `<b>Corridor Advisory</b>: Standard emergency logistics protocol active along ${originLabel} ➔ ${destLabel}. Maintain continuous telemetry and monitor weather alerts.`;
+  },
+
   updateRoutePreview(data, pipelineRes) {
     const originEl = document.getElementById("previewOrigin");
     const destEl = document.getElementById("previewDestination");
@@ -560,8 +663,12 @@ const P4Routing = {
     const arrivalEl = document.getElementById("previewArrival");
     const routeStatusBadge = document.getElementById("routeStatusBadge");
 
-    if (originEl) originEl.innerHTML = `<b>${data.origin}</b><span>Origin Point</span>`;
-    if (destEl) destEl.innerHTML = `<b>${data.destination}</b><span>Destination</span>`;
+    if (originEl) originEl.textContent = data.origin;
+    if (destEl) destEl.textContent = data.destination;
+    const tlOrigin = document.getElementById("timelineOriginLabel");
+    const tlDest = document.getElementById("timelineDestLabel");
+    if (tlOrigin) tlOrigin.textContent = data.origin;
+    if (tlDest) tlDest.textContent = data.destination;
     if (distEl) distEl.textContent = `${data.distance_km} km`;
 
     const minsTotal = Number(data.estimated_travel_time_minutes || 0);
@@ -711,7 +818,7 @@ const P4Routing = {
     this.updateNavbarWeather(data.origin, data.temperature_c);
   },
 
-  updateLiveConditions(data) {
+  async updateLiveConditions(data) {
     const tempEl = document.getElementById("condTemp");
     const rainEl = document.getElementById("condRain");
     const aqiEl = document.getElementById("condAqi");
@@ -719,12 +826,53 @@ const P4Routing = {
     const humEl = document.getElementById("condHumidity");
     const visEl = document.getElementById("condVisibility");
 
-    if (tempEl) tempEl.textContent = `${data.temperature_c !== undefined ? data.temperature_c : 24}°C`;
-    if (rainEl) rainEl.textContent = `${data.rainfall_mm !== undefined ? data.rainfall_mm : 0.0} mm`;
-    if (aqiEl) aqiEl.textContent = `${data.aqi || 48} AQI (${data.aqi_category || 'Good'})`;
-    if (windEl) windEl.textContent = `${data.wind_kmh !== undefined ? data.wind_kmh : 8} km/h`;
-    if (humEl) humEl.textContent = `${data.humidity_pct !== undefined ? Math.round(data.humidity_pct) : 75}%`;
-    if (visEl) visEl.textContent = data.weather_condition || "Optimal (> 8 km)";
+    // Try to fetch live weather for the route origin from Open-Meteo
+    let liveTemp = data.temperature_c;
+    let liveRain = data.rainfall_mm;
+    let liveWind = data.wind_kmh;
+    let liveHumidity = data.humidity_pct;
+    let liveCondition = data.weather_condition;
+
+    try {
+      // Resolve origin coordinates
+      const coords = data.route_coordinates;
+      let lat = 26.1445, lng = 91.7362;
+      if (coords && coords.length > 0) {
+        lat = coords[0][0];
+        lng = coords[0][1];
+      }
+      const meteoRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weather_code&timezone=auto`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      if (meteoRes.ok) {
+        const meteo = await meteoRes.json();
+        if (meteo && meteo.current) {
+          const c = meteo.current;
+          liveTemp = c.temperature_2m;
+          liveRain = c.precipitation;
+          liveWind = c.wind_speed_10m;
+          liveHumidity = c.relative_humidity_2m;
+          const wc = c.weather_code || 0;
+          if (wc === 0) liveCondition = "Clear Sky";
+          else if (wc <= 3) liveCondition = "Partly Cloudy";
+          else if (wc <= 48) liveCondition = "Foggy";
+          else if (wc <= 67) liveCondition = "Rainy";
+          else if (wc <= 77) liveCondition = "Snowy";
+          else if (wc >= 95) liveCondition = "Thunderstorm";
+          else liveCondition = "Overcast";
+        }
+      }
+    } catch (e) {
+      // Open-Meteo unavailable, using route data values
+    }
+
+    if (tempEl) tempEl.textContent = `${liveTemp !== undefined ? Number(liveTemp).toFixed(1) : '--'}°C`;
+    if (rainEl) rainEl.textContent = `${liveRain !== undefined ? Number(liveRain).toFixed(1) : '0'} mm`;
+    if (aqiEl) aqiEl.textContent = `${data.aqi || 77} AQI (${data.aqi_category || 'Moderate'})`;
+    if (windEl) windEl.textContent = `${liveWind !== undefined ? Number(liveWind).toFixed(2) : '--'} km/h`;
+    if (humEl) humEl.textContent = `${liveHumidity !== undefined ? Math.round(liveHumidity) : '--'}%`;
+    if (visEl) visEl.textContent = liveCondition || "--";
   },
 
   /**
@@ -836,6 +984,23 @@ const P4Routing = {
   currentNewsItems: [],
   allNewsItems: [],
 
+  formatNewsTime(pubDate) {
+    if (!pubDate || pubDate === "Live Intel") return "Today";
+    try {
+      const dt = new Date(pubDate);
+      if (!isNaN(dt.getTime())) {
+        const diffHours = Math.round((Date.now() - dt.getTime()) / (1000 * 60 * 60));
+        if (diffHours <= 1) return "Just now";
+        if (diffHours < 24) return `${diffHours}h ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays === 1) return "Yesterday";
+        if (diffDays <= 7) return `${diffDays}d ago`;
+        return `${diffDays}d ago`;
+      }
+    } catch (e) {}
+    return "Today";
+  },
+
   newsArticleUrl(inc) {
     const raw = (inc && (inc.url || inc.article_url || inc.link || inc.news_url)) || "";
     if (raw && (raw.startsWith("http://") || raw.startsWith("https://"))) {
@@ -854,18 +1019,19 @@ const P4Routing = {
     const title = inc.title || inc.text || inc.description || "Corridor incident alert";
     const loc = inc.location || inc.road_id || inc.geocoded_from_query || (this.currentRoute ? `${this.currentRoute.origin || ''} ${this.currentRoute.destination || ''}` : "");
     let url = this.newsArticleUrl(inc);
-    if (!url) {
+    if (!url || url.includes("google.com/rss/articles")) {
       url = this.googleNewsSearchUrl(title, loc);
     }
 
     const sevNum = typeof inc.severity === "number" ? inc.severity : (inc.incident_type === "ROAD_BLOCKED" || inc.incident_type === "LANDSLIDE" ? 0.8 : 0.4);
     const sevClass = sevNum >= 0.5 || inc.incident_type === "ROAD_BLOCKED" || inc.incident_type === "LANDSLIDE" ? "hazard-alert" : (inc.type || "hazard-warning");
+    const rawTime = inc.time || inc.published_at || inc.pubDate || inc.date || "Live Intel";
     return {
       type: inc.type || sevClass,
       title,
       badge: inc.badge || (sevClass === "hazard-alert" ? "CRITICAL ALERT" : "HAZARD ADVISORY"),
       source: inc.source || inc.provider || inc.reported_by || "GDELT / Google News",
-      time: inc.time || inc.published_at || "Live Intel",
+      time: this.formatNewsTime(rawTime),
       body: inc.snippet || inc.description || inc.title || "Live corridor hazard reported by emergency telemetry sensors.",
       disruption: `${Math.round((typeof inc.severity === "number" ? inc.severity : 0.4) * 100)}%`,
       distance: inc.distance_from_route_km != null ? `${inc.distance_from_route_km} km from corridor` : (inc.road_id || "On route"),
@@ -1023,6 +1189,18 @@ const P4Routing = {
 
     const mergedRaw = [];
     const seen = new Set();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const isWithinWeek = (inc) => {
+      if (!inc) return false;
+      const p = inc.published_at || inc.pubDate || inc.date || inc.time;
+      if (!p || p === "Live Intel") return true;
+      const d = new Date(p);
+      if (!isNaN(d.getTime())) {
+        return d.getTime() >= sevenDaysAgo;
+      }
+      return true;
+    };
+
     const pushRaw = (inc) => {
       if (!inc) return;
       const key = `${this.newsArticleUrl(inc) || ""}|${inc.title || inc.description || ""}`;
@@ -1031,8 +1209,8 @@ const P4Routing = {
       mergedRaw.push(inc);
     };
 
-    (data.live_incidents || []).forEach(pushRaw);
-    (data.disaster_news || []).forEach(pushRaw);
+    (data.live_incidents || []).filter(isWithinWeek).forEach(pushRaw);
+    (data.disaster_news || []).filter(isWithinWeek).forEach(pushRaw);
 
     let items;
     if (mergedRaw.length > 0) {

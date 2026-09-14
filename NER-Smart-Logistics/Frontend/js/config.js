@@ -17,20 +17,23 @@ const _protocol = (typeof window !== "undefined" && window.location && window.lo
   ? window.location.protocol
   : "http:";
 
-const _p4Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p4_url")) || `${_protocol}//${_host}:8001`;
-const _p5Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p5_url")) || `${_protocol}//${_host}:8005`;
-const _p6Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p6_url")) || `${_protocol}//${_host}:8006`;
-const _p2Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p2_url")) || `${_protocol}//${_host}:8002`;
+const _backendPort = "8002";
+const _defaultBackend = `${_protocol}//${_host}:${_backendPort}`;
+
+const _p4Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p4_url")) || _defaultBackend;
+const _p5Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p5_url")) || _defaultBackend;
+const _p6Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p6_url")) || _defaultBackend;
+const _p2Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p2_url")) || _defaultBackend;
 
 const PRAVAH_CONFIG = {
   APP_NAME: "Pravah",
   TAGLINE: "Safer Journeys. Stronger North East.",
   VERSION: "3.0.0",
 
-  // Default Backend Endpoint
-  API_BASE: _p4Url,
+  // Unified Backend Endpoint (All P1–P6 on port 8002)
+  API_BASE: _defaultBackend,
 
-  // Modular microservices endpoints
+  // Modular endpoints (all unified on port 8002 with individual microservice fallback support)
   API_ENDPOINTS: {
     p4_routing: _p4Url,
     p6_control_tower: _p6Url,
@@ -38,6 +41,7 @@ const PRAVAH_CONFIG = {
     p2_landslide: _p2Url,
     p3_road_risk: _p2Url,
     p1_flood: _p2Url,
+    gemini_ai: _defaultBackend,
   },
 
   // Northeast Transit Hubs & Coordinates

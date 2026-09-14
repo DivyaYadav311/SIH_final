@@ -2,11 +2,25 @@
 from __future__ import annotations
 
 import logging
+import os
+import sys
+from pathlib import Path
 from typing import Any
 
 import httpx
 
-from p6_src.config import p4_base_url, p5_base_url
+_P6_ROOT = Path(__file__).resolve().parents[1]
+if str(_P6_ROOT) not in sys.path:
+    sys.path.insert(0, str(_P6_ROOT))
+
+try:
+    from p6_src.config import p4_base_url, p5_base_url
+except Exception:
+    def p4_base_url() -> str:
+        return (os.getenv("P4_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
+
+    def p5_base_url() -> str:
+        return (os.getenv("P5_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +42,15 @@ def fetch_p5_shipments() -> list[dict[str, Any]] | None:
                     return payload[key]
         return None
     except Exception as exc:
-        log.warning("P5 shipments unavailable: %s", exc)
+        log.warning("P5 shipments via HTTP unavailable (%s), trying local in-process service...", exc)
+        try:
+            import importlib
+            p5_main = importlib.import_module("p5_src.main")
+            p5_service = getattr(p5_main, "service", None)
+            if p5_service and hasattr(p5_service, "shipments"):
+                return [s.model_dump() for s in p5_service.shipments.values()]
+        except Exception:
+            return None
         return None
 
 

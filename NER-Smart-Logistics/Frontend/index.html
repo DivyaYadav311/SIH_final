@@ -565,6 +565,40 @@
                   </button>
                 </div>
 
+                <!-- AI/ML MODEL EVALUATION CALCULATING STATE -->
+                <div id="routeCalculatingCard" class="route-calculating-card" style="display:none;">
+                  <div class="calc-pulse-glow"></div>
+                  <div class="calc-spinner-container">
+                    <div class="calc-spinner-ring"></div>
+                    <span class="calc-spinner-icon">⚡</span>
+                  </div>
+                  <div class="calc-badge">🤖 MULTI-MODAL AI/ML PIPELINE</div>
+                  <h3 class="calc-title">Evaluating Route Corridors…</h3>
+                  <p class="calc-subtitle">Synthesizing live satellite, meteorological & terrain intelligence</p>
+                  <div class="calc-steps-list">
+                    <div class="calc-step-item active" id="calcStep1">
+                      <span class="calc-step-pip">●</span>
+                      <span class="calc-step-text"><b>OSRM Highway Router:</b> Highway corridor & gradient analysis</span>
+                    </div>
+                    <div class="calc-step-item active" id="calcStep2">
+                      <span class="calc-step-pip">●</span>
+                      <span class="calc-step-text"><b>P1 Flood Inundation AI:</b> IMD precipitation & river basin risk</span>
+                    </div>
+                    <div class="calc-step-item active" id="calcStep3">
+                      <span class="calc-step-pip">●</span>
+                      <span class="calc-step-text"><b>P2 Landslide XGBoost:</b> GSI slope & lithology susceptibility</span>
+                    </div>
+                    <div class="calc-step-item active" id="calcStep4">
+                      <span class="calc-step-pip">●</span>
+                      <span class="calc-step-text"><b>P3 Satellite Pipeline:</b> Sentinel-2 MSI surface condition</span>
+                    </div>
+                    <div class="calc-step-item active" id="calcStep5">
+                      <span class="calc-step-pip">●</span>
+                      <span class="calc-step-text"><b>Gemini 3.7 AI:</b> Generating multimodal strategic advisory</span>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- ACTIVE ROUTE CONTENT (DISPLAYED AFTER USER OPTIMIZES) -->
                 <div id="routeActiveContent" style="display:none;flex-direction:column;gap:12px;width:100%;">
                   <!-- Route corridor header -->
@@ -575,13 +609,17 @@
                   <!-- Key stats row (Distance & Est Time) -->
                   <div class="route-stat-chips-row">
                     <div class="route-stat-chip">
-                      <span class="chip-icon">📏</span>
-                      <span class="chip-label">Distance:</span>
+                      <div class="chip-top">
+                        <span class="chip-icon">📏</span>
+                        <span class="chip-label">Distance</span>
+                      </div>
                       <span id="previewDistance" class="chip-val">— km</span>
                     </div>
                     <div class="route-stat-chip">
-                      <span class="chip-icon">⏱️</span>
-                      <span class="chip-label">Estimated Time:</span>
+                      <div class="chip-top">
+                        <span class="chip-icon">⏱️</span>
+                        <span class="chip-label">Estimated Time</span>
+                      </div>
                       <span id="previewTime" class="chip-val">—</span>
                     </div>
                   </div>
@@ -618,18 +656,28 @@
                     </div>
                   </div>
 
+                  <!-- Live Gemini AI Disaster Advisory Box -->
+                  <div id="geminiAdvisoryCard" class="gemini-advisory-card" style="display:none;">
+                    <div class="advisory-header">
+                      <div class="advisory-title">
+                        <span>✨</span> <span>Gemini AI Disaster Logistics Advisory</span>
+                      </div>
+                      <span id="geminiModelBadge" class="advisory-model-badge">gemini-3.7-flash</span>
+                    </div>
+                    <div id="geminiAdvisoryContent" class="advisory-content">
+                      Analyzing environmental hazards and multimodal route dynamics…
+                    </div>
+                  </div>
+
                   <!-- Secondary Action Buttons -->
                   <div class="route-action-buttons-row">
-                    <button type="button" id="btnDetailedReport" class="btn-report-action" onclick="PredictionPipeline.showPredictionPopup()">
-                      <span>📄</span> Get Detailed Report
-                    </button>
-                    <button type="button" id="btnShareRoute" class="btn-report-action" onclick="App.showToast('Route link copied to clipboard', 'safe')">
-                      <span>🔗</span> Share Route
+                    <button type="button" id="btnDetailedReport" class="btn-report-action" style="flex:1;" onclick="PredictionPipeline.showPredictionPopup()">
+                      <span>📄</span> Get Detailed Multi-Modal Report
                     </button>
                   </div>
 
                   <!-- Primary CTA Button -->
-                  <button type="button" id="btnNavigateFullMap" class="btn-navigate-map" onclick="if(PravahMap && PravahMap.layers && PravahMap.layers.routePolyline){ PravahMap.map.fitBounds(PravahMap.layers.routePolyline.getBounds(), { padding:[30,30] }); }">
+                  <button type="button" id="btnNavigateFullMap" class="btn-navigate-map" onclick="if(window.PravahMap && PravahMap.fitCurrentRoute){ PravahMap.fitCurrentRoute(); }">
                     Navigate on Full Map →
                   </button>
 
@@ -641,8 +689,8 @@
               </div>
             </div>
 
-            <!-- CARD 2: ROUTE RISK ANALYSIS -->
-            <div id="routeRiskAnalysisSection" class="right-card-section" style="margin-top:12px;">
+            <!-- CARD 2: ROUTE RISK ANALYSIS (HIDDEN UNTIL ROUTE IS CALCULATED) -->
+            <div id="routeRiskAnalysisSection" class="right-card-section" style="display:none;margin-top:12px;">
               <div class="panel-header">
                 <div class="panel-title">ROUTE RISK ANALYSIS</div>
               </div>
@@ -698,8 +746,8 @@
               </div>
             </div>
 
-            <!-- CARD 3: ALTERNATIVE ROUTES -->
-            <div id="altRoutesWrapper" class="right-card-section" style="margin-top:12px;">
+            <!-- CARD 3: ALTERNATIVE ROUTES (HIDDEN UNTIL ROUTE IS CALCULATED) -->
+            <div id="altRoutesWrapper" class="right-card-section" style="display:none;margin-top:12px;">
               <div class="panel-header" id="altRoutesHeader">
                 <div class="panel-title" id="altRoutesTitleText">ALTERNATIVE ROUTES</div>
                 <span id="altRoutesToggleIcon" class="alt-view-all-link">View All →</span>
@@ -2272,8 +2320,22 @@
                   <input name="description" value="Rockfall across uphill corridor, single-track access only" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Evidence Image URL (CLIP AI)</label>
-                  <input name="image_url" value="https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&q=80" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  <label class="form-label">Attached Photo / Evidence (CLIP AI)</label>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <input name="image_url" id="inputIncidentImageUrl" value="https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&q=80" style="flex:1;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" oninput="P6ControlTower.handleUrlInput(this.value)" />
+                    <label for="inputIncidentFile" class="btn-secondary" style="height:34px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:11.5px;white-space:nowrap;border-radius:6px;border:1px solid var(--border-medium);background:var(--bg-surface-elevated);color:var(--text-primary);">
+                      📷 Browse Photo
+                    </label>
+                    <input type="file" id="inputIncidentFile" accept="image/*" style="display:none;" onchange="P6ControlTower.handleFileSelect(event)" />
+                  </div>
+                  <!-- Attached Photo Live Thumbnail Preview -->
+                  <div id="incidentPhotoPreviewBox" style="margin-top:8px;display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--bg-surface-subtle);border-radius:6px;border:1px solid var(--border-subtle);">
+                    <img id="incidentPhotoThumb" src="https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&q=80" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--border-subtle);cursor:pointer;" alt="Attached Evidence" onclick="P6ControlTower.previewPhoto(this.src)" />
+                    <div style="font-size:11px;color:var(--text-muted);">
+                      <span id="incidentPhotoStatus" style="color:var(--status-safe);font-weight:700;">✓ Photo Evidence Attached</span><br/>
+                      <span style="font-size:10px;color:var(--text-secondary);">Click thumbnail to inspect full resolution</span>
+                    </div>
+                  </div>
                 </div>
                 <button class="btn-primary p6-submit-button" type="submit">Submit Geotagged Report ➔</button>
               </form>
@@ -2327,6 +2389,7 @@
                     <tr>
                       <th>ID</th>
                       <th>Type</th>
+                      <th>Photo</th>
                       <th>Location & Coordinates</th>
                       <th>Status</th>
                       <th>AI Confidence</th>
@@ -2781,6 +2844,25 @@
       <div style="display:flex;justify-content:flex-end;gap:10px;">
         <button id="btnCancelDashboardModal" type="button" class="btn-secondary" style="padding:8px 16px;">Cancel</button>
         <button id="btnSaveDashboardModal" type="button" class="btn-primary" style="padding:8px 20px;">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incident Evidence Photo Lightbox Modal -->
+  <div id="incidentPhotoModal" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);">
+    <div style="position:relative;max-width:720px;width:100%;background:var(--bg-surface);border-radius:12px;overflow:hidden;border:1px solid var(--border-medium);box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border-subtle);background:var(--bg-surface-elevated);">
+        <b style="font-size:13px;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+          <span>📷</span> <span>Attached Photo / Evidence Inspection</span>
+        </b>
+        <button type="button" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;" onclick="document.getElementById('incidentPhotoModal').style.display='none'">✕</button>
+      </div>
+      <div style="padding:16px;display:flex;justify-content:center;background:#050b14;">
+        <img id="modalFullPhotoImg" src="" style="max-height:480px;max-width:100%;object-fit:contain;border-radius:6px;" alt="Incident Evidence Full" />
+      </div>
+      <div style="padding:10px 16px;display:flex;justify-content:space-between;align-items:center;background:var(--bg-surface-elevated);font-size:11px;color:var(--text-secondary);">
+        <span>CLIP Multi-Modal Zero-Shot Classifier Verified</span>
+        <button type="button" class="btn-primary" style="padding:5px 14px;font-size:11.5px;" onclick="document.getElementById('incidentPhotoModal').style.display='none'">Close Viewer</button>
       </div>
     </div>
   </div>

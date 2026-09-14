@@ -26,6 +26,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 _UNIFIED_ARTIFACT = _ROOT / "models" / "p1_flood" / "p1_flood_model.joblib"
 _LOCAL_ARTIFACT = Path(__file__).resolve().parent.parent / "models" / "p1_flood_model.joblib"
 DEFAULT_ARTIFACT = _UNIFIED_ARTIFACT if _UNIFIED_ARTIFACT.exists() else _LOCAL_ARTIFACT
+REQUIRED_COLUMNS = {"date", "segment_id", "flood_event"}
 
 
 def _validate_table(frame: pd.DataFrame) -> pd.DataFrame:

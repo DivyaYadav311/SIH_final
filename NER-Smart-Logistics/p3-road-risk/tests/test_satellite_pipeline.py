@@ -31,7 +31,7 @@ def test_auth_configuration_and_metadata_cache(tmp_path, monkeypatch):
     monkeypatch.delenv("CDSE_CLIENT_ID", raising=False)
     monkeypatch.delenv("CDSE_CLIENT_SECRET", raising=False)
     client = CDSEClient(tmp_path)
-    monkeypatch.setattr("src.satellite_client.DEFAULT_DOTENV_PATH", tmp_path / "missing.env")
+    monkeypatch.setattr("p3_src.satellite_client.DEFAULT_DOTENV_PATH", tmp_path / "missing.env")
     assert client.credentials_available() is False
     monkeypatch.setenv("CDSE_CLIENT_ID", "id")
     monkeypatch.setenv("CDSE_CLIENT_SECRET", "secret")

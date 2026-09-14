@@ -17,7 +17,7 @@ GDELT_DOC_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 GDELT_GEOJSON_URL = "https://api.gdeltproject.org/api/v1/gkg_geojson"
 GOOGLE_NEWS_RSS = "https://news.google.com/rss/search"
 NEWS_TTL_SECONDS = 900
-NEWS_LOOKBACK_HOURS = 48
+NEWS_LOOKBACK_HOURS = 168  # 7 days max lookback
 NEWS_MAX_RECORDS = 30
 NEWS_RADIUS_KM = 55.0
 NEWS_PLACE_RADIUS_KM = 180.0
@@ -154,8 +154,17 @@ def _parse_google_rss(xml, location: str = ""):
             })
     return out
 
-def _within_lookback(e,hours):
-    dt=_parse_dt(str(e.get("published_at",""))); return dt is None or dt >= datetime.now(timezone.utc)-timedelta(hours=hours)
+def _within_lookback(e,hours=168):
+    raw_dt = str(e.get("published_at",""))
+    dt = _parse_dt(raw_dt)
+    if dt is not None:
+        now = datetime.now(timezone.utc)
+        return (now - timedelta(hours=hours)) <= dt <= (now + timedelta(hours=24))
+    # If unparseable string contains an old year (older than current year), discard
+    curr_year = datetime.now(timezone.utc).year
+    if any(str(y) in raw_dt for y in range(2000, curr_year)):
+        return False
+    return True
 
 def _near(a,b,r=NEWS_PLACE_RADIUS_KM):
     return haversine_km(a[0],a[1],b[0],b[1]) <= r
@@ -192,10 +201,10 @@ def fetch_live_disaster_news(origin_name,destination_name,origin,destination,loo
                     lat,lon=value; r=client.get(GDELT_GEOJSON_URL,params={"QUERY":q+f" near:{lat:.4f},{lon:.4f},80km","TIMESPAN":str(max(15,min(1440,lookback_hours*60))),"OUTPUTTYPE":"1","OUTPUTFIELDS":"name,geores,url,domain,urlpubtimedate","MAXPOINTS":"100","format":"GeoJSON"})
                     return _parse_gkg_geojson(r.json(), f"{origin_name} {destination_name}") if r.is_success else []
                 if kind=="doc":
-                    r=client.get(GDELT_DOC_URL,params={"query":f'{q} "{value}"',"mode":"artlist","format":"json","maxrecords":NEWS_MAX_RECORDS,"timespan":f"{lookback_hours}h","sort":"datedesc"})
+                    r=client.get(GDELT_DOC_URL,params={"query":f'{q} "{value}"',"mode":"artlist","format":"json","maxrecords":NEWS_MAX_RECORDS,"timespan":f"{min(lookback_hours, 168)}h","sort":"datedesc"})
                     events=_parse_gdelt_doc(r.json(), value) if r.is_success else []
                 else:
-                    r=client.get(GOOGLE_NEWS_RSS,params={"q":f'{q} "{value}"',"hl":"en-IN","gl":"IN","ceid":"IN:en"})
+                    r=client.get(GOOGLE_NEWS_RSS,params={"q":f'{q} "{value}" when:7d',"hl":"en-IN","gl":"IN","ceid":"IN:en"})
                     events=_parse_google_rss(r.text, value) if r.is_success else []
                 for e in events:
                     if coord:

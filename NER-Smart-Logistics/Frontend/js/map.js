@@ -77,13 +77,31 @@ const PravahMap = {
     this.layers.incidents = L.layerGroup().addTo(this.map);
     this.layers.railways = L.layerGroup();
     this.layers.ferries = L.layerGroup();
-    this.layers.routePolyline = L.layerGroup().addTo(this.map);
+    this.layers.routePolyline = L.featureGroup().addTo(this.map);
     this.layers.hazardSegment = L.layerGroup().addTo(this.map);
     this.layers.routeMarkers = L.layerGroup().addTo(this.map);
 
     // Map starts clean: route and corridor hazards only appear once user clicks Optimize Route
 
     setTimeout(() => this.map.invalidateSize(), 300);
+  },
+
+  // Fit view to current active route safely
+  fitCurrentRoute() {
+    if (!this.map) return;
+    try {
+      if (this.layers && this.layers.routePolyline && typeof this.layers.routePolyline.getBounds === "function") {
+        const bounds = this.layers.routePolyline.getBounds();
+        if (bounds && bounds.isValid()) {
+          this.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+          return;
+        }
+      }
+    } catch (e) {}
+
+    if (window.P4Routing && P4Routing.currentRoute && Array.isArray(P4Routing.currentRoute.route_coordinates) && P4Routing.currentRoute.route_coordinates.length > 0) {
+      this.map.fitBounds(L.latLngBounds(P4Routing.currentRoute.route_coordinates), { padding: [50, 50] });
+    }
   },
 
   // Basemap Switcher
