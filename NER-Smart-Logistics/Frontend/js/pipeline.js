@@ -12,26 +12,21 @@ const PredictionPipeline = {
   // P1 — FLOOD INUNDATION PREDICTION
   // --------------------------------------------------------------------------
   async predictFlood(params = {}) {
-    const {
-      segment_id = "NER-SEG-01",
-      latitude = 26.14,
-      longitude = 91.74,
-      rainfall_7day_mm = 165.0,
-      elevation_m = 48.0,
-      river_proximity_km = 1.2
-    } = params;
+    const { latitude = 26.14, longitude = 91.74, segment_id } = params;
 
-    // Try live P1 Flood API on the unified server
+    // Send only lat/lng — let the P1 backend fetch real rainfall, elevation,
+    // and river proximity from Open-Meteo and Bhuvan DEM.
     try {
+      const body = { latitude, longitude };
+      if (segment_id) body.segment_id = segment_id;
       const resp = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p1_flood}/api/v1/predictions/flood`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude, longitude, segment_id, rainfall_7day_mm, elevation_m, river_proximity_km }),
-        signal: AbortSignal.timeout(2500)
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10000)
       });
       if (resp.ok) {
         const liveData = await resp.json();
-        // Adapt live response to pipeline format
         const result = {
           module: "P1_FLOOD",
           segment_id: liveData.segment_id,
@@ -39,18 +34,22 @@ const PredictionPipeline = {
           flood_probability: liveData.flood_probability,
           confidence: liveData.confidence,
           risk_level: liveData.risk_level,
-          contributing_factors: liveData.contributing_factors,
-          source: "Live P1 Backend API",
+          contributing_factors: liveData.contributing_factors || {},
+          source: "Live P1 Backend — Open-Meteo + Bhuvan DEM",
           timestamp: liveData.source_timestamp
         };
         this.updateP1Card(result);
         return result;
       }
     } catch (e) {
-      console.warn("P1 Flood live API unreachable, using client-side model:", e.message);
+      // P1 API unavailable, using fallback
     }
 
-    // Mathematical implementation matching NER-Smart-Logistics/p1-flood/src/flood_score.py
+    // Mathematical fallback matching p1-flood
+    const rainfall_7day_mm = params.rainfall_7day_mm ?? 35.0;
+    const elevation_m = params.elevation_m ?? 420.0;
+    const river_proximity_km = params.river_proximity_km ?? 6.0;
+
     const RAINFALL_LOW_MM = 50.0;
     const RAINFALL_HIGH_MM = 250.0;
     const ELEVATION_HIGH_RISK_M = 50.0;
@@ -129,26 +128,19 @@ const PredictionPipeline = {
   // P2 — LANDSLIDE SUSCEPTIBILITY PREDICTION
   // --------------------------------------------------------------------------
   async predictLandslide(params = {}) {
-    const {
-      latitude = 27.58,
-      longitude = 91.86,
-      slope_deg = 34.5,
-      rainfall_3day_mm = 85.0,
-      soil_saturation = 0.72,
-      location_id = "LOC_TAWANG_01"
-    } = params;
+    const { latitude = 27.58, longitude = 91.86, location_id = "LOC_NER_01" } = params;
 
-    // Attempt call to P2 FastAPI server on unified backend
+    // Send only lat/lng/location_id — let the P2 backend fetch real slope,
+    // rainfall, soil saturation from Open-Meteo and Copernicus GLO-90 DEM.
     try {
       const resp = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p2_landslide}/api/v1/predictions/landslide`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ latitude, longitude, location_id }),
-        signal: AbortSignal.timeout(2500)
+        signal: AbortSignal.timeout(20000)
       });
       if (resp.ok) {
         const liveData = await resp.json();
-        // Adapt live response to pipeline format
         const result = {
           module: "P2_LANDSLIDE",
           location_id: liveData.location_id,
@@ -158,19 +150,23 @@ const PredictionPipeline = {
           risk_level: liveData.risk_level,
           confidence: liveData.confidence,
           model_version: liveData.model_version,
-          live_features: liveData.live_features || { slope_deg, rainfall_3day_mm, soil_saturation },
+          live_features: liveData.live_features || {},
           satellite_observation: liveData.satellite_observation || {},
-          source: "Live P2 Backend API",
+          source: "Live P2 Backend — Open-Meteo + Copernicus DEM + ISRO COOLR",
           timestamp: liveData.timestamp
         };
         this.updateP2Card(result);
         return result;
       }
     } catch (e) {
-      console.warn("P2 Landslide live API unreachable, using client-side model:", e.message);
+      // P2 API unavailable, using fallback
     }
 
-    // Mathematical implementation matching NER-Smart-Logistics/p2-landslide/app/scoring.py
+    // Mathematical fallback matching p2-landslide
+    const slope_deg = params.slope_deg ?? 14.0;
+    const rainfall_3day_mm = params.rainfall_3day_mm ?? 20.0;
+    const soil_saturation = params.soil_saturation ?? 0.35;
+
     let slopeFactor = 0.1;
     if (slope_deg > 40) slopeFactor = 0.92;
     else if (slope_deg > 30) slopeFactor = 0.75;
@@ -235,12 +231,16 @@ const PredictionPipeline = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           road_id,
+          road_name,
           flood_probability,
           landslide_probability,
           active_incidents,
+          max_incident_severity,
+          latitude: params.latitude,
+          longitude: params.longitude,
           timestamp: new Date().toISOString()
         }),
-        signal: AbortSignal.timeout(2500)
+        signal: AbortSignal.timeout(10000)
       });
       if (resp.ok) {
         const liveData = await resp.json();
@@ -248,7 +248,7 @@ const PredictionPipeline = {
         return liveData;
       }
     } catch (e) {
-      console.warn("P3 Road Risk live API unreachable, using client-side model:", e.message);
+      // P3 API unavailable, using fallback
     }
 
     // Mathematical implementation matching NER-Smart-Logistics/p3-road-risk/src/services/risk_engine.py
@@ -295,30 +295,40 @@ const PredictionPipeline = {
   },
 
   async resolveCorridorCoordinates(originStr, destStr) {
-    let lat = 26.14, lng = 91.74;
-    let roadId = "CORRIDOR-MAIN";
-    let roadName = `${originStr || 'Origin'} ➔ ${destStr || 'Destination'} Highway`;
+    let originLat = 26.1445, originLng = 91.7362;
+    let destLat = 27.5861, destLng = 91.8594;
+    const roadName = `${originStr || 'Origin'} ➔ ${destStr || 'Destination'} Highway`;
 
-    try {
-      const q = encodeURIComponent(destStr || originStr || "Guwahati");
-      const resp = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p4_routing}/api/v1/geocode?q=${q}`);
-      if (resp.ok) {
-        const d = await resp.json();
-        if (d.latitude && d.longitude) {
-          lat = d.latitude;
-          lng = d.longitude;
+    // 1. Resolve from known regional hubs first
+    for (const [k, v] of Object.entries(PRAVAH_CONFIG.LOCATIONS || {})) {
+      const kClean = k.split(",")[0].trim().toLowerCase();
+      if (destStr) {
+        const dClean = destStr.split(",")[0].trim().toLowerCase();
+        if (kClean === dClean || k.toLowerCase().includes(dClean) || dClean.includes(kClean)) {
+          destLat = v.lat; destLng = v.lng;
         }
       }
-    } catch (e) {
-      console.warn("Dynamic geocode notice:", e.message);
+      if (originStr) {
+        const oClean = originStr.split(",")[0].trim().toLowerCase();
+        if (kClean === oClean || k.toLowerCase().includes(oClean) || oClean.includes(kClean)) {
+          originLat = v.lat; originLng = v.lng;
+        }
+      }
     }
 
-    const isMountainous = (lat >= 25.0 && lat <= 36.0 && lng >= 70.0 && lng <= 98.0) || (lat >= 8.0 && lat <= 21.0 && lng >= 72.5 && lng <= 78.0);
-    const elev = isMountainous ? Math.round(150 + Math.abs(lat - 26) * 110 + Math.abs(lng - 91) * 70) : 45;
-    const slope = isMountainous ? Math.min(48.0, Math.max(14.0, Math.round(20 + Math.abs(lat - 26) * 5))) : 8.0;
-    const rain = Math.round(40 + (Math.abs(Math.round(lat * 10 + lng * 5)) % 110));
+    // 2. Also try backend geocoder for exact coordinates if needed
+    try {
+      const [oRes, dRes] = await Promise.all([
+        fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p4_routing}/api/v1/geocode?q=${encodeURIComponent(originStr || 'Guwahati')}`, { signal: AbortSignal.timeout(3000) }),
+        fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p4_routing}/api/v1/geocode?q=${encodeURIComponent(destStr || 'Tawang')}`, { signal: AbortSignal.timeout(3000) })
+      ]);
+      if (oRes.ok) { const d = await oRes.json(); if (d.latitude) { originLat = d.latitude; originLng = d.longitude; } }
+      if (dRes.ok) { const d = await dRes.json(); if (d.latitude) { destLat = d.latitude; destLng = d.longitude; } }
+    } catch (e) {
+      // Geocode fallback to defaults
+    }
 
-    return { lat, lng, elev, rain, slope, roadId, roadName };
+    return { lat: destLat, lng: destLng, originLat, originLng, roadId: "CORRIDOR-MAIN", roadName };
   },
 
   // --------------------------------------------------------------------------
@@ -329,72 +339,70 @@ const PredictionPipeline = {
     const destination = typeof corridorParams.destination === "object" ? (corridorParams.destination.name || "Destination") : (corridorParams.destination || "Tawang");
     this._updateRibbon = options.updateRibbon === true;
 
-    console.log(`[Pravah Pipeline] Automated dynamic evaluation: ${origin} ➔ ${destination}`);
+
     this.setStatusPills("Evaluating…");
 
-    // Dynamic corridor geographic & environmental resolution (zero static hardcoding)
+    // Resolve real destination coordinates via backend geocoder.
+    // We use the destination — the hazardous/far end — for P1/P2 evaluation.
     let coords;
-    if (typeof corridorParams.origin === "object" && corridorParams.origin.latitude && corridorParams.origin.longitude) {
-      const lat = corridorParams.origin.latitude;
-      const lng = corridorParams.origin.longitude;
-      const isMountainous = (lat >= 25.0 && lat <= 36.0 && lng >= 70.0 && lng <= 98.0) || (lat >= 8.0 && lat <= 21.0 && lng >= 72.5 && lng <= 78.0);
-      const elev = isMountainous ? Math.round(150 + Math.abs(lat - 26) * 110) : 45;
-      const slope = isMountainous ? 28.0 : 8.0;
-      const rain = Math.round(40 + (Math.abs(Math.round(lat * 10 + lng * 5)) % 110));
-      coords = { lat, lng, elev, rain, slope, roadId: "CORRIDOR-MAIN", roadName: `${origin} ➔ ${destination} Highway` };
+    if (typeof corridorParams.destination === "object" && corridorParams.destination.latitude && corridorParams.destination.longitude) {
+      coords = {
+        lat: corridorParams.destination.latitude,
+        lng: corridorParams.destination.longitude,
+        originLat: corridorParams.origin?.latitude || 26.1445,
+        originLng: corridorParams.origin?.longitude || 91.7362,
+        roadId: "CORRIDOR-MAIN",
+        roadName: `${origin} ➔ ${destination} Highway`
+      };
     } else {
       coords = await this.resolveCorridorCoordinates(origin, destination);
     }
 
-    // 1. Evaluate P1 Flood Inundation
+    // 1. P1 — Flood Inundation: only send lat/lng, backend fetches Open-Meteo live data
     const p1 = await this.predictFlood({
-      segment_id: `SEG_${coords.roadId}_01`,
+      segment_id: `SEG_${destination.replace(/\s+/g, '_').toUpperCase()}_01`,
       latitude: coords.lat,
-      longitude: coords.lng,
-      rainfall_7day_mm: coords.rain,
-      elevation_m: coords.elev,
-      river_proximity_km: coords.elev < 100 ? 0.8 : 2.5
+      longitude: coords.lng
     });
 
-    // 2. Evaluate P2 Landslide Susceptibility
+    // 2. P2 — Landslide Susceptibility: only send lat/lng, backend fetches Copernicus DEM + Open-Meteo
     const p2 = await this.predictLandslide({
       latitude: coords.lat,
       longitude: coords.lng,
-      slope_deg: coords.slope,
-      rainfall_3day_mm: coords.rain * 0.45,
-      soil_saturation: coords.slope > 30 ? 0.76 : 0.48,
-      location_id: `LOC_${coords.roadId}`
+      location_id: `LOC_${destination.replace(/\s+/g, '_').toUpperCase()}`
     });
 
-    // 3. Evaluate P3 Road Disruption & Accessibility
-    const activeIncidents = (coords.slope > 35 ? 1 : 0);
+    // 3. P3 — Road Disruption uses P1 + P2 real outputs + live incident DB
     const p3 = await this.predictRoadRisk({
       road_id: coords.roadId,
       road_name: coords.roadName,
       flood_probability: p1.flood_probability,
       landslide_probability: p2.landslide_probability,
-      active_incidents: activeIncidents,
-      max_incident_severity: activeIncidents > 0 ? 3 : 1
+      active_incidents: 0,
+      max_incident_severity: 1,
+      latitude: coords.lat,
+      longitude: coords.lng
     });
 
     // 4. Determine if Route Adaptation is required by P4
-    const isRouteAdapted = (p3.disruption_probability > 0.45) || (p2.landslide_probability > 0.50);
+    const isRouteAdapted = (p3.disruption_probability > 0.40) || (p2.landslide_probability > 0.45);
+    const p3RawAccess = p3.accessibility_score ?? 80;
+    const p3AccessPct = p3RawAccess > 1 ? Math.round(p3RawAccess) : Math.round(p3RawAccess * 100);
+
     let adaptationSummary = "";
     if (isRouteAdapted) {
       adaptationSummary = `Elevated hazard predicted along ${coords.roadName} (${Math.round(p3.disruption_probability * 100)}% disruption risk). P4 Autonomous Route Optimizer dynamically adapted transit via low-risk infrastructure.`;
     } else {
-      adaptationSummary = `Corridor ${coords.roadName} confirmed safe and passable (${Math.round(p3.accessibility_score * 100)}% accessibility score). Direct mapped route verified.`;
+      adaptationSummary = `Corridor ${coords.roadName} confirmed safe and passable (${p3AccessPct}% accessibility score). Direct mapped route verified.`;
     }
 
-    // Update P4 Card
+    // Update P4 Card with live synthesized score
     this.updateP4Card({
       route_status: isRouteAdapted ? "Route Adapted" : "Optimal Direct",
-      safety_score: Math.round(p3.accessibility_score * 100),
+      safety_score: p3AccessPct,
       disruption_risk: Math.round(p3.disruption_probability * 100),
       is_adapted: isRouteAdapted
     });
-
-    this.setStatusPills("Ready");
 
     const pipelineResult = {
       origin,
@@ -413,17 +421,35 @@ const PredictionPipeline = {
   },
 
   // --------------------------------------------------------------------------
-  // POP-UP SHOWCASING PREDICTION LOGIC & ROUTE ADAPTATION
+  // INTERACTIVE POPUP / MODAL INSPECTOR
   // --------------------------------------------------------------------------
-  showPredictionPopup(res = null) {
-    const data = res || this.lastPipelineResult;
-    if (!data) return;
-
-    const modal = document.getElementById("predictionPopupModal");
-    const container = document.getElementById("predictionPopupContent");
+  showPredictionPopup() {
+    const modal = document.getElementById("predictionPopupModal") || document.getElementById("predictionPipelineModal");
+    const container = document.getElementById("predictionPopupContent") || document.getElementById("pipelineModalBody");
     if (!modal || !container) return;
 
+    const data = this.lastPipelineResult;
+    if (!data) {
+      container.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text-muted);">Please calculate or optimize a route first to generate live multi-hazard P1–P4 intelligence.</div>`;
+      modal.classList.add("active");
+      return;
+    }
+
     const isAdapted = data.is_adapted;
+    const p1Cf = data.p1?.contributing_factors || {};
+    const p1Rain = p1Cf.rainfall_7day_mm != null ? Math.round(p1Cf.rainfall_7day_mm) : (p1Cf.rainfall_mm != null ? Math.round(p1Cf.rainfall_mm) : '—');
+    const p1Elev = p1Cf.elevation_m != null ? Math.round(p1Cf.elevation_m) : '—';
+    const p1Riv = p1Cf.river_proximity_km != null ? (Math.round(p1Cf.river_proximity_km * 10) / 10) : '—';
+
+    const p2Lf = data.p2?.live_features || {};
+    const p2Slope = p2Lf.slope_degree != null ? (Math.round(p2Lf.slope_degree * 10) / 10) : (p2Lf.slope_deg ?? '—');
+    const p2Humid = p2Lf.humidity_percent != null ? Math.round(p2Lf.humidity_percent) : (p2Lf.soil_saturation != null ? Math.round(p2Lf.soil_saturation * 100) : '—');
+    const p2Rain = p2Lf.rainfall_7d_mm != null ? Math.round(p2Lf.rainfall_7d_mm) : (p2Lf.rainfall_3day_mm ?? '—');
+
+    const p3Status = (data.p3?.status || data.p3?.recommended_status || "normal").replace(/_/g, ' ');
+    const p3RawAccess = data.p3?.accessibility_score ?? 80;
+    const p3AccessPct = p3RawAccess > 1 ? Math.round(p3RawAccess) : Math.round(p3RawAccess * 100);
+    const p3ActiveInc = data.p3?.factors?.active_incident_count ?? 0;
 
     container.innerHTML = `
       <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
@@ -443,10 +469,10 @@ const PredictionPipeline = {
         <div style="flex:1;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <b>Flood Inundation Prediction</b>
-            <span style="font-weight:700;color:#2563eb;">${Math.round(data.p1.flood_probability * 100)}% Risk</span>
+            <span style="font-weight:700;color:#2563eb;">${Math.round((data.p1?.flood_probability || 0) * 100)}% Risk</span>
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-            Input Telemetry: ${data.p1.contributing_factors.rainfall_7day_mm}mm 7-day rainfall | Elev: ${data.p1.contributing_factors.elevation_m}m | River: ${data.p1.contributing_factors.river_proximity_km}km
+            Input Telemetry: ${p1Rain}mm 7-day rainfall | Elev: ${p1Elev}m | River: ${p1Riv}km
           </div>
           <div style="font-size:10.5px;color:#059669;margin-top:2px;">Model: Open-Meteo Flood + Bhuvan Elevation Integration</div>
         </div>
@@ -458,12 +484,12 @@ const PredictionPipeline = {
         <div style="flex:1;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <b>Landslide Susceptibility Prediction</b>
-            <span style="font-weight:700;color:#d97706;">${Math.round(data.p2.landslide_probability * 100)}% Risk</span>
+            <span style="font-weight:700;color:#d97706;">${Math.round((data.p2?.landslide_probability || 0) * 100)}% Risk</span>
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-            Input Telemetry: Slope: ${data.p2.live_features.slope_deg}° | Saturation: ${Math.round(data.p2.live_features.soil_saturation * 100)}% | 3-Day Rain: ${data.p2.live_features.rainfall_3day_mm}mm
+            Input Telemetry: Slope: ${p2Slope}° | Saturation/Humidity: ${p2Humid}% | Rain: ${p2Rain}mm
           </div>
-          <div style="font-size:10.5px;color:#059669;margin-top:2px;">Model: ISRO Landslide Atlas + Sentinel-2 MSI Multi-Spectral</div>
+          <div style="font-size:10.5px;color:#059669;margin-top:2px;">Model: ISRO Landslide Atlas + Sentinel-2 MSI + Copernicus GLO-90 DEM</div>
         </div>
       </div>
 
@@ -473,14 +499,14 @@ const PredictionPipeline = {
         <div style="flex:1;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <b>Road Disruption & Accessibility Score</b>
-            <span style="font-weight:700;color:${data.p3.disruption_probability > 0.45 ? '#dc2626' : '#059669'};">
-              ${Math.round(data.p3.disruption_probability * 100)}% Disruption
+            <span style="font-weight:700;color:${(data.p3?.disruption_probability || 0) > 0.40 ? '#dc2626' : '#059669'};">
+              ${Math.round((data.p3?.disruption_probability || 0) * 100)}% Disruption
             </span>
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-            Synthesized Hazards: Max Hazard Score + Active Incidents Penalty (${data.p3.factors.active_incident_count} reports) ➔ Status: <b>${data.p3.status.replace(/_/g, ' ')}</b>
+            Synthesized Hazards: Max Hazard + Incidents Penalty (${p3ActiveInc} reports) ➔ Status: <b>${p3Status}</b>
           </div>
-          <div style="font-size:10.5px;color:#059669;margin-top:2px;">Accessibility Score: ${Math.round(data.p3.accessibility_score * 100)}% / 100%</div>
+          <div style="font-size:10.5px;color:#059669;margin-top:2px;">Accessibility Score: ${p3AccessPct}% / 100%</div>
         </div>
       </div>
 
@@ -511,14 +537,18 @@ const PredictionPipeline = {
     const elDesc = document.getElementById("p1Desc");
     const elStatus = document.getElementById("p1Status");
     if (elScore) {
-      const pct = Math.round((data.flood_probability || 0.18) * 100);
+      const pct = Math.round((data.flood_probability ?? 0) * 100);
       elScore.innerHTML = `${pct}% <span style="font-size:12px;font-weight:600;color:${pct > 50 ? '#dc2626' : '#059669'}">Flood Risk</span>`;
     }
     if (elDesc && data.contributing_factors) {
-      elDesc.textContent = `Rain ${data.contributing_factors.rainfall_7day_mm}mm | Elev ${data.contributing_factors.elevation_m}m`;
+      const cf = data.contributing_factors;
+      const rain = cf.rainfall_7day_mm != null ? Math.round(cf.rainfall_7day_mm) : (cf.rainfall_mm != null ? Math.round(cf.rainfall_mm) : '—');
+      const elev = cf.elevation_m != null ? Math.round(cf.elevation_m) : '—';
+      const riv = cf.river_proximity_km != null ? (Math.round(cf.river_proximity_km * 10) / 10) : '—';
+      elDesc.textContent = `Rain ${rain}mm (7d) | Elev ${elev}m | River ${riv}km`;
     }
     if (elStatus) {
-      elStatus.className = "model-status-pill";
+      elStatus.className = "model-status-pill live";
       elStatus.textContent = "Live Evaluated";
     }
     const path = document.querySelector(".ai-model-card:nth-child(1) .sparkline-svg path");
@@ -535,14 +565,18 @@ const PredictionPipeline = {
     const elDesc = document.getElementById("p2Desc");
     const elStatus = document.getElementById("p2Status");
     if (elScore) {
-      const pct = Math.round((data.landslide_probability || 0.24) * 100);
+      const pct = Math.round((data.landslide_probability ?? 0) * 100);
       elScore.innerHTML = `${pct}% <span style="font-size:12px;font-weight:600;color:${pct > 50 ? '#dc2626' : '#059669'}">Landslide Risk</span>`;
     }
     if (elDesc && data.live_features) {
-      elDesc.textContent = `Slope ${data.live_features.slope_deg}° | Saturation ${Math.round(data.live_features.soil_saturation * 100)}%`;
+      const lf = data.live_features;
+      const slope = lf.slope_degree != null ? (Math.round(lf.slope_degree * 10) / 10) : (lf.slope_deg ?? '—');
+      const rain7d = lf.rainfall_7d_mm != null ? Math.round(lf.rainfall_7d_mm) : (lf.rainfall_3day_mm ?? '—');
+      const humid = lf.humidity_percent != null ? Math.round(lf.humidity_percent) : (lf.soil_saturation != null ? Math.round(lf.soil_saturation * 100) : '—');
+      elDesc.textContent = `Slope ${slope}° | Rain ${rain7d}mm | Humidity ${humid}%`;
     }
     if (elStatus) {
-      elStatus.className = "model-status-pill";
+      elStatus.className = "model-status-pill live";
       elStatus.textContent = "Live Evaluated";
     }
     const path = document.querySelector(".ai-model-card:nth-child(2) .sparkline-svg path");
@@ -559,14 +593,17 @@ const PredictionPipeline = {
     const elDesc = document.getElementById("p3Desc");
     const elStatus = document.getElementById("p3Status");
     if (elScore) {
-      const pct = Math.round((data.disruption_probability || 0.31) * 100);
+      const pct = Math.round((data.disruption_probability ?? 0) * 100);
       elScore.innerHTML = `${pct}% <span style="font-size:12px;font-weight:600;color:${pct > 50 ? '#dc2626' : '#059669'}">Disruption Risk</span>`;
     }
     if (elDesc) {
-      elDesc.textContent = `Status: ${data.status.replace(/_/g, ' ')} | Access: ${Math.round(data.accessibility_score * 100)}%`;
+      const st = (data.status || data.recommended_status || "normal").replace(/_/g, ' ');
+      const rawAccess = data.accessibility_score ?? 80;
+      const accessPct = rawAccess > 1 ? Math.round(rawAccess) : Math.round(rawAccess * 100);
+      elDesc.textContent = `Status: ${st} | Access: ${accessPct}%`;
     }
     if (elStatus) {
-      elStatus.className = "model-status-pill";
+      elStatus.className = "model-status-pill live";
       elStatus.textContent = "Live Evaluated";
     }
     const path = document.querySelector(".ai-model-card:nth-child(3) .sparkline-svg path");
@@ -583,13 +620,14 @@ const PredictionPipeline = {
     const elDesc = document.getElementById("p4Desc");
     const elStatus = document.getElementById("p4Status");
     if (elScore) {
-      elScore.innerHTML = `${data.safety_score || 88}% <span style="font-size:12px;font-weight:600;color:#059669">Safety Index</span>`;
+      const score = data.safety_score ?? 85;
+      elScore.innerHTML = `${score}% <span style="font-size:12px;font-weight:600;color:#059669">Safety Index</span>`;
     }
     if (elDesc) {
       elDesc.textContent = data.is_adapted ? "Autonomous Reroute Applied (Hazard Avoided)" : "Multi-hazard cost optimization";
     }
     if (elStatus) {
-      elStatus.className = "model-status-pill";
+      elStatus.className = "model-status-pill live";
       elStatus.textContent = data.is_adapted ? "Rerouted" : "Optimized";
     }
     const path = document.querySelector(".ai-model-card:nth-child(4) .sparkline-svg path");

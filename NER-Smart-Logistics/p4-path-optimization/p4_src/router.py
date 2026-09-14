@@ -311,10 +311,18 @@ class RouteOptimizer:
         )
         route_risk = round(max(0.04, min(0.95, comp_risk)), 3)
         safety_score = round(max(5.0, min(98.0, (1.0 - route_risk) * 100)), 1)
-        return {"road_ids":ids,"distance_km":round(dist,1),"estimated_travel_time_minutes":round(time_min,0),
-                "duration_formatted":duration_formatted,
-                "route_risk":route_risk,"safety_score":safety_score,
-                "coordinates":coords,"modes":sorted(modes), "live_incidents":incidents, **comp}
+
+        # Filter out raw internal OSRM segment IDs — only expose named highways
+        named_ids = list(dict.fromkeys(
+            rid for rid in ids
+            if rid and not rid.startswith("OSRM_ALTERNATIVE") and not rid.startswith("OSM_osrm")
+        ))
+
+        return {"road_ids": named_ids, "distance_km": round(dist, 1),
+                "estimated_travel_time_minutes": round(time_min, 0),
+                "duration_formatted": duration_formatted,
+                "route_risk": route_risk, "safety_score": safety_score,
+                "coordinates": coords, "modes": sorted(modes), "live_incidents": incidents, **comp}
 
     def optimize(self, req: RouteRequest) -> RouteResponse:
         origin, dest, oname, dname = self._resolve_coords(req)

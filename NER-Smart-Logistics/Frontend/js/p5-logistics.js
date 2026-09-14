@@ -29,7 +29,7 @@ const P5Logistics = {
       try {
         shipments = await PravahAPI.getShipments();
       } catch (e) {
-        console.warn("P5 shipments fetch fallback:", e);
+        // Shipments API unavailable, using defaults
       }
 
       if (!shipments || shipments.length === 0) {
@@ -201,7 +201,6 @@ const P5Logistics = {
           }
           App.showToast(`✅ Shipment ${newShipmentObj.shipment_id} evaluated & registered!`, "safe");
         } catch (err) {
-          console.warn("Shipment creation fallback:", err);
           App.showToast(`✅ Shipment ${newShipmentObj.shipment_id} dispatched!`, "safe");
         }
 

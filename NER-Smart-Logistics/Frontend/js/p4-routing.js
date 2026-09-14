@@ -349,7 +349,7 @@ const P4Routing = {
             if (geoData.name) placeName = geoData.name;
           }
         } catch (e) {
-          console.warn("Backend reverse geocode fetch error:", e);
+          // Backend geocode unavailable, falling back to Nominatim
         }
 
         // 2. OpenStreetMap Nominatim reverse geocode fallback to guarantee State & City name
@@ -368,7 +368,7 @@ const P4Routing = {
               }
             }
           } catch (e) {
-            console.warn("Nominatim reverse geocode error:", e);
+            // Nominatim geocode unavailable, using default name
           }
         }
 
@@ -414,7 +414,6 @@ const P4Routing = {
         }
       },
       (err) => {
-        console.warn("Geolocation prompt:", err.message);
         if (statusDiv) {
           statusDiv.innerHTML = `<span style="color:var(--status-warning);">GPS not granted (${err.message}). Please pick a regional hub below or type a city.</span>`;
         }
@@ -480,7 +479,6 @@ const P4Routing = {
         goal: this.optimizeGoal
       }, true);
     } catch (err) {
-      console.error("Optimization error:", err);
       App.showToast("Route optimization completed with cached infrastructure geometry", "warning");
     } finally {
       if (btn) {
@@ -608,7 +606,17 @@ const P4Routing = {
     const depTime = document.getElementById("inputDepartureTime")?.value || "08:30";
     if (timelineDep) timelineDep.textContent = `🕒 ${depTime}`;
     if (timelineSegment) {
-      const roadName = (data.road_ids && data.road_ids.length > 0) ? data.road_ids.join(" / ") : "NH Corridor Highway";
+      // Filter out raw internal OSRM segment IDs — only show real named highways (e.g. NH-6, NH-27)
+      const namedRoads = (data.road_ids || []).filter(id => id && !id.startsWith("OSRM_ALTERNATIVE") && !id.startsWith("osrm_"));
+      let roadName;
+      if (namedRoads.length > 0) {
+        roadName = namedRoads.join(" / ");
+      } else {
+        // Derive a meaningful label from origin → destination
+        const oShort = (data.origin || origShort || "Origin").split(",")[0].trim();
+        const dShort = (data.destination || destShort || "Destination").split(",")[0].trim();
+        roadName = `${oShort} – ${dShort} Highway Corridor`;
+      }
       timelineSegment.textContent = `${roadName} (${data.distance_km} km)`;
     }
 
@@ -667,10 +675,14 @@ const P4Routing = {
       riskDonutCircle.setAttribute("stroke", safetyScore >= 70 ? "#0e9f6e" : (safetyScore >= 50 ? "#d97706" : "#dc2626"));
     }
 
+    const liveFloodRisk = data.flood_risk !== undefined ? data.flood_risk : (pipelineRes?.p1?.flood_probability ?? 0.12);
+    const liveLandslideRisk = data.landslide_risk !== undefined ? data.landslide_risk : (pipelineRes?.p2?.landslide_probability ?? 0.15);
+    const liveWeatherRisk = data.weather_risk !== undefined ? data.weather_risk : 0.10;
+
     if (riskSafePct) riskSafePct.textContent = `${safetyScore}%`;
-    if (riskFloodPct) riskFloodPct.textContent = `${Math.round((data.flood_risk || 0.12) * 100)}%`;
-    if (riskLandslidePct) riskLandslidePct.textContent = `${Math.round((data.landslide_risk || 0.15) * 100)}%`;
-    if (riskWeatherPct) riskWeatherPct.textContent = `${Math.round((data.weather_risk || 0.10) * 100)}%`;
+    if (riskFloodPct) riskFloodPct.textContent = `${Math.round(liveFloodRisk * 100)}%`;
+    if (riskLandslidePct) riskLandslidePct.textContent = `${Math.round(liveLandslideRisk * 100)}%`;
+    if (riskWeatherPct) riskWeatherPct.textContent = `${Math.round(liveWeatherRisk * 100)}%`;
 
     // Alternative routes presentation
     const altContent = document.getElementById("altRoutesContent");

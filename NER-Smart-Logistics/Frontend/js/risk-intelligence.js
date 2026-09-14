@@ -295,7 +295,7 @@ const RiskIntelligence = {
         }
       }
     } catch (e) {
-      console.warn("Custom geocode query error:", e);
+      // Geocode query error, using fallback
     }
     App.showToast(`⚠️ Could not resolve coordinates for "${locationQuery}". Using nearest corridor hub.`, "warning");
   },
@@ -670,7 +670,6 @@ const RiskIntelligence = {
     if (!mapDiv) return;
 
     if (typeof L === "undefined") {
-      console.warn("Leaflet (L) is not loaded.");
       return;
     }
 

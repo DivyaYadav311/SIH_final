@@ -30,7 +30,7 @@ const WhatIfSimulation = {
         try {
           res = await PravahAPI.runWhatIfSimulation({ scenario_type: scenarioType, road_id: roadId });
         } catch (err) {
-          console.warn("What-If simulation request failed:", err);
+          // What-If simulation unavailable
         }
 
         if (btn) {

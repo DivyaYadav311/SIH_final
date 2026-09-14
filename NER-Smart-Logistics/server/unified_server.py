@@ -283,6 +283,7 @@ if p3_router_raw is not None:
             "accessibility_score": round(analyzed.accessibility_score, 2),
             "risk_level": analyzed.risk_level.upper(),
             "recommended_status": analyzed.recommended_status,
+            "status": analyzed.recommended_status,
             "confidence": analyzed.confidence or 0.85,
             "factors": {
                 "flood_probability": flood_prob,

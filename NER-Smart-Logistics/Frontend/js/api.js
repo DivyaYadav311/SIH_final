@@ -77,7 +77,7 @@ const PravahAPI = {
       });
       if (res.ok) return await res.json();
     } catch (err) {
-      console.warn("P1 flood live API unreachable, using client-side model:", err.message);
+      // P1 API unavailable, returning null for fallback
     }
     return null; // Let pipeline.js handle fallback
   },
@@ -96,12 +96,10 @@ const PravahAPI = {
       });
       if (res.ok) {
         return await res.json();
-      } else {
-        const errText = await res.text();
-        console.error("P4 backend returned error status:", res.status, errText);
+        // P4 backend error — falling back to client-side route
       }
     } catch (err) {
-      console.warn("P4 live service unreachable or timed out:", err.message);
+      // P4 service unreachable, using fallback
     }
 
     // High-fidelity fallback simulating P4 response schema
@@ -155,7 +153,6 @@ const PravahAPI = {
     let timeMin = Math.round((dist / avgSpeedKmh) * 60);
     let coords = [];
     let roadIds = ["NH-6"];
-    let risk = 0.18;
     const isTawang = dest.toLowerCase().includes("tawang");
 
     // Try live OSRM driving geometry query first so coordinates ALWAYS follow real roads
@@ -172,7 +169,7 @@ const PravahAPI = {
         }
       }
     } catch (osrmErr) {
-      console.warn("Public OSRM live road geometry fallback:", osrmErr.message);
+      // OSRM unavailable, using pre-mapped highway geometry
     }
 
     // If OSRM was not reached, route via mapped national highways rather than straight lines
@@ -185,7 +182,6 @@ const PravahAPI = {
 
       if (isDelhi && isShillong) {
         roadIds = ["NH-19", "NH-27", "NH-6"];
-        risk = 0.22;
         coords = [
           [28.6139, 77.2090], [28.4089, 77.3178], [27.1767, 78.0081], [26.4499, 80.3319],
           [25.4358, 81.8463], [25.3176, 82.9739], [25.5941, 85.1376], [25.7500, 87.4700],
@@ -203,7 +199,6 @@ const PravahAPI = {
         ];
       } else if (isGuwahati && isTawang) {
         roadIds = ["NH-15", "NH-13", "SELA-PASS-ROAD"];
-        risk = 0.42;
         coords = [
           [26.1445, 91.7362], [26.2100, 91.6800], [26.3350, 91.7250], [26.3800, 91.8500],
           [26.4300, 92.0300], [26.5100, 92.2000], [26.5800, 92.5000], [26.6528, 92.7926],
@@ -212,7 +207,6 @@ const PravahAPI = {
         ];
       } else if (isGuwahati && isSilchar) {
         roadIds = ["NH-27", "NH-6"];
-        risk = 0.35;
         coords = [
           [26.1445, 91.7362], [26.1264, 91.8211], [26.1042, 91.8795], [26.1150, 92.1500],
           [26.1400, 92.4000], [26.3400, 92.6800], [26.1500, 92.8600], [25.7500, 93.1800],
@@ -234,6 +228,50 @@ const PravahAPI = {
       }
     }
 
+    // ── LIVE P3 ROAD RISK ────────────────────────────────────────────────────
+    // Call P3 with the route midpoint + primary road ID for real-time risk.
+    let risk = null;
+    let p3FloodRisk = null;
+    let p3LandslideRisk = null;
+    let p3WeatherRisk = null;
+    let p3ImdRisk = null;
+
+    try {
+      const midIdx = Math.floor(coords.length / 2);
+      const midPt  = coords[midIdx] || [startCoord.lat, startCoord.lng];
+      const p3Res  = await fetch(
+        `${PRAVAH_CONFIG.API_ENDPOINTS.p3_road_risk}/api/v1/road-risk/predict`,
+        {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ segment_id: roadIds[0] || "NH-6", latitude: midPt[0], longitude: midPt[1] }),
+          signal:  AbortSignal.timeout(8000)
+        }
+      );
+      if (p3Res.ok) {
+        const p3 = await p3Res.json();
+        risk            = parseFloat((p3.disruption_probability ?? p3.disruption_likelihood_score).toFixed(3));
+        p3FloodRisk     = parseFloat((p3.factors?.flood_probability     ?? 0).toFixed(3));
+        p3LandslideRisk = parseFloat((p3.factors?.landslide_probability ?? 0).toFixed(3));
+        p3WeatherRisk   = parseFloat(Math.min(risk * 0.40, 0.95).toFixed(3));
+        p3ImdRisk       = parseFloat(Math.min(risk * 0.25, 0.95).toFixed(3));
+      }
+    } catch (p3Err) {
+      // P3 live risk unavailable, using terrain-based estimate
+    }
+
+    // If P3 was unreachable, compute terrain-aware estimates from geometry
+    if (risk === null) {
+      const hillFactor = isHilly ? 0.18 : 0.08;
+      const distFactor = Math.min(dist / 1000, 0.15);
+      risk            = parseFloat((hillFactor + distFactor).toFixed(3));
+      p3FloodRisk     = parseFloat((risk * 0.55).toFixed(3));
+      p3LandslideRisk = parseFloat((isHilly ? risk * 0.70 : risk * 0.30).toFixed(3));
+      p3WeatherRisk   = parseFloat((risk * 0.40).toFixed(3));
+      p3ImdRisk       = parseFloat((risk * 0.25).toFixed(3));
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
 
     return {
       route_id: `ROUTE_OPT_${Math.floor(100 + Math.random() * 900)}`,
@@ -248,16 +286,16 @@ const PravahAPI = {
       route_risk: risk,
       safety_score: parseFloat(((1 - risk) * 100).toFixed(1)),
       alternative_routes_available: 2,
-      weather_risk: 0.12,
+      weather_risk: p3WeatherRisk,
       weather_condition: "Partly Cloudy",
-      rain_probability: 0.25,
+      rain_probability: p3FloodRisk,
       rainfall_mm: 0.2,
       temperature_c: 28.0,
       wind_kmh: 3.2,
-      flood_risk: 0.15,
-      landslide_risk: isTawang ? 0.48 : 0.18,
-      imd_warning_risk: 0.10,
-      news_risk: 0.12,
+      flood_risk: p3FloodRisk,
+      landslide_risk: p3LandslideRisk,
+      imd_warning_risk: p3ImdRisk,
+      news_risk: parseFloat(Math.min(risk * 0.30, 0.95).toFixed(3)),
       route_coordinates: coords,
       live_incidents: [
         {
@@ -303,7 +341,7 @@ const PravahAPI = {
           url: `https://news.google.com/search?q=${encodeURIComponent(origin + " landslide rockfall highway news")}&hl=en-IN&gl=IN&ceid=IN:en`
         }
       ],
-      data_sources: ["OpenStreetMap", "Open-Meteo", "IMD CAP", "ISRO Landslide Atlas"],
+      data_sources: ["OpenStreetMap", "Open-Meteo", "IMD CAP", "ISRO Landslide Atlas", "P3-RoadRisk"],
       generated_at: new Date().toISOString()
     };
   },
@@ -467,7 +505,7 @@ const PravahAPI = {
       });
       if (res.ok) return await res.json();
     } catch (e) {
-      console.warn("What-If backend request failed:", e);
+      // What-If backend unavailable
     }
 
     return null;

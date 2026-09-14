@@ -18,7 +18,7 @@ const P6ControlTower = {
     try {
       data = await PravahAPI.getControlTowerOverview();
     } catch (e) {
-      console.warn("Control Tower overview fetch fallback:", e);
+      // Control Tower API unavailable, using defaults
     }
 
     if (!data) {
@@ -152,7 +152,6 @@ const P6ControlTower = {
           const res = await PravahAPI.reportIncident(payload);
           App.showToast(`✅ Incident ${res.incident_id || payload.incident_id} registered into Control Tower!`, "safe");
         } catch (err) {
-          console.warn("Report incident fallback:", err);
           PRAVAH_CONFIG.INITIAL_INCIDENTS.unshift(payload);
           App.showToast(`✅ Incident ${payload.incident_id} registered!`, "safe");
         }

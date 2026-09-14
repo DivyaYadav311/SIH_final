@@ -3,18 +3,20 @@
  * All services point to the unified backend at port 8002.
  */
 
-// Clean up any stale legacy port 8000 or 8001 URLs in localStorage
+// Clean up any stale legacy port URLs in localStorage that do not point to port 8002
 if (typeof localStorage !== "undefined") {
   ['pravah_p4_url', 'pravah_api_base', 'pravah_p1_url', 'pravah_p2_url', 'pravah_p3_url', 'pravah_p5_url', 'pravah_p6_url'].forEach(k => {
     const val = localStorage.getItem(k);
-    if (val && (val.includes(':8001') || val.includes(':8000'))) {
+    if (val && !val.includes(':8002')) {
       localStorage.removeItem(k);
     }
   });
 }
 
-const _defaultApiBase = (typeof window !== "undefined" && window.location && window.location.origin && window.location.origin.startsWith("http"))
-  ? window.location.origin
+// Unified FastAPI backend runs on port 8002
+const _backendPort = "8002";
+const _defaultApiBase = (typeof window !== "undefined" && window.location && window.location.hostname)
+  ? `${window.location.protocol}//${window.location.hostname}:${_backendPort}`
   : "http://127.0.0.1:8002";
 
 const PRAVAH_CONFIG = {
