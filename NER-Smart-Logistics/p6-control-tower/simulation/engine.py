@@ -16,7 +16,7 @@ def load_shipments() -> tuple[list[dict[str, Any]], str]:
     if live is not None:
         return live, "p5_http_live"
 
-    return [], "p5_unavailable"
+    return [], "unavailable"
 
 
 def load_routes(shipments: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -250,6 +250,44 @@ def _find_replacement_route(
     return first_route, avg_delay, str(route_id) if route_id else None
 
 
+KNOWN_CORRIDORS: dict[str, tuple[str, str]] = {
+    "NH-13": ("Tezpur", "Tawang"),
+    "NH-27": ("Guwahati", "Silchar"),
+    "NH-6": ("Guwahati", "Shillong"),
+    "NH-15": ("Guwahati", "Tezpur"),
+    "NH-29": ("Dimapur", "Kohima"),
+    "NH-102": ("Imphal", "Moreh"),
+    "NH-306": ("Silchar", "Aizawl"),
+    "NH-310": ("Gangtok", "Nathu La"),
+    "GS-ROAD": ("Guwahati", "Shillong"),
+    "SELA-PASS-ROAD": ("Tezpur", "Tawang"),
+    "ROAD_102": ("Guwahati", "Tawang"),
+}
+
+
+def _resolve_corridor_endpoints(road_id: str, routes: dict[str, Any]) -> tuple[str | dict[str, float], str | dict[str, float]] | None:
+    blocked_clean = (road_id or "").strip().upper()
+    if not blocked_clean:
+        return None
+
+    for cid, endpoints in KNOWN_CORRIDORS.items():
+        if _road_matches(blocked_clean, cid):
+            return endpoints
+
+    # Check loaded routes
+    for r in routes.values():
+        if not isinstance(r, dict):
+            continue
+        r_roads = r.get("road_ids") or []
+        if any(_road_matches(blocked_clean, rid) for rid in r_roads):
+            orig = r.get("origin") or r.get("origin_coords")
+            dest = r.get("destination") or r.get("destination_coords")
+            if orig and dest:
+                return (orig, dest)
+
+    return None
+
+
 def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | None) -> dict[str, Any]:
     shipments, shipment_source = load_shipments()
     routes = load_routes(shipments)
@@ -298,12 +336,46 @@ def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | Non
         if recommended_route:
             route_geometry = _route_geometry(recommended_route)
             provenance["recommended_route"] = "p4_http"
+            provenance["routes"] = "p4_http"
             if delay is None:
                 unavailable_metrics.append("additional_delay_minutes")
         else:
             unavailable_metrics.extend(["recommended_route", "route_geometry", "additional_delay_minutes"])
     elif blocked:
-        unavailable_metrics.extend(["recommended_route", "route_geometry", "additional_delay_minutes"])
+        # Decoupled network disruption simulation:
+        # Obtain real corridor endpoints to query P4 for an alternative route
+        endpoints = _resolve_corridor_endpoints(blocked, routes)
+        if endpoints:
+            orig, dest = endpoints
+            # Call P4 alternative route avoiding high-risk roads
+            replacement = clients.request_p4_alternative(orig, dest)
+            if replacement:
+                recommended_route = replacement
+                route_id = replacement.get("route_id")
+                recommended_route_id = str(route_id) if route_id else None
+                route_geometry = _route_geometry(replacement)
+                provenance["recommended_route"] = "p4_http"
+                provenance["routes"] = "p4_http"
+
+                # If baseline route can be fetched, calculate honest delay and additional distance
+                base_route = clients.fetch_p4_route(orig, dest)
+                if base_route:
+                    base_eta = _route_eta_minutes(base_route)
+                    repl_eta = _route_eta_minutes(replacement)
+                    if base_eta is not None and repl_eta is not None:
+                        delay = max(0, int(round(repl_eta - base_eta)))
+
+                    base_dist = base_route.get("distance_km")
+                    repl_dist = replacement.get("distance_km")
+                    if isinstance(base_dist, (int, float)) and isinstance(repl_dist, (int, float)):
+                        replacement["additional_distance_km"] = max(0.0, round(float(repl_dist) - float(base_dist), 1))
+
+                if delay is None:
+                    unavailable_metrics.append("additional_delay_minutes")
+            else:
+                unavailable_metrics.extend(["recommended_route", "route_geometry", "additional_delay_minutes"])
+        else:
+            unavailable_metrics.extend(["recommended_route", "route_geometry", "additional_delay_minutes"])
 
     shortage_change = None
     if delayed:
@@ -315,7 +387,7 @@ def run_what_if(scenario_type: str, road_id: str | None, warehouse_id: str | Non
     return {
         "scenario_type": scenario_type,
         "road_id": blocked or None,
-        "affected_roads": [blocked] if affected else [],
+        "affected_roads": [blocked] if blocked else [],
         "affected_shipments": len(affected),
         "delayed_shipments": len(delayed),
         "affected_districts": len(districts),

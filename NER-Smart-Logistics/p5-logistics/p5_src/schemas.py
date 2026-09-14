@@ -65,7 +65,7 @@ class RouteInfo(BaseModel):
     safety_score: Optional[float] = Field(
         default=None,
         ge=0,
-        le=1
+        le=100
     )
 
     distance_km: Optional[float] = Field(
@@ -357,7 +357,7 @@ class DemandOutput(BaseModel):
 class TargetDistrict(BaseModel):
     district_id: str
 
-    district_name: str
+    district_name: str = ""
 
     demand_units: float = Field(
         gt=0

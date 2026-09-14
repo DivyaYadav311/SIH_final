@@ -450,15 +450,34 @@ class LogisticsService:
             )
 
         # --------------------------------------------------------
-        # Get route from P4
+        # Get route from P4 (falls back to stub when P4 is offline)
         # --------------------------------------------------------
 
-        route = self.p4_client.optimize_route(
-            origin=payload.origin,
-            destination=payload.destination,
-            cargo_type=payload.cargo_type,
-            priority=payload.priority,
-        )
+        try:
+            route = self.p4_client.optimize_route(
+                origin=payload.origin,
+                destination=payload.destination,
+                cargo_type=payload.cargo_type,
+                priority=payload.priority,
+            )
+        except Exception:
+            # P4 is unreachable — use a safe stub so the shipment
+            # can still be created with a placeholder route.
+            route = RouteInfo(
+                route_id=(
+                    f"STUB_{payload.origin[:3].upper()}_"
+                    f"{payload.destination[:3].upper()}"
+                ),
+                estimated_travel_time_minutes=480,
+                route_risk=0.5,
+                weather_risk=None,
+                flood_risk=None,
+                landslide_risk=None,
+                imd_warning_risk=None,
+                news_risk=None,
+                safety_score=None,
+                distance_km=None,
+            )
 
         # --------------------------------------------------------
         # Find inventory
@@ -638,34 +657,145 @@ class LogisticsService:
             optimization_status=status,
         )
 
+    # ============================================================
+    # SHORTAGE PREDICTION
+    # ============================================================
+
     def predict_shortage(
         self,
         payload: ShortageInput,
     ) -> ShortageOutput:
-        daily_consumption = payload.average_daily_consumption
-        current_days = payload.current_inventory_units / daily_consumption
-        incoming = (
-            payload.incoming_quantity_units
-            if payload.incoming_eta_days <= current_days
-            else 0
-        )
-        projected_days = (
-            payload.current_inventory_units + incoming
-        ) / daily_consumption
+        """
+        Demand-aware shortage prediction.
 
-        if projected_days <= 1:
+        Pipeline:
+
+            Historical demand
+                  ↓
+            Demand forecast
+                  ↓
+            Inventory coverage
+                  ↓
+            Base shortage probability
+                  ↓
+            P4 route-risk adjustment
+                  ↓
+            Final shortage probability
+        """
+
+        current_inventory = payload.current_inventory_units
+        incoming_quantity = payload.incoming_quantity_units
+        eta_days = payload.incoming_eta_days
+
+        # --------------------------------------------------------
+        # 1. Determine daily demand
+        # --------------------------------------------------------
+
+        if (
+            payload.historical_daily_demand
+            and len(payload.historical_daily_demand) >= 3
+        ):
+            demand_input = DemandInput(
+                district_id=payload.district_id,
+                district_name=payload.district_name,
+                product_type=payload.product_type,
+                historical_daily_demand=payload.historical_daily_demand,
+                forecast_days=max(7, int(eta_days) + 7),
+            )
+
+            demand_forecast = self.predict_demand(
+                demand_input
+            )
+
+            daily_consumption = (
+                demand_forecast.predicted_daily_demand
+            )
+
+        else:
+            # Backward-compatible fallback
+            daily_consumption = (
+                payload.average_daily_consumption
+            )
+
+        daily_consumption = max(
+            daily_consumption,
+            0.01,
+        )
+
+        # --------------------------------------------------------
+        # 2. Current inventory coverage
+        # --------------------------------------------------------
+
+        current_days = (
+            current_inventory / daily_consumption
+        )
+
+        # --------------------------------------------------------
+        # 3. Incoming inventory
+        #
+        # If the shipment arrives before current stock is
+        # exhausted, include it in projected inventory.
+        # --------------------------------------------------------
+
+        incoming_before_shortage = (
+            incoming_quantity
+            if eta_days <= current_days
+            else 0.0
+        )
+
+        effective_inventory = (
+            current_inventory
+            + incoming_before_shortage
+        )
+
+        days_until_shortage = (
+            effective_inventory / daily_consumption
+        )
+
+        # --------------------------------------------------------
+        # 4. Base shortage probability
+        # --------------------------------------------------------
+
+        if days_until_shortage <= 1:
             probability = 0.95
-        elif projected_days <= 3:
+
+        elif days_until_shortage <= 3:
             probability = 0.85
-        elif projected_days <= 7:
+
+        elif days_until_shortage <= 7:
             probability = 0.65
-        elif projected_days <= 14:
+
+        elif days_until_shortage <= 14:
             probability = 0.35
+
         else:
             probability = 0.10
 
+        # --------------------------------------------------------
+        # 5. Population adjustment
+        # --------------------------------------------------------
+
+        if payload.population >= 1_000_000:
+            probability += 0.03
+
+        elif payload.population >= 500_000:
+            probability += 0.02
+
+        # --------------------------------------------------------
+        # 6. P4 route-risk adjustment
+        #
+        # A high-risk route makes incoming relief less reliable.
+        # Therefore shortage probability increases slightly.
+        # --------------------------------------------------------
+
         route_id = None
         route_risk = None
+        weather_risk = None
+        flood_risk = None
+        landslide_risk = None
+        imd_warning_risk = None
+        news_risk = None
+
         try:
             route = self.p4_client.optimize_route(
                 origin=payload.origin,
@@ -673,301 +803,165 @@ class LogisticsService:
                 cargo_type=payload.product_type,
                 priority=payload.priority,
             )
+
             route_id = route.route_id
             route_risk = route.route_risk
-            probability = min(1.0, probability + 0.15 * route_risk)
+            weather_risk = route.weather_risk
+            flood_risk = route.flood_risk
+            landslide_risk = route.landslide_risk
+            imd_warning_risk = route.imd_warning_risk
+            news_risk = route.news_risk
+
+            # Maximum route-risk contribution = +0.15
+            route_adjustment = 0.15 * route_risk
+
+            probability += route_adjustment
+
         except Exception:
+            # P4 failure should not stop shortage prediction.
             pass
 
-        probability = min(1.0, max(0.0, probability))
-        risk_level = (
-            "CRITICAL"
-            if probability >= 0.85
-            else "HIGH"
-            if probability >= 0.65
-            else "MEDIUM"
-            if probability >= 0.35
-            else "LOW"
+        probability = min(
+            1.0,
+            max(0.0, probability),
         )
-        confidence = 0.65 if route_id is not None else 0.60
+
+        # --------------------------------------------------------
+        # 7. Risk level
+        # --------------------------------------------------------
+
+        if probability >= 0.85:
+            risk_level = "CRITICAL"
+
+        elif probability >= 0.65:
+            risk_level = "HIGH"
+
+        elif probability >= 0.35:
+            risk_level = "MEDIUM"
+
+        else:
+            risk_level = "LOW"
+
+        # --------------------------------------------------------
+        # 8. Confidence — multi-factor statistical score
+        #
+        # Factors (each independently bounded):
+        #   a) Demand stability  – low Coefficient of Variation (CV)
+        #      means consistent demand → higher confidence.
+        #   b) Inventory coverage ratio – how many days of stock we
+        #      have relative to the forecast horizon. Well-covered
+        #      situations are easier to predict accurately.
+        #   c) Incoming shipment signal – knowing a shipment is en
+        #      route anchors the forecast.
+        #   d) Population scale – large populations have more
+        #      predictable aggregate demand (law of large numbers).
+        #   e) P4 route intelligence – live route risk available.
+        # --------------------------------------------------------
+
+        # a) Demand stability (0 → 0.20)
+        if (
+            payload.historical_daily_demand
+            and len(payload.historical_daily_demand) >= 3
+        ):
+            hist = payload.historical_daily_demand
+            n = len(hist)
+            mean_d = sum(hist) / n
+            if mean_d > 0:
+                variance = sum((x - mean_d) ** 2 for x in hist) / n
+                std_d = variance ** 0.5
+                cv = std_d / mean_d          # 0 = perfectly stable
+                # CV < 0.05 → very stable (0.20), CV ≥ 0.50 → noisy (0.0)
+                stability_score = max(0.0, min(0.20, 0.20 * (1.0 - cv / 0.50)))
+            else:
+                stability_score = 0.0
+        else:
+            stability_score = 0.0
+
+        # b) Inventory coverage ratio (0 → 0.10)
+        # If we have ≥ 30 days of stock → full bonus; below 3 days → nothing.
+        cov_ratio = min(1.0, max(0.0, (days_until_shortage - 3) / 27))
+        coverage_score = round(0.10 * cov_ratio, 4)
+
+        # c) Incoming shipment signal (0 → 0.05)
+        shipment_score = (
+            0.05
+            if incoming_quantity > 0 and eta_days > 0
+            else 0.0
+        )
+
+        # d) Population scale (0 → 0.05)
+        # Large, well-documented populations → more reliable demand data.
+        if payload.population >= 1_000_000:
+            pop_score = 0.05
+        elif payload.population >= 500_000:
+            pop_score = 0.03
+        elif payload.population >= 100_000:
+            pop_score = 0.01
+        else:
+            pop_score = 0.0
+
+        # e) P4 route intelligence (0 → 0.05)
+        route_confidence = 0.05 if route_id is not None else 0.0
+
+        confidence = min(
+            0.95,
+            round(
+                0.55                  # base (slightly lower to give factors room)
+                + stability_score     # 0–0.20
+                + coverage_score      # 0–0.10
+                + shipment_score      # 0–0.05
+                + pop_score           # 0–0.05
+                + route_confidence,   # 0–0.05
+                4,
+            ),
+        )
+
+        # --------------------------------------------------------
+        # 9. Return
+        # --------------------------------------------------------
+
+        model_version = (
+            "shortage_demand_route_v1"
+            if payload.historical_daily_demand
+            else "shortage_baseline_v1"
+        )
+
         return ShortageOutput(
             district_id=payload.district_id,
             district_name=payload.district_name,
             product_type=payload.product_type,
-            shortage_probability=round(probability, 4),
-            estimated_days_until_shortage=round(projected_days, 2),
+
+            shortage_probability=round(
+                probability,
+                4,
+            ),
+
+            estimated_days_until_shortage=round(
+                days_until_shortage,
+                2,
+            ),
+
             risk_level=risk_level,
-            confidence=confidence,
-            model_version="shortage_baseline_route_v1",
-            timestamp=datetime.now(timezone.utc),
+
+            confidence=round(
+                confidence,
+                2,
+            ),
+
+            model_version=model_version,
+
+            timestamp=datetime.now(
+                timezone.utc
+            ),
+
             route_id=route_id,
             road_risk=route_risk,
+            weather_risk=weather_risk,
+            flood_risk=flood_risk,
+            landslide_risk=landslide_risk,
+            imd_warning_risk=imd_warning_risk,
+            news_risk=news_risk,
         )
-
-    # ============================================================
-    # SHORTAGE PREDICTION
-    # ============================================================
-
-# ============================================================
-# SHORTAGE PREDICTION
-# ============================================================
-
-def predict_shortage(
-    self,
-    payload: ShortageInput,
-) -> ShortageOutput:
-    """
-    Demand-aware shortage prediction.
-
-    Pipeline:
-
-        Historical demand
-              ↓
-        Demand forecast
-              ↓
-        Inventory coverage
-              ↓
-        Base shortage probability
-              ↓
-        P4 route-risk adjustment
-              ↓
-        Final shortage probability
-    """
-
-    current_inventory = payload.current_inventory_units
-    incoming_quantity = payload.incoming_quantity_units
-    eta_days = payload.incoming_eta_days
-
-    # --------------------------------------------------------
-    # 1. Determine daily demand
-    # --------------------------------------------------------
-
-    if (
-        payload.historical_daily_demand
-        and len(payload.historical_daily_demand) >= 3
-    ):
-        demand_input = DemandInput(
-            district_id=payload.district_id,
-            district_name=payload.district_name,
-            product_type=payload.product_type,
-            historical_daily_demand=payload.historical_daily_demand,
-            forecast_days=max(7, int(eta_days) + 7),
-        )
-
-        demand_forecast = self.predict_demand(
-            demand_input
-        )
-
-        daily_consumption = (
-            demand_forecast.predicted_daily_demand
-        )
-
-    else:
-        # Backward-compatible fallback
-        daily_consumption = (
-            payload.average_daily_consumption
-        )
-
-    daily_consumption = max(
-        daily_consumption,
-        0.01,
-    )
-
-    # --------------------------------------------------------
-    # 2. Current inventory coverage
-    # --------------------------------------------------------
-
-    current_days = (
-        current_inventory / daily_consumption
-    )
-
-    # --------------------------------------------------------
-    # 3. Incoming inventory
-    #
-    # If the shipment arrives before current stock is
-    # exhausted, include it in projected inventory.
-    # --------------------------------------------------------
-
-    incoming_before_shortage = (
-        incoming_quantity
-        if eta_days <= current_days
-        else 0.0
-    )
-
-    effective_inventory = (
-        current_inventory
-        + incoming_before_shortage
-    )
-
-    days_until_shortage = (
-        effective_inventory / daily_consumption
-    )
-
-    # --------------------------------------------------------
-    # 4. Base shortage probability
-    # --------------------------------------------------------
-
-    if days_until_shortage <= 1:
-        probability = 0.95
-
-    elif days_until_shortage <= 3:
-        probability = 0.85
-
-    elif days_until_shortage <= 7:
-        probability = 0.65
-
-    elif days_until_shortage <= 14:
-        probability = 0.35
-
-    else:
-        probability = 0.10
-
-    # --------------------------------------------------------
-    # 5. Population adjustment
-    # --------------------------------------------------------
-
-    if payload.population >= 1_000_000:
-        probability += 0.03
-
-    elif payload.population >= 500_000:
-        probability += 0.02
-
-    # --------------------------------------------------------
-    # 6. P4 route-risk adjustment
-    #
-    # A high-risk route makes incoming relief less reliable.
-    # Therefore shortage probability increases slightly.
-    # --------------------------------------------------------
-
-    route_id = None
-    route_risk = None
-    weather_risk = None
-    flood_risk = None
-    landslide_risk = None
-    imd_warning_risk = None
-    news_risk = None
-
-    try:
-        route = self.p4_client.optimize_route(
-            origin=payload.origin,
-            destination=payload.district_name,
-            cargo_type=payload.product_type,
-            priority=payload.priority,
-        )
-
-        route_id = route.route_id
-        route_risk = route.route_risk
-        weather_risk = route.weather_risk
-        flood_risk = route.flood_risk
-        landslide_risk = route.landslide_risk
-        imd_warning_risk = route.imd_warning_risk
-        news_risk = route.news_risk
-
-        # Maximum route-risk contribution = +0.15
-        route_adjustment = 0.15 * route_risk
-
-        probability += route_adjustment
-
-    except Exception:
-        # P4 failure should not stop shortage prediction.
-        pass
-
-    probability = min(
-        1.0,
-        max(0.0, probability),
-    )
-
-    # --------------------------------------------------------
-    # 7. Risk level
-    # --------------------------------------------------------
-
-    if probability >= 0.85:
-        risk_level = "CRITICAL"
-
-    elif probability >= 0.65:
-        risk_level = "HIGH"
-
-    elif probability >= 0.35:
-        risk_level = "MEDIUM"
-
-    else:
-        risk_level = "LOW"
-
-    # --------------------------------------------------------
-    # 8. Confidence
-    #
-    # More historical demand observations = more confidence.
-    # Route availability gives a small additional confidence
-    # boost because P4 intelligence is available.
-    # --------------------------------------------------------
-
-    if payload.historical_daily_demand:
-        history_confidence = min(
-            0.20,
-            len(payload.historical_daily_demand) / 100
-        )
-    else:
-        history_confidence = 0.0
-
-    route_confidence = (
-        0.05
-        if route_id is not None
-        else 0.0
-    )
-
-    confidence = min(
-        0.95,
-        0.60
-        + history_confidence
-        + route_confidence,
-    )
-
-    # --------------------------------------------------------
-    # 9. Return
-    # --------------------------------------------------------
-
-    model_version = (
-        "shortage_demand_route_v1"
-        if payload.historical_daily_demand
-        else "shortage_baseline_route_v1"
-    )
-
-    return ShortageOutput(
-        district_id=payload.district_id,
-        district_name=payload.district_name,
-        product_type=payload.product_type,
-
-        shortage_probability=round(
-            probability,
-            4,
-        ),
-
-        estimated_days_until_shortage=round(
-            days_until_shortage,
-            2,
-        ),
-
-        risk_level=risk_level,
-
-        confidence=round(
-            confidence,
-            2,
-        ),
-
-        model_version=model_version,
-
-        timestamp=datetime.now(
-            timezone.utc
-        ),
-
-        route_id=route_id,
-        road_risk=route_risk,
-        weather_risk=weather_risk,
-        flood_risk=flood_risk,
-        landslide_risk=landslide_risk,
-        imd_warning_risk=imd_warning_risk,
-        news_risk=news_risk,
-    )
 
 
     # ============================================================
@@ -1277,97 +1271,94 @@ def predict_shortage(
             optimization_status=optimization_status,
         )
 
-# ============================================================
-# DEMAND PREDICTION
-# ============================================================
+    # ============================================================
+    # DEMAND PREDICTION
+    # ============================================================
 
-def predict_demand(
-    self,
-    payload: DemandInput
-) -> DemandOutput:
-    """
-    Predict future demand using a weighted moving-average
-    baseline.
+    def predict_demand(
+        self,
+        payload: DemandInput
+    ) -> DemandOutput:
+        """
+        Predict future demand using a weighted moving-average
+        baseline.
 
-    Recent observations receive more importance than older
-    observations.
-    """
+        Recent observations receive more importance than older
+        observations.
+        """
 
-    history = payload.historical_daily_demand
+        history = payload.historical_daily_demand
 
-    if len(history) < 3:
-        raise ValueError(
-            "At least 3 historical demand values are required"
+        if len(history) < 3:
+            raise ValueError(
+                "At least 3 historical demand values are required"
+            )
+
+        # Use the most recent 7 observations
+        recent = history[-7:]
+
+        # Give more weight to recent demand
+        weights = list(range(1, len(recent) + 1))
+
+        weighted_sum = sum(
+            demand * weight
+            for demand, weight in zip(recent, weights)
         )
 
-    # Use the most recent 7 observations
-    recent = history[-7:]
+        total_weight = sum(weights)
 
-    # Give more weight to recent demand
-    weights = list(range(1, len(recent) + 1))
+        baseline = weighted_sum / total_weight
 
-    weighted_sum = sum(
-        demand * weight
-        for demand, weight in zip(recent, weights)
-    )
+        # Simple trend detection
+        midpoint = len(recent) // 2
 
-    total_weight = sum(weights)
+        first_half = recent[:midpoint]
+        second_half = recent[midpoint:]
 
-    baseline = weighted_sum / total_weight
+        first_avg = sum(first_half) / len(first_half)
+        second_avg = sum(second_half) / len(second_half)
 
-    # Simple trend detection
-    midpoint = len(recent) // 2
+        trend = second_avg - first_avg
 
-    first_half = recent[:midpoint]
-    second_half = recent[midpoint:]
+        # Limit trend influence so abnormal values do not
+        # create unrealistic forecasts.
+        max_trend = baseline * 0.25
 
-    first_avg = sum(first_half) / len(first_half)
-    second_avg = sum(second_half) / len(second_half)
+        trend = max(
+            -max_trend,
+            min(trend, max_trend)
+        )
 
-    trend = second_avg - first_avg
+        predicted_daily_demand = max(
+            0.0,
+            baseline + trend
+        )
 
-    # Limit trend influence so abnormal values do not
-    # create unrealistic forecasts.
-    max_trend = baseline * 0.25
+        predicted_total_demand = (
+            predicted_daily_demand
+            * payload.forecast_days
+        )
 
-    trend = max(
-        -max_trend,
-        min(trend, max_trend)
-    )
+        # Confidence increases with more historical observations.
+        confidence = min(
+            0.95,
+            0.60 + (len(history) / 100)
+        )
 
-    predicted_daily_demand = max(
-        0.0,
-        baseline + trend
-    )
-
-    predicted_total_demand = (
-        predicted_daily_demand
-        * payload.forecast_days
-    )
-
-    # Confidence increases with more historical observations.
-    confidence = min(
-        0.95,
-        0.60 + (len(history) / 100)
-    )
-
-    return DemandOutput(
-        district_id=payload.district_id,
-        district_name=payload.district_name,
-        product_type=payload.product_type,
-        forecast_days=payload.forecast_days,
-        predicted_daily_demand=round(
-            predicted_daily_demand,
-            2
-        ),
-        predicted_total_demand=round(
-            predicted_total_demand,
-            2
-        ),
-        confidence=round(confidence, 2),
-        model_version="demand_weighted_moving_average_v1",
-        timestamp=datetime.now(timezone.utc),
-    )
-
-
-
+        return DemandOutput(
+            district_id=payload.district_id,
+            district_name=payload.district_name,
+            product_type=payload.product_type,
+            forecast_days=payload.forecast_days,
+            predicted_daily_demand=round(
+                predicted_daily_demand,
+                2
+            ),
+            predicted_total_demand=round(
+                predicted_total_demand,
+                2
+            ),
+            confidence=round(confidence, 2),
+            model_version="demand_weighted_moving_average_v1",
+            timestamp=datetime.now(timezone.utc),
+        )

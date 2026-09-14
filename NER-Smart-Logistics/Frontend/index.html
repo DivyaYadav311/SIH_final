@@ -1986,6 +1986,28 @@
             </div>
 
             <form id="formPredictShortage" class="p5-form">
+              <!-- Quick District Select -->
+              <div class="p5-field" style="margin-bottom:10px;">
+                <label class="p5-label">Quick-Select NER District (auto-fills below)</label>
+                <div class="p5-input-wrap">
+                  <span class="p5-input-icon">🗺️</span>
+                  <select id="shortageDistrictQuickSelect" class="p5-select">
+                    <option value="">— Select district or fill manually below —</option>
+                    <option value="Kamrup Metropolitan|kamrup_metro|1260073">Kamrup Metropolitan (Assam)</option>
+                    <option value="Tawang|tawang|49950">Tawang (Arunachal Pradesh)</option>
+                    <option value="East Khasi Hills|east_khasi_hills|825922">East Khasi Hills (Meghalaya)</option>
+                    <option value="Sonitpur|sonitpur|1924110">Sonitpur (Assam)</option>
+                    <option value="Cachar|cachar|1736617">Cachar (Assam)</option>
+                    <option value="Jorhat|jorhat|1092256">Jorhat (Assam)</option>
+                    <option value="Imphal West|imphal_west|514683">Imphal West (Manipur)</option>
+                    <option value="Aizawl|aizawl|393350">Aizawl (Mizoram)</option>
+                    <option value="Kohima|kohima|267988">Kohima (Nagaland)</option>
+                    <option value="West Tripura|west_tripura|1725739">West Tripura (Tripura)</option>
+                    <option value="Papum Pare|papum_pare|209877">Papum Pare (Arunachal Pradesh)</option>
+                    <option value="Dibrugarh|dibrugarh|1326335">Dibrugarh (Assam)</option>
+                  </select>
+                </div>
+              </div>
               <div class="p5-form-grid">
                 
                 <!-- Target District -->
@@ -1993,7 +2015,7 @@
                   <label class="p5-label">Target District</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">🎯</span>
-                    <input name="district_name" class="p5-input" placeholder="e.g. Tawang District" required />
+                    <input name="district_name" id="shortageDistrictName" class="p5-input" placeholder="e.g. Tawang District" required />
                   </div>
                 </div>
 
@@ -2002,7 +2024,7 @@
                   <label class="p5-label">District Code</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">📄</span>
-                    <input name="district_id" class="p5-input" placeholder="e.g. DIST_NE_TW09" required />
+                    <input name="district_id" id="shortageDistrictId" class="p5-input" placeholder="e.g. DIST_NE_TW09" required />
                   </div>
                 </div>
 
@@ -2013,7 +2035,8 @@
                     <span class="p5-input-icon">💊</span>
                     <select name="product_type" class="p5-select">
                       <option value="MEDICINE" selected>Essential Medicines & IV Fluids</option>
-                      <option value="FOOD_RATIONS">Dry Food Rations & Water</option>
+                      <option value="FOOD_KIT">Dry Food Rations & Water Kits</option>
+                      <option value="WATER">Potable Water (Tankers)</option>
                       <option value="FUEL">Diesel & Generator Fuel</option>
                     </select>
                   </div>
@@ -2037,9 +2060,36 @@
                   </div>
                 </div>
 
+                <!-- Incoming Shipment (Units) -->
+                <div class="p5-field">
+                  <label class="p5-label">Incoming Shipment (Units, 0 if none)</label>
+                  <div class="p5-input-wrap">
+                    <span class="p5-input-icon">🚛</span>
+                    <input name="incoming_qty" type="number" min="0" value="0" class="p5-input" placeholder="0" />
+                  </div>
+                </div>
+
+                <!-- ETA Days -->
+                <div class="p5-field">
+                  <label class="p5-label">Shipment ETA (Days, 0 if none)</label>
+                  <div class="p5-input-wrap">
+                    <span class="p5-input-icon">📅</span>
+                    <input name="incoming_eta" type="number" min="0" value="0" class="p5-input" placeholder="Days" />
+                  </div>
+                </div>
+
+                <!-- District Population -->
+                <div class="p5-field">
+                  <label class="p5-label">Affected Population</label>
+                  <div class="p5-input-wrap">
+                    <span class="p5-input-icon">👥</span>
+                    <input name="population" id="shortagePopulation" type="number" min="1" value="500000" class="p5-input" placeholder="e.g. 500000" />
+                  </div>
+                </div>
+
                 <!-- Corridor Hazard Risk -->
                 <div class="p5-field">
-                  <label class="p5-label">Corridor Hazard Risk</label>
+                  <label class="p5-label">Corridor Hazard Risk (0.0–1.0)</label>
                   <div class="p5-input-wrap">
                     <span class="p5-input-icon">⚠️</span>
                     <input name="road_risk" type="number" step="0.05" min="0" max="1" class="p5-input" placeholder="0.0 - 1.0" />

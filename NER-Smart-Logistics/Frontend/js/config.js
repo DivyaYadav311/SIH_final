@@ -3,42 +3,41 @@
  * All services point to the unified backend at port 8002.
  */
 
-// Clean up any stale legacy port URLs in localStorage that do not point to port 8002 or valid P6 port 8006
+// Clean up any stale legacy port URLs in localStorage
 if (typeof localStorage !== "undefined") {
   ['pravah_p4_url', 'pravah_api_base', 'pravah_p1_url', 'pravah_p2_url', 'pravah_p3_url', 'pravah_p5_url', 'pravah_p6_url'].forEach(k => {
-    const val = localStorage.getItem(k);
-    if (val && !val.includes(':8002') && !(k === 'pravah_p6_url' && val.includes(':8006'))) {
-      localStorage.removeItem(k);
-    }
+    localStorage.removeItem(k);
   });
 }
 
-// Unified FastAPI backend runs on port 8002
-const _backendPort = "8002";
-const _defaultApiBase = (typeof window !== "undefined" && window.location && window.location.hostname)
-  ? `${window.location.protocol}//${window.location.hostname}:${_backendPort}`
-  : "http://127.0.0.1:8002";
+const _host = (typeof window !== "undefined" && window.location && window.location.hostname)
+  ? window.location.hostname
+  : "127.0.0.1";
+const _protocol = (typeof window !== "undefined" && window.location && window.location.protocol)
+  ? window.location.protocol
+  : "http:";
 
-const _p6Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p6_url"))
-  ? localStorage.getItem("pravah_p6_url")
-  : _defaultApiBase;
+const _p4Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p4_url")) || `${_protocol}//${_host}:8001`;
+const _p5Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p5_url")) || `${_protocol}//${_host}:8005`;
+const _p6Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p6_url")) || `${_protocol}//${_host}:8006`;
+const _p2Url = (typeof localStorage !== "undefined" && localStorage.getItem("pravah_p2_url")) || `${_protocol}//${_host}:8002`;
 
 const PRAVAH_CONFIG = {
   APP_NAME: "Pravah",
   TAGLINE: "Safer Journeys. Stronger North East.",
   VERSION: "3.0.0",
 
-  // Unified Backend Endpoint (all P1–P6 on single server)
-  API_BASE: _defaultApiBase,
+  // Default Backend Endpoint
+  API_BASE: _p4Url,
 
-  // Unified endpoints pointing to active server
+  // Modular microservices endpoints
   API_ENDPOINTS: {
-    p4_routing: _defaultApiBase,
+    p4_routing: _p4Url,
     p6_control_tower: _p6Url,
-    p5_logistics: _defaultApiBase,
-    p2_landslide: _defaultApiBase,
-    p3_road_risk: _defaultApiBase,
-    p1_flood: _defaultApiBase,
+    p5_logistics: _p5Url,
+    p2_landslide: _p2Url,
+    p3_road_risk: _p2Url,
+    p1_flood: _p2Url,
   },
 
   // Northeast Transit Hubs & Coordinates

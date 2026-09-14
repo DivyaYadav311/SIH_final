@@ -49,9 +49,9 @@ def p3_base_url() -> str:
 
 
 def p4_base_url() -> str:
-    return (os.getenv("P4_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
+    return (os.getenv("P4_BASE_URL") or "http://127.0.0.1:8001").rstrip("/")
 
 
 def p5_base_url() -> str:
-    return (os.getenv("P5_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
+    return (os.getenv("P5_BASE_URL") or "http://127.0.0.1:8005").rstrip("/")
 

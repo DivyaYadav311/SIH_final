@@ -462,7 +462,7 @@ const PravahAPI = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(2500)
+        signal: AbortSignal.timeout(10000)
       });
       if (res.ok) return await res.json();
     } catch (e) {}

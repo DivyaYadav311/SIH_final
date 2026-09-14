@@ -168,18 +168,29 @@ const WhatIfSimulation = {
     const affectedShipmentCount = (typeof res.affected_shipments === "number" && Number.isFinite(res.affected_shipments))
       ? res.affected_shipments
       : 0;
-    if (roads.length > 0 && affectedShipmentCount > 0) {
-      insights.push(`Simulation identifies ${roads.length} affected road segment${roads.length === 1 ? "" : "s"} on ${res.road_id || roadId}.`);
-    }
-    if (delayMinutes !== null) {
-      insights.push(`Average additional travel time from P4 original vs alternative times is ${Math.floor(delayMinutes / 60)} h ${delayMinutes % 60} m.`);
-    }
-    if (affectedShipmentCount > 0) {
-      insights.push(`${affectedShipmentCount} shipment${affectedShipmentCount === 1 ? " is" : "s are"} included in this impact assessment.`);
+
+    // Network-level insight
+    if (roads.length > 0) {
+      insights.push(`Network scenario: ${roads.join(", ")} corridor disruption modeled.`);
     }
     if (reroute?.route_id || reroute?.corridor || res.recommended_route_id) {
-      insights.push("A P4 routing option was returned for the selected scenario.");
+      const recName = reroute?.corridor || reroute?.route_id || res.recommended_route_id;
+      insights.push(`P4 alternative route computed: ${recName}${detourDistance !== null ? ` (${detourDistance} km detour)` : ""}.`);
+    } else if (res.unavailable_metrics?.includes("recommended_route")) {
+      insights.push("P4 alternative route is currently unavailable for this corridor.");
     }
+
+    if (delayMinutes !== null) {
+      insights.push(`Average additional travel time: ${Math.floor(delayMinutes / 60)} h ${delayMinutes % 60} m.`);
+    }
+
+    // Logistics/Shipment-level insight
+    if (affectedShipmentCount > 0) {
+      insights.push(`Logistics impact: ${affectedShipmentCount} live shipment${affectedShipmentCount === 1 ? " is" : "s are"} affected by this disruption.`);
+    } else {
+      insights.push("Logistics impact: 0 live shipments affected on this corridor.");
+    }
+
     if (typeof res.shortage_risk_change === "number" && Number.isFinite(res.shortage_risk_change)) {
       insights.push(`The reported shortage-risk change is ${Math.round(res.shortage_risk_change * 100)}%.`);
     }
@@ -201,7 +212,7 @@ const WhatIfSimulation = {
             return `<tr><td><strong>${displayField(shipment.shipment_id)}</strong></td><td>${displayField(shipment.origin)}</td><td>${displayField(shipment.destination)}</td><td>${escapeHtml(formatDate(shipment.current_eta))}</td><td>${escapeHtml(formatDate(shipment.revised_eta))}</td><td class="whatif-delay-cell">${escapeHtml(delayLabel)}</td><td>${shipment.status || shipment.priority ? `<span class="status-badge ${String(shipment.priority || shipment.status).toUpperCase() === "CRITICAL" ? "danger" : "warning"}">${escapeHtml(shipment.status || shipment.priority)}</span>` : "N/A"}</td></tr>`;
           }).join("")}</tbody>
         </table>
-      </div>` : `<div class="whatif-inline-empty">0 affected shipments</div>`;
+      </div>` : `<div class="whatif-inline-empty">0 live shipments impacted by this corridor scenario.</div>`;
     const routeRisk = typeof reroute?.route_risk === "number" ? `${Math.round(reroute.route_risk * 100)}%` : (reroute?.risk_level ? escapeHtml(reroute.risk_level) : unavailable("No P4 risk value was returned."));
     const mapBody = hasGeometry
       ? `<div id="whatIfScenarioMap" style="flex:1;min-height:266px;margin-top:10px;border-radius:9px;"></div>`
@@ -211,19 +222,57 @@ const WhatIfSimulation = {
     container.innerHTML = `
       <div class="whatif-results-shell">
         <div class="whatif-metric-grid">
-          <div class="whatif-metric-card roads"><span>▥</span><div><b>${roads.length}</b><strong>Affected road segments</strong><small>Scenario corridor</small></div></div>
-          <div class="whatif-metric-card detour"><span>⌁</span><div><b>${detourText}</b><strong>Estimated detour</strong><small>P4 alternative route distance</small></div></div>
-          <div class="whatif-metric-card delay"><span>◷</span><div><b>${delayText}</b><strong>Additional travel time</strong><small>From P4 original vs alternative times</small></div></div>
-          <div class="whatif-metric-card shipments"><span>♟</span><div><b>${Number.isFinite(affectedShipmentCount) ? affectedShipmentCount : unavailable()}</b><strong>Shipments impacted</strong><small>From P5 shipment data</small></div></div>
+          <div class="whatif-metric-card roads"><span>▥</span><div><b>${roads.length}</b><strong>Affected Road (Network)</strong><small>${escapeHtml(roads[0] || res.road_id || roadId)}</small></div></div>
+          <div class="whatif-metric-card detour"><span>⌁</span><div><b>${detourText}</b><strong>Alternative Detour</strong><small>P4 Route Distance</small></div></div>
+          <div class="whatif-metric-card delay"><span>◷</span><div><b>${delayText}</b><strong>Additional Travel Time</strong><small>P4 Route Comparison</small></div></div>
+          <div class="whatif-metric-card shipments"><span>♟</span><div><b>${Number.isFinite(affectedShipmentCount) ? affectedShipmentCount : unavailable()}</b><strong>Shipments Impacted</strong><small>Live P5 Fleet</small></div></div>
         </div>
         <div class="whatif-dashboard-grid">
-          <section class="whatif-panel whatif-parameters-card"><h3><span aria-hidden="true">⚙</span> Hazard Parameters</h3><p class="whatif-panel-subtitle">Simulation inputs and reported impact</p><dl class="whatif-detail-list"><div><dt>Scenario</dt><dd>${escapeHtml(scenario || "N/A")}</dd></div><div><dt>Target corridor</dt><dd>${escapeHtml(res.road_id || roadId)}</dd></div><div><dt>Affected districts</dt><dd>${metricValue(res.affected_districts)}</dd></div><div><dt>Delayed shipments</dt><dd>${metricValue(res.delayed_shipments)}</dd></div><div><dt>Shortage risk change</dt><dd>${risk}</dd></div></dl></section>
-          <section class="whatif-panel whatif-map-card"><div class="whatif-panel-heading"><div><h3><span aria-hidden="true">⌖</span> Scenario Impact Map</h3><p>Route geometry is shown when supplied by P4.</p></div><span class="whatif-map-status">${hasGeometry ? "P4 GEOMETRY" : "NO GEOMETRY"}</span></div>${mapBody}</section>
-          <aside class="whatif-panel whatif-decision-card"><h3><span aria-hidden="true">▤</span> Simulation Results</h3><p class="whatif-panel-subtitle">Decision support from the completed run</p>${reroute ? `<div class="whatif-decision-callout"><span aria-hidden="true">↗</span><div><strong>Recommended action</strong><p>${escapeHtml(reroute.corridor || reroute.route_id || res.recommended_route_id)}</p></div></div>` : `<div class="whatif-inline-empty">No P4 routing recommendation was returned.</div>`}<dl class="whatif-detail-list"><div><dt>Detour distance</dt><dd>${detourText}</dd></div><div><dt>Additional travel time</dt><dd>${delayText}</dd></div><div><dt>Route risk</dt><dd>${routeRisk}</dd></div></dl>${res.scenario_id ? `<p class="whatif-provenance">Run ID: ${escapeHtml(res.scenario_id)}</p>` : ""}</aside>
+          <section class="whatif-panel whatif-parameters-card">
+            <h3><span aria-hidden="true">⚙</span> Scenario Parameters & Impact</h3>
+            <p class="whatif-panel-subtitle">Network disruption vs logistics fleet state</p>
+            <dl class="whatif-detail-list">
+              <div><dt>Disruption scenario</dt><dd>${escapeHtml(scenario || "N/A")}</dd></div>
+              <div><dt>Disrupted corridor</dt><dd>${escapeHtml(res.road_id || roadId)}</dd></div>
+              <div><dt>P4 alternative route</dt><dd>${reroute ? "Available" : "Unavailable"}</dd></div>
+              <div><dt>Affected districts</dt><dd>${metricValue(res.affected_districts)}</dd></div>
+              <div><dt>Impacted shipments (P5)</dt><dd>${metricValue(res.affected_shipments)}</dd></div>
+              <div><dt>Delayed shipments (P5)</dt><dd>${metricValue(res.delayed_shipments)}</dd></div>
+              <div><dt>Shortage risk change</dt><dd>${risk}</dd></div>
+            </dl>
+          </section>
+          <section class="whatif-panel whatif-map-card">
+            <div class="whatif-panel-heading">
+              <div>
+                <h3><span aria-hidden="true">⌖</span> Scenario Impact Map</h3>
+                <p>Real OpenStreetMap route geometry from P4.</p>
+              </div>
+              <span class="whatif-map-status">${hasGeometry ? "P4 GEOMETRY" : "NO GEOMETRY"}</span>
+            </div>
+            ${mapBody}
+          </section>
+          <aside class="whatif-panel whatif-decision-card">
+            <h3><span aria-hidden="true">▤</span> Simulation Results</h3>
+            <p class="whatif-panel-subtitle">Network routing decision support</p>
+            ${reroute ? `<div class="whatif-decision-callout"><span aria-hidden="true">↗</span><div><strong>Recommended alternative</strong><p>${escapeHtml(reroute.corridor || reroute.route_id || res.recommended_route_id)}</p></div></div>` : `<div class="whatif-inline-empty">No P4 routing recommendation was returned.</div>`}
+            <dl class="whatif-detail-list">
+              <div><dt>Detour distance</dt><dd>${detourText}</dd></div>
+              <div><dt>Additional travel time</dt><dd>${delayText}</dd></div>
+              <div><dt>Alternative route risk</dt><dd>${routeRisk}</dd></div>
+            </dl>
+            ${res.scenario_id ? `<p class="whatif-provenance">Run ID: ${escapeHtml(res.scenario_id)}</p>` : ""}
+          </aside>
         </div>
         <div class="whatif-bottom-grid">
-          <section class="whatif-panel whatif-shipments-card"><h3><span aria-hidden="true">♟</span> Potentially Impacted Shipments</h3>${shipmentTable}</section>
-          <aside class="whatif-panel whatif-insights-card"><h3><span aria-hidden="true">✦</span> Key Insights</h3>${insights.length ? `<ul class="whatif-insights-list">${insights.map((insight) => `<li>${escapeHtml(insight)}</li>`).join("")}</ul>` : `<div class="whatif-inline-empty">No disruption impact or rerouting was required for the current simulation result.</div>`}${res.data_provenance?.shipments ? `<p class="whatif-provenance">Shipment source: ${escapeHtml(res.data_provenance.shipments)}</p>` : ""}</aside>
+          <section class="whatif-panel whatif-shipments-card">
+            <h3><span aria-hidden="true">♟</span> Potentially Impacted Shipments (P5)</h3>
+            ${shipmentTable}
+          </section>
+          <aside class="whatif-panel whatif-insights-card">
+            <h3><span aria-hidden="true">✦</span> Key Insights</h3>
+            ${insights.length ? `<ul class="whatif-insights-list">${insights.map((insight) => `<li>${escapeHtml(insight)}</li>`).join("")}</ul>` : `<div class="whatif-inline-empty">No disruption impact or rerouting was required for the current simulation result.</div>`}
+            ${res.data_provenance?.shipments ? `<p class="whatif-provenance">Shipment source: ${escapeHtml(res.data_provenance.shipments)} · Routes: ${escapeHtml(res.data_provenance.routes || "unavailable")}</p>` : ""}
+          </aside>
         </div>
       </div>
     `;
