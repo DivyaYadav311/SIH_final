@@ -80,7 +80,6 @@ class WhatIfIn(BaseModel):
 
 class WhatIfOut(BaseModel):
     scenario_id: str
-    road_id: Optional[str] = None
     affected_roads: list[str]
     affected_shipments: int
     delayed_shipments: int
@@ -89,11 +88,13 @@ class WhatIfOut(BaseModel):
     average_delay_hours: Optional[float] = None
     shortage_risk_change: Optional[float] = None
     recommended_route_id: Optional[str] = None
-    scenario_type: Optional[str] = None
+    recommended_route: Optional[dict[str, Any]] = None
     recommended_reroutes: list[dict[str, Any]] = Field(default_factory=list)
-    alternative_route: Optional[dict[str, Any]] = None
-    route_coordinates: Optional[list[list[float]]] = None
+    route_geometry: Optional[list[list[float]]] = None
+    affected_shipment_records: list[dict[str, Any]] = Field(default_factory=list)
     affected_shipments_detail: list[dict[str, Any]] = Field(default_factory=list)
+    unavailable_metrics: list[str] = Field(default_factory=list)
+    road_id: Optional[str] = None
+    scenario_type: Optional[str] = None
     generated_at: Optional[str] = None
     data_provenance: Optional[dict[str, Any]] = None
-    errors: list[str] = Field(default_factory=list)

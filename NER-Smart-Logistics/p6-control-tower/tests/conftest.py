@@ -14,10 +14,9 @@ if str(ROOT) not in sys.path:
 @pytest.fixture(autouse=True)
 def isolate_external_http(monkeypatch):
     monkeypatch.setattr("alerts.imd.fetch_imd_cap_alerts", lambda limit=100: [])
-    monkeypatch.setattr("p6_src.tower.fetch_imd_cap_alerts", lambda limit=100: [], raising=False)
+    monkeypatch.setattr("p6_src.tower.fetch_imd_cap_alerts", lambda limit=100: [])
     monkeypatch.setattr("simulation.clients.fetch_p5_shipments", lambda: None)
-    monkeypatch.setattr("simulation.clients.request_p4_route", lambda *args, **kwargs: None)
-    monkeypatch.setattr("simulation.clients.request_p4_alternative", lambda origin, destination: None)
+    monkeypatch.setattr("simulation.clients.request_p4_alternative", lambda *args, **kwargs: None)
 
 
 @pytest.fixture
