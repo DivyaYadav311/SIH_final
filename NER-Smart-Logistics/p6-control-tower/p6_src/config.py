@@ -24,6 +24,7 @@ INCIDENT_STATUSES = (
 )
 CLIP_LABELS = ("LANDSLIDE", "FLOOD", "ROAD_BLOCKED", "ACCIDENT", "CLEAR")
 EXIF_MISMATCH_KM = float(os.getenv("P6_EXIF_MISMATCH_KM", "5.0"))
+IMD_POLL_SECONDS = max(30, int(os.getenv("IMD_POLL_SECONDS", "60")))
 HF_CLIP_MODEL = os.getenv("HF_CLIP_MODEL", "openai/clip-vit-base-patch32")
 IMD_CAP_MESSAGES_URL = os.getenv(
     "IMD_CAP_MESSAGES_URL",

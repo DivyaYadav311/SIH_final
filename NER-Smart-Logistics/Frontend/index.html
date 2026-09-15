@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
   <!-- Pravah Theme CSS (Light Theme default + Sleek Dark Mode) -->
-  <link rel="stylesheet" href="css/styles.css?v=3.8" />
+  <link rel="stylesheet" href="css/styles.css?v=3.9" />
 </head>
 <body>
 
@@ -84,12 +84,12 @@
       </button>
 
       <!-- Notifications Bell -->
-      <button id="btnNotificationBell" class="header-btn" title="Emergency Alerts & Notifications">
+      <button id="btnNotificationBell" class="header-btn" title="Emergency Alerts & Notifications" aria-label="Emergency alerts and notifications">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
         </svg>
-        <span class="badge-count">2</span>
+        <span id="notificationBadgeCount" class="badge-count" hidden aria-live="polite">0</span>
       </button>
 
       <!-- User Profile Officer Card & Dropdown -->
@@ -148,7 +148,7 @@
         <!-- Backend Health Status Pill -->
         <div id="backendHealthPill" class="backend-health-pill" title="Click to view & configure Backend Service Endpoints">
           <span class="dot"></span>
-          <span id="backendHealthText">Backends Live (6/6)</span>
+          <span id="backendHealthText">Checking backends…</span>
         </div>
       </div>
     </div>
@@ -917,9 +917,9 @@
             <div class="spectrum-item item-p1">
               <div class="kpi-icon-badge kpi-icon-blue">💧</div>
               <div class="kpi-content">
-                <div class="kpi-label">P1 River Discharge</div>
-                <div class="kpi-val-text"><span id="kpiValDischarge">4,820</span> m³/s</div>
-                <div class="kpi-subtext"><span class="kpi-trend-badge badge-red">+8.4%</span> Brahmaputra Gauge 4</div>
+                <div class="kpi-label">P1 Flood Risk</div>
+                <div class="kpi-val-text"><span id="kpiValDischarge">—</span></div>
+                <div id="kpiSubDischarge" class="kpi-subtext">Awaiting live corridor evaluation</div>
               </div>
               <svg class="kpi-sparkline" viewBox="0 0 80 24" preserveAspectRatio="none">
                 <path d="M0 20 Q20 22 45 14 T80 5" fill="none" stroke="#1d6fe0" stroke-width="2.5" stroke-linecap="round"/>
@@ -931,9 +931,9 @@
             <div class="spectrum-item item-p2">
               <div class="kpi-icon-badge kpi-icon-amber">⛰️</div>
               <div class="kpi-content">
-                <div class="kpi-label">P2 Slope Saturation</div>
-                <div class="kpi-val-text"><span id="kpiValSlope">76.2%</span></div>
-                <div class="kpi-subtext"><span class="kpi-trend-badge badge-amber">High Risk</span> NH-10 / Mangan Axis</div>
+                <div class="kpi-label">P2 Landslide Risk</div>
+                <div class="kpi-val-text"><span id="kpiValSlope">—</span></div>
+                <div id="kpiSubSlope" class="kpi-subtext">Awaiting live corridor evaluation</div>
               </div>
               <svg class="kpi-sparkline" viewBox="0 0 80 24" preserveAspectRatio="none">
                 <path d="M0 18 Q25 20 48 15 T80 7" fill="none" stroke="#e08e0b" stroke-width="2.5" stroke-linecap="round"/>
@@ -946,8 +946,8 @@
               <div class="kpi-icon-badge kpi-icon-red">🚧</div>
               <div class="kpi-content">
                 <div class="kpi-label">P3 Road Disruption</div>
-                <div class="kpi-val-text"><span id="kpiValDisruption">14 Segments</span></div>
-                <div class="kpi-subtext"><span class="kpi-trend-badge badge-red">3 Critical</span> Siliguri Corridor</div>
+                <div class="kpi-val-text"><span id="kpiValDisruption">—</span></div>
+                <div id="kpiSubDisruption" class="kpi-subtext">Awaiting live corridor evaluation</div>
               </div>
               <svg class="kpi-sparkline" viewBox="0 0 80 24" preserveAspectRatio="none">
                 <path d="M0 21 Q22 20 50 16 T80 8" fill="none" stroke="#e0434d" stroke-width="2.5" stroke-linecap="round"/>
@@ -971,9 +971,9 @@
             <div class="spectrum-item item-depot">
               <div class="kpi-icon-badge kpi-icon-green">🏪</div>
               <div class="kpi-content">
-                <div class="kpi-label">Depot Runway</div>
-                <div class="kpi-val-text"><span id="kpiValRunway">4.2 Days</span></div>
-                <div class="kpi-subtext">Guwahati Central Depot</div>
+                <div class="kpi-label">Available Depot Stock</div>
+                <div class="kpi-val-text"><span id="kpiValRunway">—</span></div>
+                <div id="kpiSubRunway" class="kpi-subtext">Loading live P5 inventory</div>
               </div>
               <svg class="kpi-sparkline" viewBox="0 0 80 24" preserveAspectRatio="none">
                 <path d="M0 19 Q25 21 52 14 T80 6" fill="none" stroke="#0e9f6e" stroke-width="2.5" stroke-linecap="round"/>
@@ -985,9 +985,9 @@
             <div class="spectrum-item item-sync">
               <div class="kpi-icon-badge kpi-icon-purple">🧠</div>
               <div class="kpi-content">
-                <div class="kpi-label">AI Engine Sync</div>
-                <div class="kpi-val-text" style="color:#7c3aed;"><span id="kpiValAiSync">99.4%</span></div>
-                <div class="kpi-subtext"><span class="kpi-trend-badge badge-green">P1–P6 Active</span> Synced 12s ago</div>
+                <div class="kpi-label">Backend Availability</div>
+                <div class="kpi-val-text" style="color:#7c3aed;"><span id="kpiValAiSync">—</span></div>
+                <div id="kpiSubAiSync" class="kpi-subtext">Checking P1–P6 services</div>
               </div>
               <svg class="kpi-sparkline" viewBox="0 0 80 24" preserveAspectRatio="none">
                 <path d="M0 20 Q22 21 45 13 T80 5" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-linecap="round"/>
@@ -1049,7 +1049,7 @@
               <span style="font-size:11px;font-weight:700;color:var(--text-muted);">UNIFIED SYSTEM HEALTH</span>
               <div class="overview-stat-icon" style="background:rgba(124,58,237,0.12);color:#7c3aed;">🛡️</div>
             </div>
-            <div id="kpiOverviewHealth" class="overview-stat-val" style="color:#7c3aed;">6 / 6 Live</div>
+            <div id="kpiOverviewHealth" class="overview-stat-val" style="color:#7c3aed;">—</div>
             <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">P1–P6 Microservices active</div>
           </div>
         </div>
@@ -1124,7 +1124,7 @@
                       <th>Action</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody id="corridorStatusBody">
                     <tr>
                       <td><b class="corridor-id">NH-6</b></td>
                       <td class="corridor-route-name">Guwahati ➔<br>Shillong Expressway</td>
@@ -2280,19 +2280,19 @@
         <div class="kpi-grid p6-kpi-grid">
           <div class="kpi-card p6-kpi-card p6-kpi-incidents">
             <div class="p6-kpi-icon">🔔</div>
-            <div class="p6-kpi-details"><div id="kpiOpenIncidents" class="kpi-num">2</div><div class="kpi-title">Active Open Incidents</div><div class="kpi-sub">Geotagged field reports</div></div>
+            <div class="p6-kpi-details"><div id="kpiOpenIncidents" class="kpi-num">—</div><div class="kpi-title">Active Open Incidents</div><div class="kpi-sub">Geotagged field reports</div></div>
           </div>
           <div class="kpi-card p6-kpi-card p6-kpi-alerts">
             <div class="p6-kpi-icon">⚠</div>
-            <div class="p6-kpi-details"><div id="kpiActiveAlerts" class="kpi-num">3</div><div class="kpi-title">Corridor Alerts</div><div class="kpi-sub">Multi-hazard advisories</div></div>
+            <div class="p6-kpi-details"><div id="kpiActiveAlerts" class="kpi-num">—</div><div class="kpi-title">Corridor Alerts</div><div class="kpi-sub">Multi-hazard advisories</div></div>
           </div>
           <div class="kpi-card p6-kpi-card p6-kpi-shipments">
             <div class="p6-kpi-icon">🚚</div>
-            <div class="p6-kpi-details"><div id="kpiCriticalAtRisk" class="kpi-num">1</div><div class="kpi-title">Shipments Monitored</div><div class="kpi-sub">Critical relief convoys</div></div>
+            <div class="p6-kpi-details"><div id="kpiCriticalAtRisk" class="kpi-num">—</div><div class="kpi-title">Shipments Monitored</div><div class="kpi-sub">Live non-completed shipments</div></div>
           </div>
           <div class="kpi-card p6-kpi-card p6-kpi-imd">
             <div class="p6-kpi-icon">⌁</div>
-            <div class="p6-kpi-details"><div id="kpiImdAlerts" class="kpi-num">2</div><div class="kpi-title">IMD WIS2 Warnings</div><div class="kpi-sub">Official CAP alerts active</div></div>
+            <div class="p6-kpi-details"><div id="kpiImdAlerts" class="kpi-num">—</div><div class="kpi-title">IMD WIS2 Warnings</div><div class="kpi-sub">Official CAP alerts active</div></div>
           </div>
         </div>
 
@@ -2308,16 +2308,16 @@
               <form id="formReportIncident">
                 <div class="form-group">
                   <label class="form-label">Reported By Officer / Driver</label>
-                  <input name="reported_by" value="DRIVER_NER_551" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  <input name="reported_by" required placeholder="Officer or driver ID" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                 </div>
                 <div class="p6-form-row">
                   <div class="form-group">
                     <label class="form-label">Latitude (°N)</label>
-                    <input name="latitude" type="number" step="any" value="27.42" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                    <input name="latitude" type="number" step="any" required placeholder="e.g. 27.4200" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Longitude (°E)</label>
-                    <input name="longitude" type="number" step="any" value="92.15" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                    <input name="longitude" type="number" step="any" required placeholder="e.g. 92.1500" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                   </div>
                 </div>
                 <div class="form-group">
@@ -2331,24 +2331,24 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Target Road Corridor</label>
-                  <input name="road_id" value="NH-13" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  <input name="road_id" required placeholder="e.g. NH-13" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                 </div>
                 <div class="form-group">
                   <label class="form-label">Detailed Situation Description</label>
-                  <input name="description" value="Rockfall across uphill corridor, single-track access only" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  <input name="description" placeholder="Describe the observed situation" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                 </div>
                 <div class="form-group">
                   <label class="form-label">Attached Photo / Evidence (Gemini Vision AI & CLIP)</label>
                   <div style="display:flex;gap:8px;align-items:center;">
-                    <input name="image_url" id="inputIncidentImageUrl" value="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" style="flex:1;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" oninput="P6ControlTower.handleUrlInput(this.value)" />
+                    <input name="image_url" id="inputIncidentImageUrl" placeholder="Image URL or browse a photo" style="flex:1;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" oninput="P6ControlTower.handleUrlInput(this.value)" />
                     <label for="inputIncidentFile" class="btn-secondary" style="height:34px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:11.5px;white-space:nowrap;border-radius:6px;border:1px solid var(--border-medium);background:var(--bg-surface-elevated);color:var(--text-primary);">
                       📷 Browse Photo
                     </label>
                     <input type="file" id="inputIncidentFile" accept="image/*" style="display:none;" onchange="P6ControlTower.handleFileSelect(event)" />
                   </div>
                   <!-- Attached Photo Live Thumbnail Preview -->
-                  <div id="incidentPhotoPreviewBox" style="margin-top:8px;display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--bg-surface-subtle);border-radius:6px;border:1px solid var(--border-subtle);">
-                    <img id="incidentPhotoThumb" src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--border-subtle);cursor:pointer;" alt="Attached Evidence" onclick="P6ControlTower.previewPhoto(this.src)" />
+                  <div id="incidentPhotoPreviewBox" style="margin-top:8px;display:none;align-items:center;gap:10px;padding:6px 10px;background:var(--bg-surface-subtle);border-radius:6px;border:1px solid var(--border-subtle);">
+                    <img id="incidentPhotoThumb" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--border-subtle);cursor:pointer;" alt="Attached Evidence" onclick="P6ControlTower.previewPhoto(this.src)" />
                     <div style="font-size:11px;color:var(--text-muted);">
                       <span id="incidentPhotoStatus" style="color:var(--status-safe);font-weight:700;">✓ Photo Evidence Attached</span><br/>
                       <span style="font-size:10px;color:var(--text-secondary);">Click thumbnail to inspect full resolution</span>
@@ -2367,16 +2367,36 @@
               <form id="formEvaluateAlert">
                 <div class="form-group">
                   <label class="form-label">Corridor Road ID</label>
-                  <input name="road_id" value="NH-13" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  <input name="road_id" required placeholder="Road ID" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                 </div>
                 <div class="p6-form-row">
                   <div class="form-group">
                     <label class="form-label">P1 Flood Prob</label>
-                    <input name="flood_prob" type="number" step="0.01" min="0" max="1" value="0.75" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                    <input name="flood_prob" type="number" step="0.01" min="0" max="1" required placeholder="0.00–1.00" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">P2 Landslide Prob</label>
-                    <input name="landslide_prob" type="number" step="0.01" min="0" max="1" value="0.55" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                    <input name="landslide_prob" type="number" step="0.01" min="0" max="1" required placeholder="0.00–1.00" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                </div>
+                <div class="p6-form-row">
+                  <div class="form-group">
+                    <label class="form-label">Road Disruption Prob</label>
+                    <input name="disruption_prob" type="number" step="0.01" min="0" max="1" required placeholder="0.00–1.00" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Accessibility Score</label>
+                    <input name="accessibility_score" type="number" step="1" min="0" max="100" required placeholder="0–100" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                </div>
+                <div class="p6-form-row">
+                  <div class="form-group">
+                    <label class="form-label">Shortage Probability</label>
+                    <input name="shortage_prob" type="number" step="0.01" min="0" max="1" required placeholder="0.00–1.00" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Affected / Critical Shipments</label>
+                    <div style="display:flex;gap:6px;"><input name="affected_shipments" type="number" min="0" required placeholder="Affected" style="width:50%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" /><input name="critical_shipments" type="number" min="0" required placeholder="Critical" style="width:50%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" /></div>
                   </div>
                 </div>
                 <button class="btn-primary p6-submit-button" type="submit">Evaluate Severity Score</button>
@@ -2427,22 +2447,7 @@
               <h3 class="p6-card-title p6-bulletin-title">
                 <span>🌤️</span> <span>IMD WIS2 Official CAP Emergency Bulletins</span>
               </h3>
-              <div class="p6-bulletin-list">
-                <div class="p6-bulletin p6-bulletin-danger">
-                  <div class="p6-bulletin-meta">
-                    <b style="color:var(--status-danger);">🚨 Orange Alert — West Kameng & Tawang</b>
-                    <span style="font-size:10px;color:var(--text-muted);">IMD WIS2 Live</span>
-                  </div>
-                  <div style="color:var(--text-primary);line-height:1.4;">Heavy cloudburst precip forecasted over high-altitude ghat sections. Surface runoff warning active.</div>
-                </div>
-                <div class="p6-bulletin p6-bulletin-warning">
-                  <div class="p6-bulletin-meta">
-                    <b style="color:var(--status-warning);">⚠️ Yellow Alert — Brahmaputra Valley</b>
-                    <span style="font-size:10px;color:var(--text-muted);">CWC River Watch</span>
-                  </div>
-                  <div style="color:var(--text-primary);line-height:1.4;">River discharge approaching 850 m³/s at Pandu Station. Inland ferry transit monitored.</div>
-                </div>
-              </div>
+              <div id="imdBulletinList" class="p6-bulletin-list" aria-live="polite"></div>
             </div>
           </div>
         </div>
@@ -2550,7 +2555,7 @@
       </div>
       <div class="modal-body">
         <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
-          Configure backend service URLs. All modules run on a single unified server by default (port 8002). Fallback simulation activates automatically when a service is offline.
+          Configure backend service URLs. All modules run on a single unified server by default (port 8002).
         </p>
         <div class="form-group">
           <label class="form-label">P1 Flood Intelligence Service URL</label>
@@ -2591,26 +2596,7 @@
         <button id="btnCloseNotifications" class="input-clear-btn" style="position:static;font-size:16px;">✕</button>
       </div>
       <div class="modal-body">
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="background:var(--status-danger-light);border:1px solid var(--status-danger-border);padding:12px;border-radius:8px;">
-            <div style="display:flex;justify-content:space-between;">
-              <b style="color:var(--status-danger);">🚨 IMD CAP WARNING — Orange Alert</b>
-              <span style="font-size:10px;color:var(--text-muted);">32 mins ago</span>
-            </div>
-            <p style="font-size:12px;color:var(--text-primary);margin-top:4px;">
-              Heavy to very heavy rainfall expected in West Kameng and Tawang districts over next 24 hours. High risk of debris flow.
-            </p>
-          </div>
-          <div style="background:var(--status-warning-light);border:1px solid var(--status-warning-border);padding:12px;border-radius:8px;">
-            <div style="display:flex;justify-content:space-between;">
-              <b style="color:var(--status-warning);">⚠️ ASDMA NOTICE — Brahmaputra Basin</b>
-              <span style="font-size:10px;color:var(--text-muted);">1 hour ago</span>
-            </div>
-            <p style="font-size:12px;color:var(--text-primary);margin-top:4px;">
-              River discharge level at Pandu Ghat rising towards danger mark. Ferries operational under daytime restrictions.
-            </p>
-          </div>
-        </div>
+        <div id="notificationsContent" style="display:flex;flex-direction:column;gap:10px;color:var(--text-muted);">Loading live control-tower alerts…</div>
       </div>
     </div>
   </div>
@@ -2893,15 +2879,15 @@
        ==================================================================== -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="js/config.js?v=4.1"></script>
-  <script src="js/pipeline.js?v=4.1"></script>
+  <script src="js/pipeline.js?v=4.2"></script>
   <script src="js/api.js?v=4.1"></script>
   <script src="js/map.js?v=4.1"></script>
   <script src="js/p4-routing.js?v=4.1"></script>
   <script src="js/p5-logistics.js?v=4.1"></script>
-  <script src="js/p6-control-tower.js?v=4.1"></script>
-  <script src="js/simulation.js?v=4.1"></script>
+  <script src="js/p6-control-tower.js?v=4.2"></script>
+  <script src="js/simulation.js?v=4.2"></script>
   <script src="js/risk-intelligence.js?v=4.1"></script>
-  <script src="js/app.js?v=4.1"></script>
+  <script src="js/app.js?v=4.3"></script>
 
 </body>
 </html>

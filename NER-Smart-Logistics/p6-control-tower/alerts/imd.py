@@ -67,11 +67,15 @@ def fetch_imd_cap_alerts(limit: int = 100) -> list[dict[str, Any]]:
         severity = _tag(root, "severity")
         alerts.append(
             {
+                "identifier": _tag(root, "identifier"),
                 "event": _tag(root, "event"),
                 "severity": severity,
                 "risk_level": _cap_severity_to_level(severity),
                 "area": _tag(root, "areaDesc"),
                 "headline": _tag(root, "headline"),
+                "description": _tag(root, "description"),
+                "instruction": _tag(root, "instruction"),
+                "sent": _tag(root, "sent"),
                 "expires": _tag(root, "expires"),
                 "polygon": _tag(root, "polygon"),
                 "source": "IMD_CAP",

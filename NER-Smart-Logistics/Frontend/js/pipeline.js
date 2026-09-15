@@ -244,6 +244,7 @@ const PredictionPipeline = {
       });
       if (resp.ok) {
         const liveData = await resp.json();
+        liveData.source = liveData.source || "Live P3 Backend";
         this.updateP3Card(liveData);
         return liveData;
       }
@@ -417,7 +418,43 @@ const PredictionPipeline = {
     };
 
     this.lastPipelineResult = pipelineResult;
+    this.updateOverviewSpectrum(pipelineResult);
     return pipelineResult;
+  },
+
+  updateOverviewSpectrum(result) {
+    const setMetric = (valueId, subId, value, detail) => {
+      const valueEl = document.getElementById(valueId);
+      const subEl = document.getElementById(subId);
+      if (valueEl) valueEl.textContent = value;
+      if (subEl) subEl.textContent = detail;
+    };
+    const corridor = result.corridor || `${result.origin || "Unknown"} → ${result.destination || "Unknown"}`;
+    const p1Live = String(result.p1?.source || "").includes("Live P1 Backend");
+    const p2Live = String(result.p2?.source || "").includes("Live P2 Backend");
+    const p3Live = p1Live
+      && p2Live
+      && String(result.p3?.source || "").includes("Live P3 Backend")
+      && Number.isFinite(result.p3?.disruption_probability);
+
+    setMetric(
+      "kpiValDischarge",
+      "kpiSubDischarge",
+      p1Live ? `${Math.round(result.p1.flood_probability * 100)}%` : "—",
+      p1Live ? `Live P1 flood prediction · ${corridor}` : "Live P1 data unavailable"
+    );
+    setMetric(
+      "kpiValSlope",
+      "kpiSubSlope",
+      p2Live ? `${Math.round(result.p2.landslide_probability * 100)}%` : "—",
+      p2Live ? `Live P2 landslide prediction · ${corridor}` : "Live P2 data unavailable"
+    );
+    setMetric(
+      "kpiValDisruption",
+      "kpiSubDisruption",
+      p3Live ? `${Math.round(result.p3.disruption_probability * 100)}%` : "—",
+      p3Live ? `Live P3 disruption estimate · ${corridor}` : "Live P3 data unavailable"
+    );
   },
 
   // --------------------------------------------------------------------------

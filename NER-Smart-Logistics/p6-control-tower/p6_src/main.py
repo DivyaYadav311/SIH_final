@@ -16,6 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from alerts.router import router as alerts_router
+from alerts.watcher import IMDAlertWatcher
 from incidents.router import router as incidents_router
 from simulation.router import router as simulation_router
 from p6_src.config import database_url, hf_token, p3_base_url, p4_base_url, p5_base_url
@@ -25,13 +26,18 @@ from p6_src.tower import router as tower_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s — %(message)s")
 logger = logging.getLogger("p6-control-tower")
+imd_watcher = IMDAlertWatcher(hub)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     get_engine()
+    await imd_watcher.start()
     logger.info("P6 Control Tower ready. database=%s", database_url())
-    yield
+    try:
+        yield
+    finally:
+        await imd_watcher.stop()
 
 
 def create_app() -> FastAPI:

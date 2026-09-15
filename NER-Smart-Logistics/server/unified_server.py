@@ -162,6 +162,7 @@ p6_routers = {}
 p6_engine_fn = None
 p6_hub = None
 p6_db_url_fn = None
+p6_imd_watcher = None
 
 try:
     p6_root = str(PROJECT_ROOT / "p6-control-tower")
@@ -174,6 +175,7 @@ try:
     from p6_src.tower import router as p6_tower_router  # type: ignore[import-not-found,import-untyped]
     from p6_src.database import get_engine as p6_get_engine  # type: ignore[import-not-found,import-untyped]
     from p6_src.hub import hub as p6_hub_obj  # type: ignore[import-not-found,import-untyped]
+    from alerts.watcher import IMDAlertWatcher  # type: ignore[import-not-found,import-untyped]
     from p6_src.config import database_url as p6_database_url  # type: ignore[import-not-found,import-untyped]
 
     p6_routers = {
@@ -185,6 +187,7 @@ try:
     p6_engine_fn = p6_get_engine
     p6_hub = p6_hub_obj
     p6_db_url_fn = p6_database_url
+    p6_imd_watcher = IMDAlertWatcher(p6_hub_obj)
     module_status["p6_control_tower"] = "available"
     logger.info("✓ P6 Control Tower loaded.")
 except Exception as exc:
@@ -213,12 +216,19 @@ async def lifespan(app):
             logger.info("P6 database ready: %s", p6_db_url_fn() if p6_db_url_fn else "?")
         except Exception as e:
             logger.warning("P6 database init failed: %s", e)
+    if p6_imd_watcher is not None:
+        await p6_imd_watcher.start()
+        logger.info("P6 IMD CAP watcher started.")
 
     logger.info("═══════════════════════════════════════════════════")
     logger.info("  Pravah Unified Server ready on port 8002")
     logger.info("  Module status: %s", module_status)
     logger.info("═══════════════════════════════════════════════════")
-    yield
+    try:
+        yield
+    finally:
+        if p6_imd_watcher is not None:
+            await p6_imd_watcher.stop()
 
 
 # ---------------------------------------------------------------------------

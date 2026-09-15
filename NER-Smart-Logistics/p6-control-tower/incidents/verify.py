@@ -129,7 +129,11 @@ def classify_gemini_vision(image_bytes: bytes) -> tuple[str, float, str]:
     b64 = base64.b64encode(buf.getvalue()).decode()
 
     prompt = (
-        "Examine this incident evidence image from a Northeast India road or transport corridor. "
+        "Examine this image as evidence for a Northeast India road or transport-corridor incident. "
+        "First decide whether it visibly shows a real road/corridor and an actual transport hazard. "
+        "Use CLEAR when the image is unrelated to a road incident or contains no visible hazard. "
+        "For example, flowers, portraits, animals, indoor scenes, ordinary scenery, screenshots, or unrelated objects "
+        "MUST be classified as CLEAR, not as a flood or landslide. "
         "Classify into exactly one category: ['LANDSLIDE', 'FLOOD', 'ROAD_BLOCKED', 'ACCIDENT', 'CLEAR']. "
         "Output strictly valid JSON with keys: 'detected_type' and 'confidence' (float between 0.0 and 1.0)."
     )
@@ -197,7 +201,13 @@ def classify_local_clip(image_bytes: bytes) -> tuple[str, float, str]:
     _load_local_clip()
     assert _clip_model is not None and _clip_processor is not None
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    prompts = [f"a photo of a {label.lower().replace('_', ' ')} on a road in Northeast India" for label in CLIP_LABELS]
+    prompts = [
+        "a road in Northeast India blocked by a landslide",
+        "a road in Northeast India flooded with water",
+        "a road in Northeast India blocked by debris or an obstruction",
+        "a road traffic accident in Northeast India",
+        "an unrelated image, or a clear passable road with no transport hazard",
+    ]
     inputs = _clip_processor(text=prompts, images=image, return_tensors="pt", padding=True)
     with torch.no_grad():
         out = _clip_model(**inputs)

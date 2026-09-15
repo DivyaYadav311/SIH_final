@@ -9,8 +9,126 @@ const P6ControlTower = {
   init() {
     this.renderOverviewStats();
     this.renderIncidentsTable();
+    this.renderImdBulletins();
+    this.renderNotifications();
+    this.startLiveAlertTracking();
     this.bindIncidentForm();
     this.bindAlertForm();
+  },
+
+  startLiveAlertTracking() {
+    if (!this.imdRefreshTimer) {
+      this.imdRefreshTimer = setInterval(() => {
+        this.renderOverviewStats();
+        this.renderImdBulletins();
+        this.renderNotifications();
+      }, 60000);
+    }
+    if (this.alertSocket && (this.alertSocket.readyState === WebSocket.OPEN || this.alertSocket.readyState === WebSocket.CONNECTING)) return;
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const socketUrl = `${protocol}//${window.location.host}/ws/alerts`;
+    try {
+      this.alertSocket = new WebSocket(socketUrl);
+      this.alertSocket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type !== "imd_cap_alert") return;
+          const alert = message.alert || {};
+          this.renderOverviewStats();
+          this.renderImdBulletins();
+          this.renderNotifications();
+          App.showToast(`New official IMD warning: ${alert.headline || alert.event || "CAP alert"}`, "warning");
+        } catch (_) {
+          // Ignore malformed websocket messages; periodic live polling remains active.
+        }
+      };
+      this.alertSocket.onclose = () => {
+        this.alertSocket = null;
+        setTimeout(() => this.startLiveAlertTracking(), 10000);
+      };
+    } catch (_) {
+      // The 60-second official-feed refresh continues if WebSocket is unavailable.
+    }
+  },
+
+  async renderImdBulletins() {
+    const container = document.getElementById("imdBulletinList");
+    if (!container) return;
+    container.innerHTML = `<div class="p6-bulletin"><div style="color:var(--text-muted);">Loading official IMD CAP bulletins…</div></div>`;
+    try {
+      const payload = await PravahAPI.getImdAlerts();
+      const alerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+      if (!alerts.length) {
+        container.innerHTML = `<div class="p6-bulletin"><div style="color:var(--text-muted);">No active official IMD CAP warnings.</div></div>`;
+        return;
+      }
+      container.innerHTML = alerts.map((alert) => {
+        const level = String(alert.risk_level || "LOW").toUpperCase();
+        const tone = level === "CRITICAL" || level === "HIGH" ? "danger" : "warning";
+        const icon = tone === "danger" ? "🚨" : "⚠️";
+        const title = this.escapeHtml(alert.headline || alert.event || "IMD weather warning");
+        const area = this.escapeHtml(alert.area || "Affected area not specified");
+        const description = this.escapeHtml(alert.description || alert.instruction || "Official CAP warning received.");
+        return `<div class="p6-bulletin p6-bulletin-${tone}">
+          <div class="p6-bulletin-meta"><b style="color:var(--status-${tone});">${icon} ${title}</b><span style="font-size:10px;color:var(--text-muted);">IMD WIS2 · ${area}</span></div>
+          <div style="color:var(--text-primary);line-height:1.4;">${description}</div>
+        </div>`;
+      }).join("");
+    } catch (error) {
+      container.innerHTML = `<div class="p6-bulletin"><div style="color:var(--text-muted);">Official IMD CAP feed is currently unavailable.</div></div>`;
+    }
+  },
+
+  escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>'"]/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+    }[char]));
+  },
+
+  updateNotificationBadge(count) {
+    const badge = document.getElementById("notificationBadgeCount");
+    const bell = document.getElementById("btnNotificationBell");
+    const isAvailable = Number.isFinite(count);
+    const alertCount = isAvailable ? Math.max(0, Math.floor(count)) : 0;
+
+    if (badge) {
+      badge.textContent = String(alertCount);
+      badge.hidden = !isAvailable || alertCount === 0;
+    }
+    if (bell) {
+      const label = !isAvailable
+        ? "Emergency alerts and notifications"
+        : alertCount === 0
+          ? "No active emergency alerts"
+          : `${alertCount} active emergency alert${alertCount === 1 ? "" : "s"}`;
+      bell.title = label;
+      bell.setAttribute("aria-label", label);
+    }
+  },
+
+  async renderNotifications() {
+    const container = document.getElementById("notificationsContent");
+    if (!container) return;
+    try {
+      const alerts = await PravahAPI.getControlTowerAlerts();
+      if (!Array.isArray(alerts) || !alerts.length) {
+        this.updateNotificationBadge(0);
+        container.innerHTML = "<div>No active control-tower or official IMD alerts.</div>";
+        return;
+      }
+      this.updateNotificationBadge(alerts.length);
+      container.innerHTML = alerts.map((alert) => {
+        const level = String(alert.severity || "LOW").toUpperCase();
+        const tone = level === "CRITICAL" || level === "HIGH" ? "danger" : "warning";
+        return `<div style="background:var(--status-${tone}-light);border:1px solid var(--status-${tone}-border);padding:12px;border-radius:8px;">
+          <div style="display:flex;justify-content:space-between;gap:10px;"><b style="color:var(--status-${tone});">${this.escapeHtml(alert.title || "Control-tower warning")}</b><span style="font-size:10px;color:var(--text-muted);">${this.escapeHtml(alert.source || "P6")}</span></div>
+          <p style="font-size:12px;color:var(--text-primary);margin-top:4px;">Action: ${this.escapeHtml(alert.recommended_action || "MONITOR")}</p>
+        </div>`;
+      }).join("");
+    } catch (error) {
+      this.updateNotificationBadge(null);
+      container.innerHTML = "<div>Live control-tower alerts are currently unavailable.</div>";
+    }
   },
 
   async renderOverviewStats() {
@@ -28,7 +146,7 @@ const P6ControlTower = {
 
     if (openEl) openEl.textContent = data ? (data.open_incidents ?? 0) : "—";
     if (alertsEl) alertsEl.textContent = data ? (data.active_alerts ?? 0) : "—";
-    if (criticalEl) criticalEl.textContent = data ? (data.critical_shipments_at_risk ?? 0) : "—";
+    if (criticalEl) criticalEl.textContent = data ? (data.shipments_monitored ?? 0) : "—";
     if (imdEl) imdEl.textContent = data ? (data.imd_alert_count ?? 0) : "—";
 
     // Master Overview Dashboard KPIs
@@ -38,12 +156,15 @@ const P6ControlTower = {
     const ovRunway = document.getElementById("kpiOverviewRunway");
     const ovHealth = document.getElementById("kpiOverviewHealth");
 
-    const totalShipments = (window.P5Logistics && P5Logistics.shipmentList) ? P5Logistics.shipmentList.length : 0;
-    if (ovActive) ovActive.textContent = totalShipments;
+    if (ovActive) ovActive.textContent = data ? (data.shipments_monitored ?? 0) : "—";
     if (ovIncidents) ovIncidents.textContent = data ? (data.open_incidents ?? 0) : "—";
     if (ovHighRisk) ovHighRisk.textContent = data ? (data.active_alerts ?? 0) : "—";
-    if (ovRunway) ovRunway.textContent = "3.8 Days";
-    if (ovHealth) ovHealth.textContent = data ? "6 / 6 Live" : "Offline";
+    if (ovRunway) ovRunway.textContent = "—";
+    if (ovHealth) {
+      const health = await PravahAPI.checkHealth();
+      const liveCount = Object.values(health).filter(Boolean).length;
+      ovHealth.textContent = `${liveCount} / ${Object.keys(health).length} Live`;
+    }
   },
 
   filterIncidents(type) {
@@ -190,16 +311,20 @@ const P6ControlTower = {
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const fd = new FormData(form);
-        const lat = parseFloat(fd.get("latitude") || 27.42);
-        const lng = parseFloat(fd.get("longitude") || 92.15);
+        const lat = parseFloat(fd.get("latitude"));
+        const lng = parseFloat(fd.get("longitude"));
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          App.showToast("Enter valid latitude and longitude before submitting.", "warning");
+          return;
+        }
 
         const payload = {
-          reported_by: fd.get("reported_by") || "COMMAND_OFFICER",
+          reported_by: fd.get("reported_by"),
           latitude: lat,
           longitude: lng,
-          incident_type: fd.get("incident_type") || "LANDSLIDE",
-          road_id: fd.get("road_id") || "NH-13",
-          description: fd.get("description") || "Geotagged field hazard report",
+          incident_type: fd.get("incident_type"),
+          road_id: fd.get("road_id"),
+          description: fd.get("description") || "",
           image_url: fd.get("image_url") || null
         };
 
@@ -223,23 +348,41 @@ const P6ControlTower = {
   bindAlertForm() {
     const form = document.getElementById("formEvaluateAlert");
     if (form) {
-      form.addEventListener("submit", (e) => {
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const fd = new FormData(form);
-        const roadId = fd.get("road_id") || "NH-13";
-        const floodProb = parseFloat(fd.get("flood_prob") || 0.75);
-        const landProb = parseFloat(fd.get("landslide_prob") || 0.55);
+        const roadId = String(fd.get("road_id") || "").trim();
+        const floodProb = parseFloat(fd.get("flood_prob"));
+        const landProb = parseFloat(fd.get("landslide_prob"));
+        const disruptionProb = parseFloat(fd.get("disruption_prob"));
+        const accessibilityScore = parseFloat(fd.get("accessibility_score"));
+        const shortageProb = parseFloat(fd.get("shortage_prob"));
+        const affectedShipments = parseInt(fd.get("affected_shipments"), 10);
+        const criticalShipments = parseInt(fd.get("critical_shipments"), 10);
+        if (!roadId || ![floodProb, landProb, disruptionProb, accessibilityScore, shortageProb, affectedShipments, criticalShipments].every(Number.isFinite)) {
+          App.showToast("Enter all live risk, accessibility, and shipment values.", "warning");
+          return;
+        }
 
         const outBox = document.getElementById("alertEvalResultBox");
         if (outBox) {
-          outBox.style.display = "block";
-          const maxRisk = Math.max(floodProb, landProb);
-          const sev = maxRisk > 0.7 ? "CRITICAL" : (maxRisk > 0.4 ? "HIGH" : "MEDIUM");
-          const color = maxRisk > 0.7 ? "var(--status-danger)" : (maxRisk > 0.4 ? "var(--status-warning)" : "var(--brand-primary)");
-          const bg = maxRisk > 0.7 ? "rgba(220,38,38,0.08)" : (maxRisk > 0.4 ? "rgba(217,119,6,0.08)" : "rgba(2,132,199,0.08)");
-          const border = maxRisk > 0.7 ? "rgba(220,38,38,0.3)" : (maxRisk > 0.4 ? "rgba(217,119,6,0.3)" : "rgba(2,132,199,0.3)");
-
-          outBox.innerHTML = `
+          try {
+            const result = await PravahAPI.evaluateControlTowerAlert({
+              road_id: roadId,
+              flood_probability: floodProb,
+              landslide_probability: landProb,
+              disruption_probability: disruptionProb,
+              accessibility_score: accessibilityScore,
+              shortage_probability: shortageProb,
+              affected_shipments: affectedShipments,
+              critical_shipments: criticalShipments
+            });
+            const sev = result.severity;
+            const color = sev === "CRITICAL" ? "var(--status-danger)" : (sev === "HIGH" ? "var(--status-warning)" : "var(--brand-primary)");
+            const bg = sev === "CRITICAL" ? "rgba(220,38,38,0.08)" : (sev === "HIGH" ? "rgba(217,119,6,0.08)" : "rgba(2,132,199,0.08)");
+            const border = sev === "CRITICAL" ? "rgba(220,38,38,0.3)" : (sev === "HIGH" ? "rgba(217,119,6,0.3)" : "rgba(2,132,199,0.3)");
+            outBox.style.display = "block";
+            outBox.innerHTML = `
             <div style="background:${bg};border:1.5px solid ${border};border-radius:8px;padding:12px;font-size:12px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <b style="color:${color};font-size:13px;display:flex;align-items:center;gap:6px;">
@@ -251,10 +394,15 @@ const P6ControlTower = {
                 <b>Multi-Hazard Risk:</b> Flood ${Math.round(floodProb * 100)}% · Landslide ${Math.round(landProb * 100)}%
               </div>
               <div style="font-size:11px;color:var(--text-secondary);">
-                <b>Recommended Command Action:</b> ${sev === 'CRITICAL' ? 'Issue Immediate Reroute Broadcast & Close Segment' : (sev === 'HIGH' ? 'Caution Convoys & Restrict Speed to 30km/h' : 'Monitor IMD WIS2 Weather Radar')}
+                <b>Recommended Command Action:</b> ${result.recommended_action}
               </div>
             </div>
           `;
+            await this.renderOverviewStats();
+          } catch (error) {
+            outBox.style.display = "block";
+            outBox.innerHTML = `<div class="error-box">Live alert evaluation unavailable: ${this.escapeHtml(error.message)}</div>`;
+          }
         }
       });
     }
@@ -264,7 +412,10 @@ const P6ControlTower = {
     try {
       const res = await PravahAPI.verifyIncident(incidentId);
       const conf = res.confidence != null ? `${Math.round(res.confidence * 100)}%` : "completed";
-      App.showToast(`✅ Incident ${incidentId} verified (${res.detected_type || res.status}, ${conf} confidence)`, "safe");
+      const status = res.status || "UNDER_VERIFICATION";
+      const tone = status === "VERIFIED" ? "safe" : (status === "REJECTED" ? "danger" : "warning");
+      const prefix = status === "VERIFIED" ? "✅" : (status === "REJECTED" ? "⛔" : "⚠️");
+      App.showToast(`${prefix} Incident ${incidentId}: ${status} (${res.detected_type || "no hazard detected"}, ${conf} confidence)`, tone);
     } catch (err) {
       App.showToast(`Verification failed: ${err.message}`, "danger");
     }

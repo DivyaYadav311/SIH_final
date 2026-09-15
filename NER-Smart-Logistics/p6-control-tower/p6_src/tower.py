@@ -33,6 +33,11 @@ def overview(db: Session = Depends(get_session)) -> dict[str, Any]:
         if str(s.get("priority") or "").upper() == "CRITICAL"
         and str(s.get("status") or "").upper() in {"ON_ROUTE", "PENDING", "DELAYED"}
     ]
+    shipments_monitored = [
+        s
+        for s in shipments
+        if str(s.get("status") or "").upper() not in {"DELIVERED", "CANCELLED"}
+    ]
     imd = fetch_imd_cap_alerts()
     last_sim = json.loads(sims[0].result_json) if sims else None
     return {
@@ -47,6 +52,7 @@ def overview(db: Session = Depends(get_session)) -> dict[str, Any]:
             "CRITICAL": sev.get("CRITICAL", 0),
         },
         "critical_shipments_at_risk": len(critical_at_risk),
+        "shipments_monitored": len(shipments_monitored),
         "imd_alert_count": len(imd),
         "last_simulation": last_sim,
         "data_provenance": {

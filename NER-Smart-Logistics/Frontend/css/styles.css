@@ -298,6 +298,8 @@ body.dark-mode .brand-badge { border-color: rgba(56, 189, 248, 0.3); }
   border: 2px solid var(--bg-surface);
 }
 
+.header-btn .badge-count[hidden] { display: none; }
+
 /* Officer Profile Chip */
 .officer-profile-chip {
   display: flex;

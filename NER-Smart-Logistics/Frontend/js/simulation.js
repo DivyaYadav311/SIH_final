@@ -165,9 +165,13 @@ const WhatIfSimulation = {
             : [])));
     const hasGeometry = coordinates.length >= 2;
     const insights = [];
-    const affectedShipmentCount = (typeof res.affected_shipments === "number" && Number.isFinite(res.affected_shipments))
+    const shipmentDataAvailable = res.data_provenance?.shipments !== "unavailable"
+      && !res.unavailable_metrics?.includes("shipments");
+    const affectedShipmentCount = shipmentDataAvailable
+      && typeof res.affected_shipments === "number"
+      && Number.isFinite(res.affected_shipments)
       ? res.affected_shipments
-      : 0;
+      : null;
 
     // Network-level insight
     if (roads.length > 0) {
@@ -185,7 +189,9 @@ const WhatIfSimulation = {
     }
 
     // Logistics/Shipment-level insight
-    if (affectedShipmentCount > 0) {
+    if (affectedShipmentCount === null) {
+      insights.push("Live P5 shipment data is unavailable, so shipment impact cannot be calculated.");
+    } else if (affectedShipmentCount > 0) {
       insights.push(`Logistics impact: ${affectedShipmentCount} live shipment${affectedShipmentCount === 1 ? " is" : "s are"} affected by this disruption.`);
     } else {
       insights.push("Logistics impact: 0 live shipments affected on this corridor.");
@@ -212,7 +218,9 @@ const WhatIfSimulation = {
             return `<tr><td><strong>${displayField(shipment.shipment_id)}</strong></td><td>${displayField(shipment.origin)}</td><td>${displayField(shipment.destination)}</td><td>${escapeHtml(formatDate(shipment.current_eta))}</td><td>${escapeHtml(formatDate(shipment.revised_eta))}</td><td class="whatif-delay-cell">${escapeHtml(delayLabel)}</td><td>${shipment.status || shipment.priority ? `<span class="status-badge ${String(shipment.priority || shipment.status).toUpperCase() === "CRITICAL" ? "danger" : "warning"}">${escapeHtml(shipment.status || shipment.priority)}</span>` : "N/A"}</td></tr>`;
           }).join("")}</tbody>
         </table>
-      </div>` : `<div class="whatif-inline-empty">0 live shipments impacted by this corridor scenario.</div>`;
+      </div>` : affectedShipmentCount === null
+        ? `<div class="whatif-inline-empty">Live P5 shipment data is unavailable; no shipment impact is shown.</div>`
+        : `<div class="whatif-inline-empty">0 live shipments impacted by this corridor scenario.</div>`;
     const routeRisk = typeof reroute?.route_risk === "number" ? `${Math.round(reroute.route_risk * 100)}%` : (reroute?.risk_level ? escapeHtml(reroute.risk_level) : unavailable("No P4 risk value was returned."));
     const mapBody = hasGeometry
       ? `<div id="whatIfScenarioMap" style="flex:1;min-height:266px;margin-top:10px;border-radius:9px;"></div>`
@@ -222,10 +230,10 @@ const WhatIfSimulation = {
     container.innerHTML = `
       <div class="whatif-results-shell">
         <div class="whatif-metric-grid">
-          <div class="whatif-metric-card roads"><span>▥</span><div><b>${roads.length}</b><strong>Affected Road (Network)</strong><small>${escapeHtml(roads[0] || res.road_id || roadId)}</small></div></div>
+          <div class="whatif-metric-card roads"><span>▥</span><div><b>${roads.length}</b><strong>Selected Road (Scenario)</strong><small>${escapeHtml(roads[0] || res.road_id || roadId)}</small></div></div>
           <div class="whatif-metric-card detour"><span>⌁</span><div><b>${detourText}</b><strong>Alternative Detour</strong><small>P4 Route Distance</small></div></div>
           <div class="whatif-metric-card delay"><span>◷</span><div><b>${delayText}</b><strong>Additional Travel Time</strong><small>P4 Route Comparison</small></div></div>
-          <div class="whatif-metric-card shipments"><span>♟</span><div><b>${Number.isFinite(affectedShipmentCount) ? affectedShipmentCount : unavailable()}</b><strong>Shipments Impacted</strong><small>Live P5 Fleet</small></div></div>
+          <div class="whatif-metric-card shipments"><span>♟</span><div><b>${affectedShipmentCount ?? unavailable("Live P5 shipment data is unavailable.")}</b><strong>Shipments Impacted</strong><small>Live P5 Fleet</small></div></div>
         </div>
         <div class="whatif-dashboard-grid">
           <section class="whatif-panel whatif-parameters-card">
@@ -236,8 +244,8 @@ const WhatIfSimulation = {
               <div><dt>Disrupted corridor</dt><dd>${escapeHtml(res.road_id || roadId)}</dd></div>
               <div><dt>P4 alternative route</dt><dd>${reroute ? "Available" : "Unavailable"}</dd></div>
               <div><dt>Affected districts</dt><dd>${metricValue(res.affected_districts)}</dd></div>
-              <div><dt>Impacted shipments (P5)</dt><dd>${metricValue(res.affected_shipments)}</dd></div>
-              <div><dt>Delayed shipments (P5)</dt><dd>${metricValue(res.delayed_shipments)}</dd></div>
+              <div><dt>Impacted shipments (P5)</dt><dd>${affectedShipmentCount ?? unavailable("Live P5 shipment data is unavailable.")}</dd></div>
+              <div><dt>Delayed shipments (P5)</dt><dd>${shipmentDataAvailable ? metricValue(res.delayed_shipments) : unavailable("Live P5 shipment data is unavailable.")}</dd></div>
               <div><dt>Shortage risk change</dt><dd>${risk}</dd></div>
             </dl>
           </section>

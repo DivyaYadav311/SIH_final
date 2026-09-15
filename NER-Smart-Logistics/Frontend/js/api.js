@@ -358,12 +358,8 @@ const PravahAPI = {
     } catch (e) {
       // P6 overview unavailable
     }
-    return {
-      open_incidents: (PRAVAH_CONFIG.INITIAL_INCIDENTS || []).length,
-      active_alerts: 3,
-      critical_shipments_at_risk: 1,
-      imd_alert_count: 2
-    };
+    // Never show invented control-tower metrics if P6 is unavailable.
+    return null;
   },
 
   async getIncidents(params = {}) {
@@ -375,14 +371,11 @@ const PravahAPI = {
       const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/incidents${qs}`, {
         signal: AbortSignal.timeout(4000)
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) return data;
-      }
+      if (res.ok) return await res.json();
     } catch (e) {
       // P6 incidents unavailable
     }
-    return PRAVAH_CONFIG.INITIAL_INCIDENTS || [];
+    return null;
   },
 
   async reportIncident(payload) {
@@ -397,23 +390,7 @@ const PravahAPI = {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || `Incident reporting failed with HTTP ${res.status}`);
     } catch (e) {
-      const newInc = {
-        incident_id: `INC_${Math.floor(1000 + Math.random() * 9000)}`,
-        reported_by: payload.reported_by || "COMMAND_OFFICER",
-        latitude: payload.latitude || 27.42,
-        longitude: payload.longitude || 92.15,
-        incident_type: payload.incident_type || "LANDSLIDE",
-        road_id: payload.road_id || "NH-13",
-        status: "UNDER_VERIFICATION",
-        confidence: 0.85,
-        description: payload.description || "Field hazard report",
-        image_url: payload.image_url || null,
-        timestamp: new Date().toISOString()
-      };
-      if (PRAVAH_CONFIG.INITIAL_INCIDENTS) {
-        PRAVAH_CONFIG.INITIAL_INCIDENTS.unshift(newInc);
-      }
-      return newInc;
+      throw new Error("P6 incident service is unavailable");
     }
   },
 
@@ -426,17 +403,38 @@ const PravahAPI = {
       });
       if (res.ok) return await res.json();
     } catch (e) {
-      console.warn("Backend verify call fallback", e);
+      throw new Error("P6 verification service is unavailable");
     }
-    if (PRAVAH_CONFIG.INITIAL_INCIDENTS) {
-      const found = PRAVAH_CONFIG.INITIAL_INCIDENTS.find(i => i.incident_id === incident_id);
-      if (found) {
-        found.status = "VERIFIED";
-        found.confidence = 0.94;
-        return found;
-      }
+  },
+
+  async getImdAlerts() {
+    const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/alerts/imd`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) throw new Error(`IMD alerts unavailable (HTTP ${res.status})`);
+    return await res.json();
+  },
+
+  async getControlTowerAlerts() {
+    const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/alerts?include_imd=true`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) throw new Error(`Control-tower alerts unavailable (HTTP ${res.status})`);
+    return await res.json();
+  },
+
+  async evaluateControlTowerAlert(payload) {
+    const res = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p6_control_tower}/api/v1/alerts/evaluate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.detail || `Alert evaluation failed (HTTP ${res.status})`);
     }
-    return { incident_id, status: "VERIFIED", confidence: 0.92, detected_type: "LANDSLIDE" };
+    return await res.json();
   },
 
   async getControlTowerMapState() {
@@ -476,72 +474,18 @@ const PravahAPI = {
             data.alternative_route = {
               route_id: rec.route_id,
               corridor: `${rec.origin || 'Corridor'} ➔ ${rec.destination || 'Sector'}`,
-              additional_distance_km: rec.distance_km ? Math.round(rec.distance_km * 0.18) : 24.5,
+              additional_distance_km: rec.additional_distance_km ?? null,
               route_coordinates: data.route_coordinates,
-              route_risk: rec.route_risk || 0.28
+              route_risk: rec.route_risk ?? null
             };
           }
         }
         return data;
       }
     } catch (e) {
-      console.warn("P6 simulation API unavailable, generating fallback simulation", e);
+      throw new Error("P6 what-if simulation service is unavailable");
     }
-    const road = params.road_id || "NH-13";
-    const scType = params.scenario_type || "LANDSLIDE_BLOCK";
-    return {
-      scenario_id: `SCENARIO_${Math.floor(1000 + Math.random() * 9000)}`,
-      scenario_type: scType,
-      affected_roads: [road],
-      affected_shipments: 2,
-      delayed_shipments: 2,
-      affected_districts: 3,
-      additional_delay_minutes: 185,
-      average_delay_hours: 3.1,
-      shortage_risk_change: 0.24,
-      recommended_route_id: "ALT_BYPASS_CORRIDOR",
-      alternative_route: {
-        route_id: "ALT_BYPASS_CORRIDOR",
-        corridor: `${road} Bypass Arterial`,
-        additional_distance_km: 32.4,
-        route_risk: 0.22,
-        route_coordinates: [
-          [26.1445, 91.7362],
-          [26.4520, 92.3120],
-          [26.8920, 92.6540],
-          [27.4200, 92.1500]
-        ]
-      },
-      route_coordinates: [
-        [26.1445, 91.7362],
-        [26.4520, 92.3120],
-        [26.8920, 92.6540],
-        [27.4200, 92.1500]
-      ],
-      affected_shipments_detail: [
-        {
-          shipment_id: "SHP_NER_104",
-          origin: "Guwahati Hub",
-          destination: "Tawang Base",
-          current_eta: new Date(Date.now() + 4 * 3600000).toISOString(),
-          revised_eta: new Date(Date.now() + 7 * 3600000).toISOString(),
-          delay_hours: 3.0,
-          priority: "CRITICAL",
-          status: "Rerouted"
-        },
-        {
-          shipment_id: "SHP_NER_108",
-          origin: "Tezpur Forward Depot",
-          destination: "Bomdila Sector",
-          current_eta: new Date(Date.now() + 6 * 3600000).toISOString(),
-          revised_eta: new Date(Date.now() + 9 * 3600000).toISOString(),
-          delay_hours: 3.2,
-          priority: "HIGH",
-          status: "Holding"
-        }
-      ],
-      errors: []
-    };
+    throw new Error("P6 what-if simulation service returned an invalid response");
   },
 
   // --------------------------------------------------------------------------

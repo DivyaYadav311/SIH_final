@@ -62,6 +62,7 @@ def test_control_tower_overview(client):
     body = overview.json()
     assert body["open_incidents"] == 1
     assert body["alerts_by_severity"]["CRITICAL"] == 1
+    assert body["shipments_monitored"] == 0
     assert "data_provenance" in body
 
     geo = client.get("/api/v1/control-tower/map-state")

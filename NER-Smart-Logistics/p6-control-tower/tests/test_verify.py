@@ -62,3 +62,30 @@ def test_create_runs_verification(client, monkeypatch):
     assert body["detected_type"] == "LANDSLIDE"
     assert body["confidence"] == 0.94
     assert body["verification_backend"] == "huggingface_api"
+
+
+def test_clear_image_is_rejected_when_verified(client, monkeypatch):
+    monkeypatch.setattr(
+        "incidents.router.verify_image",
+        lambda url, lat, lon: {
+            "detected_type": "CLEAR",
+            "confidence": 0.97,
+            "verification_backend": "huggingface_api",
+            "exif_gps_mismatch": False,
+            "exif_distance_km": 0.1,
+        },
+    )
+    created = client.post(
+        "/api/v1/incidents",
+        json={
+            "reported_by": "DRIVER_123",
+            "latitude": 27.58,
+            "longitude": 91.87,
+            "incident_type": "LANDSLIDE",
+            "image_url": "https://example.invalid/flower.jpg",
+        },
+    )
+    incident_id = created.json()["incident_id"]
+    verified = client.post(f"/api/v1/incidents/{incident_id}/verify")
+    assert verified.status_code == 200
+    assert verified.json()["status"] == "REJECTED"

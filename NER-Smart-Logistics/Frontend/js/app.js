@@ -20,6 +20,7 @@ const App = {
     this.bindPredictionPopupModal();
     this.bindMapControls();
     this.initRiskIntelligence();
+    this.refreshCorridorStatus();
 
     this.updateBackendHealth();
     setInterval(() => this.updateBackendHealth(), 15000);
@@ -321,11 +322,11 @@ const App = {
   // --------------------------------------------------------------------------
   async updateBackendHealth() {
     const health = await PravahAPI.checkHealth();
+    const liveCount = Object.values(health).filter(v => v).length;
+    const totalCount = Object.keys(health).length;
     const pill = document.getElementById("backendHealthPill");
     const label = document.getElementById("backendHealthText");
     if (pill && label) {
-      const liveCount = Object.values(health).filter(v => v).length;
-      const totalCount = Object.keys(health).length;
       if (liveCount >= 3) {
         pill.style.background = "var(--status-safe-light)";
         pill.style.color = "var(--status-safe)";
@@ -343,6 +344,84 @@ const App = {
         label.textContent = "AI Engine Active";
       }
     }
+
+    const syncValue = document.getElementById("kpiValAiSync");
+    const syncSubtext = document.getElementById("kpiSubAiSync");
+    if (syncValue) syncValue.textContent = `${liveCount}/${totalCount}`;
+    if (syncSubtext) syncSubtext.textContent = `${liveCount} of ${totalCount} P1–P6 services reachable`;
+
+    const stockValue = document.getElementById("kpiValRunway");
+    const stockSubtext = document.getElementById("kpiSubRunway");
+    try {
+      const inventory = await PravahAPI.getInventory();
+      if (!Array.isArray(inventory)) throw new Error("Inventory response is not a list");
+      const availableUnits = inventory.reduce((total, item) => total + (Number(item.quantity_available) || 0), 0);
+      if (stockValue) stockValue.textContent = `${new Intl.NumberFormat().format(availableUnits)} units`;
+      if (stockSubtext) stockSubtext.textContent = `Live P5 inventory · ${inventory.length} stock records`;
+    } catch (_) {
+      if (stockValue) stockValue.textContent = "—";
+      if (stockSubtext) stockSubtext.textContent = "Live P5 inventory unavailable";
+    }
+  },
+
+  async refreshCorridorStatus() {
+    const body = document.getElementById("corridorStatusBody");
+    if (!body) return;
+    const corridors = [
+      { id: "NH-6", route: "Guwahati → Shillong", origin: "Guwahati", destination: "Shillong", latitude: 25.5788, longitude: 91.8933 },
+      { id: "NH-13", route: "Guwahati → Tawang", origin: "Guwahati", destination: "Tawang", latitude: 27.5861, longitude: 91.8594 },
+      { id: "NH-27", route: "Tezpur → Itanagar", origin: "Tezpur", destination: "Itanagar", latitude: 27.0844, longitude: 93.6053 },
+      { id: "NH-29", route: "Dimapur → Kohima", origin: "Dimapur", destination: "Kohima", latitude: 25.6751, longitude: 94.1086 },
+      { id: "NH-102", route: "Imphal → Moreh", origin: "Imphal", destination: "Moreh", latitude: 24.2498, longitude: 94.3011 }
+    ];
+    body.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--text-muted);">Loading live corridor risk data…</td></tr>`;
+    const escape = (value) => String(value).replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+    const classify = (risk) => risk >= 0.6 ? "danger" : risk >= 0.35 ? "warning" : "safe";
+    const status = (risk) => risk >= 0.6 ? "Caution" : risk >= 0.35 ? "Monitored" : "Clear";
+    // P2 gathers several external terrain and weather sources.  It can be slow
+    // or temporarily unavailable, so one delayed provider must not blank the
+    // whole corridor row (or discard the P1 result we already received).
+    const estimateFlood = (corridor) => corridor.latitude > 27 ? 0.23 : corridor.latitude < 25 ? 0.48 : 0.61;
+    const estimateLandslide = (corridor) => {
+      const hilliness = corridor.latitude > 27 ? 0.62 : corridor.latitude < 25.3 ? 0.34 : 0.46;
+      return Number(hilliness.toFixed(2));
+    };
+    const rows = await Promise.all(corridors.map(async (corridor) => {
+      const [p1Response, p2Response] = await Promise.all([
+          PravahAPI.predictFlood({ latitude: corridor.latitude, longitude: corridor.longitude, segment_id: corridor.id }),
+          fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p2_landslide}/api/v1/predictions/landslide`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ latitude: corridor.latitude, longitude: corridor.longitude, location_id: corridor.id }),
+            signal: AbortSignal.timeout(7000)
+          }).then(response => response.ok ? response.json() : null).catch(() => null)
+        ]);
+        const liveP1 = Number(p1Response?.flood_probability);
+        const liveP2 = Number(p2Response?.landslide_probability);
+        const p1IsLive = Number.isFinite(liveP1);
+        const p2IsLive = Number.isFinite(liveP2);
+        const p1 = p1IsLive ? liveP1 : estimateFlood(corridor);
+        const p2 = p2IsLive ? liveP2 : estimateLandslide(corridor);
+        let vulnerability = null;
+        let p3IsLive = false;
+        try {
+        const p3Response = await fetch(`${PRAVAH_CONFIG.API_ENDPOINTS.p3_road_risk}/api/v1/road-risk/predict`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ road_id: corridor.id, road_name: corridor.route, latitude: corridor.latitude, longitude: corridor.longitude, flood_probability: p1, landslide_probability: p2, active_incidents: 0, max_incident_severity: 0 }),
+          signal: AbortSignal.timeout(10000)
+        }).then(response => response.ok ? response.json() : null).catch(() => null);
+          const liveP3 = Number(p3Response?.disruption_probability);
+          if (Number.isFinite(liveP3)) {
+            vulnerability = liveP3;
+            p3IsLive = true;
+          }
+        } catch (_) {}
+        // Preserve a usable decision signal when the P3 endpoint is restarting.
+        if (vulnerability === null) vulnerability = Number((0.55 * p1 + 0.45 * p2).toFixed(3));
+        const tone = classify(vulnerability);
+        const source = `${p1IsLive ? "Live P1" : "Estimated P1"} · ${p2IsLive ? "Live P2" : "Estimated P2"} · ${p3IsLive ? "Live P3" : "Estimated P3"}`;
+        return `<tr title="${source}"><td><b class="corridor-id">${escape(corridor.id)}</b></td><td class="corridor-route-name">${escape(corridor.route)}</td><td><span class="metric-${classify(p1)}" title="${p1IsLive ? "Live P1 flood prediction" : "Estimated while P1 is unavailable"}">${Math.round(p1 * 100)}%</span></td><td><span class="metric-${classify(p2)}" title="${p2IsLive ? "Live P2 landslide prediction" : "Estimated while P2 is loading or unavailable"}">${Math.round(p2 * 100)}%</span></td><td><b class="vuln-${tone === "safe" ? "low" : tone === "danger" ? "high" : "medium"}" title="${p3IsLive ? "Live P3 disruption prediction" : "Estimated while P3 is unavailable"}">${vulnerability.toFixed(2)}</b></td><td><span class="status-badge ${tone}">${status(vulnerability)}</span></td><td><button class="table-action-btn" title="Analyze corridor" onclick="App.runCorridorScan('${escape(corridor.origin)}', '${escape(corridor.destination)}')">→</button></td></tr>`;
+    }));
+    body.innerHTML = rows.join("");
   },
 
   // --------------------------------------------------------------------------
@@ -395,7 +474,10 @@ const App = {
     const closeBtn = document.getElementById("btnCloseNotifications");
 
     if (btnBell && modal) {
-      btnBell.addEventListener("click", () => modal.classList.add("active"));
+      btnBell.addEventListener("click", () => {
+        modal.classList.add("active");
+        P6ControlTower.renderNotifications();
+      });
     }
     if (closeBtn && modal) {
       closeBtn.addEventListener("click", () => modal.classList.remove("active"));

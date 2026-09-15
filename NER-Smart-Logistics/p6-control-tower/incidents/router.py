@@ -16,6 +16,11 @@ from p6_src.schemas import IncidentCreate, IncidentOut, IncidentPatch
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/incidents", tags=["incidents"])
 
+# A visual label alone is not sufficient evidence to close an incident as verified.
+# Offline/failure fallbacks are useful for triage, but require an operator to review.
+MIN_VERIFICATION_CONFIDENCE = 0.70
+FALLBACK_BACKENDS = {"telemetry_fallback", "visual_telemetry_fallback", "visual_telemetry"}
+
 
 def _to_out(row: IncidentRow) -> IncidentOut:
     return IncidentOut(
@@ -51,6 +56,28 @@ def _apply_verification(row: IncidentRow) -> None:
     row.verification_backend = result["verification_backend"]
     row.exif_gps_mismatch = bool(result["exif_gps_mismatch"])
     row.exif_distance_km = result["exif_distance_km"]
+
+
+def _verification_status(row: IncidentRow) -> str:
+    """Choose a safe incident status from evidence, rather than button clicks."""
+    detected = (row.detected_type or "").strip().upper()
+    reported = (row.incident_type or "").strip().upper()
+    backend = (row.verification_backend or "").strip().lower()
+    confidence = row.confidence or 0.0
+
+    # A harmless/irrelevant image must never validate a hazard report.
+    if detected == "CLEAR":
+        return "REJECTED"
+    # A wrong geotag, weak classification, or non-AI fallback needs a human review.
+    if row.exif_gps_mismatch or confidence < MIN_VERIFICATION_CONFIDENCE:
+        return "UNDER_VERIFICATION"
+    if backend in FALLBACK_BACKENDS:
+        return "UNDER_VERIFICATION"
+    # A high-confidence image of a different hazard is evidence, but not confirmation
+    # of the driver's original report.
+    if reported and detected and detected != reported:
+        return "UNDER_VERIFICATION"
+    return "VERIFIED"
 
 
 @router.post("", response_model=IncidentOut)
@@ -133,12 +160,11 @@ def reverify_incident(incident_id: str, db: Session = Depends(get_session)) -> I
         raise HTTPException(status_code=404, detail="incident not found")
     if row.image_url:
         _apply_verification(row)
-    if not row.detected_type:
+        row.status = _verification_status(row)
+    elif not row.detected_type:
         row.detected_type = row.incident_type or "LANDSLIDE"
         row.confidence = 0.88
         row.verification_backend = "telemetry_cross_validation"
-        row.status = "VERIFIED"
-    else:
         row.status = "VERIFIED"
     db.flush()
     return _to_out(row)
