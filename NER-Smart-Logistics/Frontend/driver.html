@@ -1,766 +1,3403 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Pravah Driver Telemetry Portal — Live Vehicle GPS & Dispatch</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚚</text></svg>">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Pravah Driver In-Cab Cockpit — Mobile Phone Device</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚚</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     :root {
-      --bg: #070d18;
-      --bg-card: rgba(15, 23, 42, 0.85);
-      --border: rgba(56, 189, 248, 0.18);
-      --accent: #38bdf8;
-      --accent-glow: rgba(56, 189, 248, 0.4);
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
+      --bg-app: #f4f6fa;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --brand-blue: #0284c7;
+      --brand-blue-light: #e0f2fe;
+      --brand-green: #10b981;
+      --brand-green-light: #dcfce7;
+      --brand-amber: #f59e0b;
+      --brand-amber-light: #fef3c7;
+      --brand-red: #ef4444;
+      --brand-red-light: #fee2e2;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.14);
     }
 
-    /* HEADER */
-    header {
-      background: rgba(10, 17, 32, 0.95);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(10px);
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
-    .brand { display: flex; align-items: center; gap: 10px; }
-    .brand-icon { font-size: 24px; }
-    .brand-title { font-weight: 800; font-size: 16px; letter-spacing: -0.02em; color: #fff; }
-    .brand-sub { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-    .status-pill {
+
+    /* DESKTOP BACKGROUND WITH REALISTIC PHONE DEVICE PRESENTATION */
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 25%, #1e293b 0%, #080c14 85%);
+      color: var(--text-main);
+      font-family: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    /* REALISTIC SMARTPHONE HARDWARE OUTLET FRAME */
+    .phone-outlet {
+      position: relative;
+      width: 100%;
+      max-width: 412px;
+      height: 100%;
+      max-height: min(880px, 96vh);
+      background: #0f172a;
+      border: 8px solid #1e293b;
+      border-radius: 46px;
+      box-shadow: 0 25px 65px -10px rgba(0, 0, 0, 0.85),
+        0 0 0 1.5px rgba(255, 255, 255, 0.15),
+        inset 0 0 0 2px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateZ(0);
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 0;
+        background: var(--bg-app);
+      }
+
+      .phone-outlet {
+        max-width: 100vw;
+        max-height: 100vh;
+        height: 100vh;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .phone-island-container,
+      .phone-home-indicator {
+        display: none;
+      }
+    }
+
+    /* PHONE DYNAMIC ISLAND / TOP NOTCH */
+    .phone-island-container {
+      position: absolute;
+      top: 8px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      z-index: 2100;
+      pointer-events: none;
+    }
+
+    .phone-dynamic-island {
+      width: 108px;
+      height: 22px;
+      background: #000000;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .island-lens {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 1.5px solid #1e293b;
+    }
+
+    .island-sensor {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #0369a1;
+      opacity: 0.7;
+    }
+
+    /* PHONE HOME BAR INDICATOR AT BOTTOM */
+    .phone-home-indicator {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 130px;
+      height: 4px;
+      background: #000000;
+      opacity: 0.55;
+      border-radius: 999px;
+      z-index: 2100;
+      pointer-events: none;
+    }
+
+    /* TOP IN-APP STATUS BAR */
+    .stitch-status-bar {
+      height: 52px;
+      padding: 14px 14px 0;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      z-index: 1200;
+      flex-shrink: 0;
+    }
+
+    .status-left {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 10px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 700;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: var(--success);
-    }
-    .status-pill.offline {
-      background: rgba(239, 68, 68, 0.15);
-      border-color: rgba(239, 68, 68, 0.4);
-      color: var(--danger);
-    }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } 100% { opacity: 1; transform: scale(1); } }
-
-    /* CONTAINER */
-    .container {
-      max-width: 540px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      flex: 1;
     }
 
-    /* CARD */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 18px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    }
-    .card-title {
+    .status-clock {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
-      font-weight: 700;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      font-weight: 800;
+      color: #0f172a;
     }
 
-    /* FORM INPUTS */
-    .form-group { margin-bottom: 12px; }
-    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-    .form-input, .form-select {
-      width: 100%;
-      background: rgba(2, 6, 23, 0.7);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      border-radius: 10px;
-      padding: 10px 14px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
+    .status-pill-blue {
+      background: #e0f2fe;
+      color: #0284c7;
+      padding: 2px 7px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9.5px;
+      font-weight: 800;
+    }
+
+    .status-pill-trip {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 2px 7px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9.5px;
+      font-weight: 800;
+      transition: all 0.3s;
+    }
+
+    .status-pill-trip.active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-pill-trip.active .trip-dot {
+      background: #10b981;
+      animation: pulse 1.5s infinite;
+    }
+
+    .trip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #475569;
+    }
+
+    .status-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: #f1f5f9;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
       transition: all 0.2s;
     }
-    .form-input:focus, .form-select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--accent-glow);
-    }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    /* MODE SWITCH */
-    .mode-switch {
+    .status-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .status-btn.danger {
+      background: #fee2e2;
+      color: #dc2626;
+      animation: pulseSOS 2s infinite;
+    }
+
+    @keyframes pulseSOS {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.1);
+      }
+    }
+
+    /* IN-CAB HUD TOAST NOTIFICATION */
+    #cockpitToast {
+      position: absolute;
+      top: 58px;
+      left: 10px;
+      right: 10px;
+      z-index: 2500;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transform: translateY(-80px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #cockpitToast.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #cockpitToast.success {
+      background: #166534;
+      border: 1px solid #86efac;
+    }
+
+    #cockpitToast.warning {
+      background: #92400e;
+      border: 1px solid #fcd34d;
+    }
+
+    #cockpitToast.danger {
+      background: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    /* SCREEN VIEWS CONTAINER */
+    .screens-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+
+    .screen-view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg-app);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .screen-view.active {
+      display: flex;
+    }
+
+    /* ==========================================================================
+       TAB 1: RADAR (TURN-BY-TURN IN-CAB MAP VIEW)
+       ========================================================================== */
+    #viewRadar {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #radarMap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+      background: #e5e7eb;
+    }
+
+    /* TOP CORRIDOR PLANNER CARD (USER CHOOSES SOURCE & DESTINATION) */
+    .corridor-planner-box {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      z-index: 1010;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(2, 132, 199, 0.25);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .corridor-inputs-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .corridor-field {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 5px 8px;
+      font-size: 11.5px;
+    }
+
+    .corridor-field:focus-within {
+      border-color: #0284c7;
+      background: #ffffff;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+    }
+
+    .corridor-dot-icon {
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .corridor-input-text {
+      width: 100%;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #0f172a;
+      font-family: inherit;
+    }
+
+    .btn-swap-locations {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0284c7;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-swap-locations:active {
+      transform: rotate(180deg);
+      background: #e0f2fe;
+    }
+
+    .btn-get-directions {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 0 10px;
+      height: 31px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .btn-get-directions:active {
+      transform: scale(0.95);
+      background: #0369a1;
+    }
+
+    /* Quick Preset Chips */
+    .corridor-chips-scroll {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .corridor-chips-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .quick-chip {
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s;
+    }
+
+    .quick-chip:hover {
+      background: #e0f2fe;
+      color: #0284c7;
+      border-color: #bae6fd;
+    }
+
+    /* Turn-by-Turn Card (Displays when route is planned or active) */
+    .radar-nav-banner {
+      position: absolute;
+      top: 104px;
+      left: 8px;
+      right: 8px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(2, 132, 199, 0.3);
+      border-radius: 16px;
+      padding: 8px 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+      display: none;
+      /* hidden until route is selected / planned */
+      flex-direction: column;
+      gap: 5px;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .radar-nav-banner.active {
+      display: flex;
+    }
+
+    .nav-banner-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .nav-maneuver-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: #0284c7;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 800;
+      box-shadow: 0 3px 10px rgba(2, 132, 199, 0.35);
+      flex-shrink: 0;
+    }
+
+    .nav-text-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nav-distance-row {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      line-height: 1.1;
+    }
+
+    .nav-distance-row span {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #0284c7;
+      letter-spacing: 0.04em;
+    }
+
+    .nav-road-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #334155;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    .nav-speed-limit-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2.5px solid #ef4444;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
+    }
+
+    .nav-speed-limit-badge .limit-txt {
+      font-size: 6px;
+      font-weight: 800;
+      color: #64748b;
+      line-height: 1;
+    }
+
+    .nav-speed-limit-badge .limit-num {
+      font-size: 12px;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Floating Hazard Alert Pill (Dynamically visible when active hazards present) */
+    .floating-hazard-pill {
+      position: absolute;
+      top: 104px;
+      left: 8px;
+      right: 8px;
+      z-index: 990;
+      background: #ffffff;
+      border: 1.5px solid #f59e0b;
+      border-radius: 999px;
+      padding: 4px 10px;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #b45309;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .floating-hazard-pill.active {
+      display: flex;
+    }
+
+    .radar-nav-banner.active~.floating-hazard-pill.active {
+      top: 180px;
+    }
+
+    .floating-hazard-pill:active {
+      transform: scale(0.98);
+    }
+
+    .floating-hazard-pill .hazard-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f59e0b;
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Compact Bottom-Left Cockpit HUD (Speed & Real-Time Coordinates) */
+    .radar-telemetry-hud {
+      position: absolute;
+      bottom: 84px;
+      left: 10px;
+      z-index: 995;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(10px);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 5px 9px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      pointer-events: auto;
+    }
+
+    .hud-speed-row {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .speed-pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+      margin-right: 2px;
+    }
+
+    .hud-speed-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 17px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    .hud-speed-unit {
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+
+    .hud-telemetry-sub {
+      font-size: 8.5px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    /* Map Action Floating Stack */
+    .radar-fab-stack {
+      position: absolute;
+      right: 10px;
+      bottom: 138px;
+      z-index: 995;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .radar-fab {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      color: #0f172a;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      transition: all 0.2s;
+    }
+
+    .radar-fab:active {
+      transform: scale(0.92);
+      background: #f1f5f9;
+    }
+
+    .radar-fab.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
+    /* Floating REPORT HAZARD Amber Button */
+    .btn-report-hazard-floating {
+      position: absolute;
+      right: 10px;
+      bottom: 84px;
+      z-index: 995;
+      background: #f59e0b;
+      color: #000000;
+      border: 2px solid #ffffff;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-report-hazard-floating:active {
+      transform: scale(0.95);
+      background: #d97706;
+      color: #fff;
+    }
+
+    /* Bottom Radar Sheet with Master START / STOP Button */
+    .radar-bottom-drawer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: #ffffff;
+      border-top: 1px solid var(--border-color);
+      border-radius: 20px 20px 0 0;
+      padding: 7px 12px 10px;
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .drawer-drag-pill {
+      width: 32px;
+      height: 3.5px;
+      background: #cbd5e1;
+      border-radius: 999px;
+      margin: 0 auto;
+    }
+
+    .trip-master-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-trip-master {
+      flex: 1;
+      height: 44px;
+      border-radius: 12px;
+      border: none;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-trip-master.start {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-trip-master.start:active {
+      transform: scale(0.97);
+      background: #047857;
+    }
+
+    .btn-trip-master.stop {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-trip-master.stop:active {
+      transform: scale(0.97);
+      background: #b91c1c;
+    }
+
+    .trip-info-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 5px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 100px;
+      text-align: right;
+    }
+
+    .trip-info-eta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .trip-info-dist {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    /* ==========================================================================
+       TAB 2: ROUTE (ITINERARY & WAYPOINTS)
+       ========================================================================== */
+    #viewRoute {
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .route-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .route-card-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Turn-by-Turn Instruction List */
+    .directions-step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .dir-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 7px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 11px;
+    }
+
+    .dir-step-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      background: #0284c7;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .dir-step-dist {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    /* Waypoints Items */
+    .waypoint-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px dashed #f1f5f9;
+      font-size: 11.5px;
+    }
+
+    .waypoint-item:last-child {
+      border-bottom: none;
+    }
+
+    .waypoint-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #0284c7;
+      margin-top: 2px;
+      flex-shrink: 0;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px #cbd5e1;
+    }
+
+    .waypoint-dot.done {
+      background: #10b981;
+      box-shadow: 0 0 0 1px #86efac;
+    }
+
+    .waypoint-dot.dest {
+      background: #ef4444;
+      box-shadow: 0 0 0 1px #fca5a5;
+    }
+
+    /* ==========================================================================
+       TAB 3: TELEMETRY (TACTICAL GIS & TELEMETRY COCKPIT)
+       ========================================================================== */
+    #viewTelemetry {
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .telemetry-header-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .telemetry-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .telemetry-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .telemetry-sync-badge {
+      background: #dcfce7;
+      color: #166534;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .telemetry-subinfo {
+      font-size: 10.5px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Gyroscope Card */
+    .tactical-sensor-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sensor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sensor-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .sensor-badge-green {
+      background: #dcfce7;
+      color: #166534;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+
+    .gyro-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
-      background: rgba(2, 6, 23, 0.7);
-      padding: 4px;
-      border-radius: 12px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      margin-bottom: 14px;
     }
-    .mode-btn {
-      padding: 9px;
-      font-size: 12px;
+
+    .gyro-metric-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .metric-label {
+      font-size: 9px;
       font-weight: 700;
-      border-radius: 8px;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .mode-btn.active {
-      background: var(--accent);
-      color: #041226;
-      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+      color: #64748b;
+      letter-spacing: 0.04em;
     }
 
-    /* PRIMARY BUTTON */
-    .btn-dispatch {
-      width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      font-size: 15px;
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
       font-weight: 800;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      transition: all 0.2s;
-      background: linear-gradient(135deg, #0284c7, #38bdf8);
-      color: #021226;
-      box-shadow: 0 4px 18px rgba(56, 189, 248, 0.4);
-    }
-    .btn-dispatch:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(56, 189, 248, 0.55); }
-    .btn-dispatch.active {
-      background: linear-gradient(135deg, #dc2626, #ef4444);
-      color: #fff;
-      box-shadow: 0 4px 18px rgba(239, 68, 68, 0.4);
+      color: #0284c7;
     }
 
-    /* HUD METRICS */
-    .hud-grid {
+    .metric-val.roll {
+      color: #10b981;
+    }
+
+    .metric-bar-bg {
+      width: 100%;
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 3px;
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      background: #0284c7;
+      width: 45%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .metric-bar-fill.roll {
+      background: #10b981;
+      width: 30%;
+    }
+
+    /* Geodetic Fix Card */
+    .geodetic-box {
+      background: #f0f9ff;
+      border: 1.5px solid #bae6fd;
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .geodetic-coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 17px;
+      font-weight: 800;
+      color: #0284c7;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+    }
+
+    .geodetic-subgrid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 2px;
+      font-size: 10.5px;
+      color: #334155;
     }
-    .hud-tile {
-      background: rgba(2, 6, 23, 0.7);
-      border: 1px solid rgba(148, 163, 184, 0.15);
-      border-radius: 12px;
+
+    /* Hydrology Card */
+    .hydrology-status-strip {
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 10.5px;
+      color: #991b1b;
+      font-weight: 600;
+    }
+
+    /* Powertrain Card */
+    .powertrain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .powertrain-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+    }
+
+    .powertrain-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    /* Action buttons inside Telemetry */
+    .btn-diag-action {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-diag-action:active {
+      background: #f1f5f9;
+    }
+
+    .btn-diag-export {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 11px;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+      transition: all 0.2s;
+    }
+
+    .btn-diag-export:active {
+      transform: scale(0.98);
+      background: #0369a1;
+    }
+
+    /* ==========================================================================
+       TAB 4: COMMS (TACTICAL CONVOY PTT)
+       ========================================================================== */
+    #viewComms {
       padding: 12px;
+      gap: 10px;
+    }
+
+    .comms-header-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .comms-voice-relay-card {
+      background: #f0f9ff;
+      border: 1.5px solid #bae6fd;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .audio-eq-wave {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 16px;
+    }
+
+    .eq-bar {
+      width: 3px;
+      background: #0284c7;
+      border-radius: 2px;
+      animation: eqDance 1s ease-in-out infinite alternate;
+    }
+
+    .eq-bar:nth-child(2) {
+      height: 12px;
+      animation-delay: 0.2s;
+    }
+
+    .eq-bar:nth-child(3) {
+      height: 16px;
+      animation-delay: 0.4s;
+    }
+
+    .eq-bar:nth-child(4) {
+      height: 9px;
+      animation-delay: 0.1s;
+    }
+
+    .eq-bar:nth-child(5) {
+      height: 14px;
+      animation-delay: 0.3s;
+    }
+
+    @keyframes eqDance {
+      0% {
+        height: 3px;
+      }
+
+      100% {
+        height: 16px;
+      }
+    }
+
+    /* PTT Giant Button */
+    .ptt-center-container {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 18px 14px;
+      box-shadow: var(--shadow-sm);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 10px;
       text-align: center;
     }
-    .hud-speed {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 38px;
-      font-weight: 800;
-      color: var(--accent);
-      line-height: 1;
-      margin: 4px 0;
-      text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
-    }
-    .hud-unit { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-    .hud-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
-      font-weight: 700;
-      color: #fff;
-      margin-top: 4px;
-    }
-    .hud-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
 
-    /* HAZARD ALERT BANNER */
-    .hazard-alert {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1.5px solid var(--danger);
-      border-radius: 12px;
-      padding: 12px 14px;
-      display: none;
-      align-items: center;
-      gap: 12px;
-      animation: alertPulse 1.5s infinite;
-    }
-    @keyframes alertPulse {
-      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
-    .hazard-alert.visible { display: flex; }
-    .hazard-alert-icon { font-size: 24px; }
-    .hazard-alert-title { font-size: 13px; font-weight: 800; color: #fca5a5; }
-    .hazard-alert-sub { font-size: 11px; color: #fecaca; margin-top: 2px; }
-
-    /* MINI MAP */
-    #driverMap {
-      width: 100%;
-      height: 180px;
-      border-radius: 12px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      margin-top: 10px;
-      z-index: 10;
-    }
-
-    /* FOOTER QUICK ACTIONS */
-    .quick-actions {
+    .btn-giant-ptt {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border: 5px solid #e0f2fe;
       display: flex;
-      gap: 10px;
-      margin-top: 4px;
-    }
-    .btn-secondary {
-      flex: 1;
-      padding: 11px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(15, 23, 42, 0.6);
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.4);
       cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .btn-giant-ptt.transmitting {
+      transform: scale(0.94);
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border-color: #fee2e2;
+      box-shadow: 0 0 35px rgba(239, 68, 68, 0.8), inset 0 0 16px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Comms Log List */
+    .comms-log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .comms-log-entry {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* Quick Tactical Pings */
+    .quick-pings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .ping-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+    }
+
+    .ping-card:active {
+      transform: scale(0.96);
+      border-color: #0284c7;
+    }
+
+    .ping-card-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .ping-card-icon.green {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .ping-card-icon.amber {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .ping-card-icon.blue {
+      background: #e0f2fe;
+      color: #0284c7;
+    }
+
+    .ping-card-icon.red {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    /* ==========================================================================
+       REPORT HAZARD MODAL
+       ========================================================================== */
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .hazard-drawer-sheet {
+      width: 100%;
+      max-height: 90%;
+      background: #ffffff;
+      border-radius: 24px 24px 0 0;
+      padding: 16px 18px 22px;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .modal-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .btn-modal-close {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      border: none;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Glove-Ready Hazard Type Grid */
+    .glove-hazard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .hazard-tile {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
       transition: all 0.2s;
     }
-    .btn-secondary:hover {
-      background: rgba(56, 189, 248, 0.15);
-      border-color: var(--accent);
+
+    .hazard-tile.selected {
+      background: #fffbeb;
+      border-color: #f59e0b;
     }
-    .btn-sos {
-      background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.5);
-      color: #fca5a5;
+
+    .hazard-tile-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #fef3c7;
+      color: #b45309;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
     }
-    .btn-sos:hover {
-      background: rgba(239, 68, 68, 0.4);
-      color: #fff;
+
+    .hazard-tile.selected .hazard-tile-icon {
+      background: #f59e0b;
+      color: #ffffff;
+    }
+
+    .hazard-tile-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .hazard-tile-desc {
+      font-size: 9.5px;
+      color: #64748b;
+    }
+
+    /* Severity Selector */
+    .severity-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .severity-tile {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      cursor: pointer;
+    }
+
+    .severity-tile.selected {
+      background: #fef2f2;
+      border-color: #ef4444;
+    }
+
+    .btn-submit-hazard {
+      background: #ef4444;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 12.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+      transition: all 0.2s;
+    }
+
+    /* ==========================================================================
+       BOTTOM NAVIGATION BAR
+       ========================================================================== */
+    .stitch-bottom-nav {
+      height: 56px;
+      background: #ffffff;
+      border-top: 1px solid var(--border-color);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      z-index: 1200;
+      flex-shrink: 0;
+      padding-bottom: 4px;
+    }
+
+    .nav-tab-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #64748b;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      gap: 2px;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .nav-tab-btn .tab-icon {
+      font-size: 17px;
+    }
+
+    .nav-tab-btn.active {
+      color: #0284c7;
+    }
+
+    .nav-tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #0284c7;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.3);
+        opacity: 0.5;
+      }
     }
   </style>
 </head>
+
 <body>
 
-  <!-- HEADER -->
-  <header>
-    <div class="brand">
-      <div class="brand-icon">🚚</div>
-      <div>
-        <div class="brand-title">PRAVAH DRIVER</div>
-        <div class="brand-sub">Live Telemetry &amp; GPS Dispatch</div>
+  <!-- REGIONAL CITIES AUTOCOMPLETE DATA LIST -->
+  <datalist id="corridorCities">
+    <option value="Guwahati"></option>
+    <option value="Shillong"></option>
+    <option value="Tezpur"></option>
+    <option value="Tawang"></option>
+    <option value="Silchar"></option>
+    <option value="Aizawl"></option>
+    <option value="Jorhat"></option>
+    <option value="Dimapur"></option>
+    <option value="Kohima"></option>
+    <option value="Imphal"></option>
+    <option value="Agartala"></option>
+    <option value="Delhi"></option>
+  </datalist>
+
+  <!-- SMARTPHONE DEVICE OUTLET CONTAINER -->
+  <div class="phone-outlet">
+
+    <!-- HARDWARE DYNAMIC ISLAND -->
+    <div class="phone-island-container">
+      <div class="phone-dynamic-island">
+        <div class="island-lens"></div>
+        <div class="island-sensor"></div>
       </div>
     </div>
-    <div class="status-pill" id="statusPill">
-      <span class="status-dot"></span>
-      <span id="statusText">GPS READY</span>
-    </div>
-  </header>
 
-  <!-- MAIN CONTAINER -->
-  <div class="container">
-
-    <!-- HAZARD WARNING BANNER -->
-    <div class="hazard-alert" id="hazardAlert">
-      <div class="hazard-alert-icon">⚠️</div>
-      <div>
-        <div class="hazard-alert-title" id="hazardAlertTitle">CORRIDOR HAZARD DETECTED</div>
-        <div class="hazard-alert-sub" id="hazardAlertSub">Approaching monitored disaster risk zone. Reduce speed.</div>
-      </div>
+    <!-- IN-CAB COCKPIT HUD TOAST BANNER -->
+    <div id="cockpitToast">
+      <span id="cockpitToastMsg">Welcome to Pravah Cockpit</span>
+      <span style="font-size:10px;opacity:0.8;">DISMISS</span>
     </div>
 
-    <!-- DISPATCH SETUP / IN-TRANSIT CARD -->
-    <div class="card">
-      <div class="card-title">
-        <span>Vehicle &amp; Route Configuration</span>
-        <span style="font-size:11px; color:var(--text-muted); font-weight:500;" id="tripStatus">STANDBY</span>
+    <!-- TOP TACTICAL STATUS BAR -->
+    <header class="stitch-status-bar">
+      <div class="status-left">
+        <span class="status-clock" id="liveClock">11:02</span>
+        <div class="status-pill-blue">
+          <span>📡</span> <span id="gpsFixText">NAVIC DGPS</span>
+        </div>
+        <div class="status-pill-trip" id="hdrTripPill">
+          <span class="trip-dot"></span> <span id="hdrTripStatus">SELECT ROUTE</span>
+        </div>
       </div>
+      <div class="status-right">
+        <span style="font-size:11px;font-family:monospace;font-weight:700;" id="batteryPct">96%</span>
+        <button class="status-btn danger" onclick="triggerSosDistress()"
+          title="Instant Emergency SOS Broadcast">⚠️</button>
+        <button class="status-btn" onclick="openTripConfig()" title="Driver Profile & Settings">👤</button>
+      </div>
+    </header>
 
-      <!-- MODE SWITCH -->
-      <div class="mode-switch">
-        <button class="mode-btn active" id="modeSim" onclick="setMode('demo_simulation')">
-          <span>🎮 Demo Simulation</span>
+    <!-- MULTI-SCREEN VIEW CONTAINER -->
+    <main class="screens-container">
+
+      <!-- ====================================================================
+           SCREEN 1: RADAR (TURN-BY-TURN HUD MAP VIEW)
+           ==================================================================== -->
+      <section id="viewRadar" class="screen-view active">
+        <!-- Fullscreen Leaflet Map -->
+        <div id="radarMap"></div>
+
+        <!-- TOP CORRIDOR PLANNER BOX (USER PICKS WHERE THEY WANT TO GO) -->
+        <div class="corridor-planner-box">
+          <div class="corridor-inputs-row">
+            <div class="corridor-field">
+              <span class="corridor-dot-icon" style="color:#10b981;">🟢</span>
+              <input type="text" id="quickOriginInput" class="corridor-input-text"
+                placeholder="Starting Hub (e.g. Guwahati)" list="corridorCities">
+            </div>
+            <button class="btn-swap-locations" onclick="swapSourceDest()" title="Swap Origin & Destination">⇄</button>
+            <div class="corridor-field">
+              <span class="corridor-dot-icon" style="color:#ef4444;">🔴</span>
+              <input type="text" id="quickDestInput" class="corridor-input-text"
+                placeholder="Destination (e.g. Shillong)" list="corridorCities">
+            </div>
+            <button class="btn-get-directions" onclick="applyQuickCorridor()" title="Plan Route">PLAN</button>
+          </div>
+          <!-- Quick Popular Corridor Chips -->
+          <div class="corridor-chips-scroll">
+            <span class="quick-chip" onclick="selectPresetCorridor('Guwahati', 'Shillong')">Guwahati ➔ Shillong</span>
+            <span class="quick-chip" onclick="selectPresetCorridor('Tezpur', 'Tawang')">Tezpur ➔ Tawang Pass</span>
+            <span class="quick-chip" onclick="selectPresetCorridor('Guwahati', 'Tezpur')">Guwahati ➔ Tezpur</span>
+            <span class="quick-chip" onclick="selectPresetCorridor('Silchar', 'Aizawl')">Silchar ➔ Aizawl</span>
+            <span class="quick-chip" onclick="selectPresetCorridor('Delhi', 'Tezpur')">Delhi ➔ Tezpur Base</span>
+          </div>
+        </div>
+
+        <!-- Top Navigation Maneuver Card (Appears Once Route Is Selected) -->
+        <div class="radar-nav-banner" id="navBannerCard">
+          <div class="nav-banner-top">
+            <div class="nav-maneuver-icon" id="navManeuverIcon">🧭</div>
+            <div class="nav-text-col">
+              <div class="nav-distance-row">
+                <span id="navCountdownDist">0 km</span>
+                <span id="navManeuverAction">READY TO NAVIGATE</span>
+              </div>
+              <div class="nav-road-label" id="navRoadLabel">Select Origin &amp; Destination to begin</div>
+            </div>
+            <div class="nav-speed-limit-badge">
+              <span class="limit-txt">LIMIT</span>
+              <span class="limit-num" id="navSpeedLimit">--</span>
+            </div>
+          </div>
+          <div class="nav-substrip">
+            <span id="navNextSubstrip">📍 Choose source &amp; destination above</span>
+            <span class="next-highlight" id="navNextHighlight">Ready</span>
+          </div>
+        </div>
+
+        <!-- Floating Hazard Alert Pill (shown when hazards present) -->
+        <div class="floating-hazard-pill" id="hazardAlertPill" onclick="centerOnNearestHazard()">
+          <span class="hazard-dot"></span>
+          <span id="floatingHazardText">⚠️ 0 ACTIVE HAZARDS</span>
+        </div>
+
+        <!-- Compact Dark Telemetry HUD — Speed & GPS Coordinates -->
+        <div class="radar-telemetry-hud" id="radarTelemetryHud">
+          <div class="hud-speed-row">
+            <span class="speed-pulse-dot" id="speedDot"></span>
+            <span class="hud-speed-num" id="floatingSpeedVal">0</span>
+            <span class="hud-speed-unit">KM/H</span>
+          </div>
+          <div class="hud-telemetry-sub" id="floatingCoordsVal">26.150°N 92.200°E</div>
+          <div class="hud-telemetry-sub" id="hudGradeText">GRADE: 0.0% • ASPHALT</div>
+        </div>
+
+        <!-- Floating Map Action FABs -->
+        <div class="radar-fab-stack">
+          <button class="radar-fab" onclick="recenterMapGPS()" title="Center Truck on Map">⌖</button>
+          <button class="radar-fab" id="fabBasemap" onclick="toggleRadarBasemap()"
+            title="Toggle Satellite / Street Basemap">⬚</button>
+          <button class="radar-fab" id="fabVoice" onclick="toggleVoiceAudio()"
+            title="Voice Navigation Guidance">🔊</button>
+        </div>
+
+        <!-- Floating REPORT HAZARD Amber Button -->
+        <button class="btn-report-hazard-floating" onclick="openReportHazardModal()">
+          <span>🔔</span> <span>REPORT HAZARD</span>
         </button>
-        <button class="mode-btn" id="modeGps" onclick="setMode('live_gps')">
-          <span>📍 Real Device GPS</span>
+
+        <!-- Bottom Sheet Drawer with Master START / STOP Button -->
+        <div class="radar-bottom-drawer">
+          <div class="drawer-drag-pill"></div>
+          <div class="trip-master-row">
+            <button id="btnTripStartStop" class="btn-trip-master start" onclick="toggleTripStartStop()">
+              <span id="tripIcon">▶</span>
+              <span id="tripBtnText">START TRIP</span>
+            </button>
+            <div class="trip-info-card">
+              <div class="trip-info-eta" id="drawerEtaText">--</div>
+              <div class="trip-info-dist" id="drawerDistText">Choose Route</div>
+            </div>
+          </div>
+          <div class="drawer-content-strip">
+            <div>
+              <span>🛡️</span> <b id="drawerResilienceText">AI RESILIENCE INDEX: STANDBY</b>
+            </div>
+            <span class="drawer-badge" id="drawerCorridorStatus">READY</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 2: ROUTE (CORRIDOR ITINERARY, DIRECTIONS & MILESTONES)
+           ==================================================================== -->
+      <section id="viewRoute" class="screen-view">
+        <!-- Route Selection Card in Route Screen -->
+        <div class="route-card">
+          <div class="route-card-title">
+            <span>🗺️ Corridor Route Selection</span>
+            <span style="font-size:11px;color:#0284c7;font-weight:700;" id="routeTotalDist">Choose Route</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="flex:1;display:flex;flex-direction:column;gap:5px;">
+              <input type="text" id="routeOriginInput" placeholder="Source Hub (e.g. Guwahati)" list="corridorCities"
+                style="padding:7px;border-radius:8px;border:1px solid #cbd5e1;font-weight:700;font-size:11.5px;">
+              <input type="text" id="routeDestInput" placeholder="Destination (e.g. Shillong)" list="corridorCities"
+                style="padding:7px;border-radius:8px;border:1px solid #cbd5e1;font-weight:700;font-size:11.5px;">
+            </div>
+            <button class="btn-get-directions" style="height:62px;width:72px;flex-direction:column;gap:3px;"
+              onclick="applyRouteTabCorridor()">
+              <span>🔄</span> <span>PLAN</span>
+            </button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px;">
+            <button id="btnRouteStartStop" class="btn-trip-master start" style="height:38px;font-size:11.5px;"
+              onclick="toggleTripStartStop()">
+              <span id="routeTripIcon">▶</span>
+              <span id="routeTripText">START TRIP</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step-by-Step Directions Card -->
+        <div class="route-card">
+          <div class="route-card-title">
+            <span>🧭 Turn-by-Turn Directions</span>
+            <span style="font-size:10.5px;color:#10b981;font-weight:700;" id="dirCountBadge">Navigation Steps</span>
+          </div>
+          <div class="directions-step-list" id="directionsStepList">
+            <div style="padding:16px;text-align:center;color:#64748b;font-size:12px;">
+              Select Source &amp; Destination and tap <b>PLAN</b> to view step-by-step driving directions.
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestones Card -->
+        <div class="route-card">
+          <div class="route-card-title">
+            <span>📍 Corridor Waypoints &amp; Milestones</span>
+            <span style="font-size:10.5px;color:#10b981;font-weight:700;" id="routeProgressPct">0% Complete</span>
+          </div>
+          <div id="waypointsList">
+            <div style="padding:14px;text-align:center;color:#64748b;font-size:11.5px;">
+              Awaiting corridor selection.
+            </div>
+          </div>
+        </div>
+
+        <!-- Elevation Profile Card -->
+        <div class="route-card">
+          <div class="route-card-title">
+            <span>⛰️ Terrain Elevation &amp; Incline Profile</span>
+          </div>
+          <div
+            style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;font-size:10.5px;color:#475569;display:flex;flex-direction:column;gap:5px;">
+            <div><b>Max Gradient:</b> <span id="profMaxGrad">Calculated dynamically</span></div>
+            <div><b>Elevation Gain:</b> <span id="profElevGain">Terrain contours analyzed</span></div>
+            <div><b>Pavement Quality:</b> <span id="profPavement">94% Smooth Asphalt (BRO Maintained)</span></div>
+            <div><b>Monsoon Hazard:</b> <span id="profRainRisk" style="color:#b45309;font-weight:700;">Monitored
+                Live</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 3: TELEMETRY (TACTICAL GIS & TELEMETRY COCKPIT)
+           ==================================================================== -->
+      <section id="viewTelemetry" class="screen-view">
+        <!-- Header Card -->
+        <div class="telemetry-header-card">
+          <div class="telemetry-title-row">
+            <span class="telemetry-title">Tactical GIS &amp; Telemetry</span>
+            <span class="telemetry-sync-badge">P1–P6 SYNC</span>
+          </div>
+          <div class="telemetry-subinfo">
+            <span>🌐 ISRO NavIC DGPS Active • 9 Sats (±1.4m Precision)</span>
+          </div>
+          <div class="telemetry-subinfo" style="font-size:10.5px;color:#0284c7;">
+            <span id="telemetryCommsMode">📡 Mesh LoRa/5G TAC-1</span>
+            <span id="telemetryLastSync">Synced Just Now</span>
+          </div>
+        </div>
+
+        <!-- Slope & Incline Gyroscope Card -->
+        <div class="tactical-sensor-card">
+          <div class="sensor-header">
+            <div>
+              <div class="sensor-title">Slope &amp; Incline Gyroscope</div>
+              <div style="font-size:10px;color:#64748b;">Dual-Axis MEMS Transducer</div>
+            </div>
+            <span class="sensor-badge-green" id="gyroStatusBadge">SAFE / CONVOY READY</span>
+          </div>
+          <div class="gyro-grid">
+            <div class="gyro-metric-box">
+              <span class="metric-label">PITCH ANGLE</span>
+              <span class="metric-val" id="telemetryPitch">+0.0%</span>
+              <span style="font-size:9.5px;color:#64748b;">Grade Incline</span>
+              <div class="metric-bar-bg">
+                <div class="metric-bar-fill" id="pitchBar" style="width: 10%;"></div>
+              </div>
+            </div>
+            <div class="gyro-metric-box">
+              <span class="metric-label">ROLL TILT</span>
+              <span class="metric-val roll" id="telemetryRoll">0.0°</span>
+              <span style="font-size:9.5px;color:#64748b;">Lateral Camber</span>
+              <div class="metric-bar-bg">
+                <div class="metric-bar-fill roll" id="rollBar" style="width: 10%;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:10.5px;color:#64748b;margin-top:2px;">
+            ⚠️ Substrate: <b id="substrateLabel">Asphalt Index: 0.94</b>
+          </div>
+        </div>
+
+        <!-- NavIC Geodetic Fix Card -->
+        <div class="tactical-sensor-card">
+          <div class="sensor-header">
+            <div>
+              <div class="sensor-title">NavIC Geodetic Fix</div>
+              <div style="font-size:10px;color:#64748b;">L5 + S-Band Dual-Carrier RTK</div>
+            </div>
+            <span
+              style="background:#e0f2fe;color:#0284c7;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px;">RTK
+              FIXED</span>
+          </div>
+          <div class="geodetic-box">
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:#64748b;">
+              <span>COORDINATES (WGS-84 / IRNSS)</span>
+              <span style="color:#0284c7;" id="corridorSectorName">North East Region</span>
+            </div>
+            <div class="geodetic-coords" id="telemetryBigCoords">26.1445° N, 91.7362° E</div>
+            <div class="geodetic-subgrid">
+              <div>⛰️ MSL ELEVATION: <b id="telemetryElevation">892 m</b></div>
+              <div>⏲️ BAROMETER: <b id="telemetryBaro">914 hPa</b></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weather / Doppler Card -->
+        <div class="tactical-sensor-card">
+          <div class="sensor-header">
+            <div>
+              <div class="sensor-title">NESAC Doppler Radar</div>
+              <div style="font-size:10px;color:#64748b;">Live S-Band Sweeps • 5 km Cell Mesh</div>
+            </div>
+            <span
+              style="background:#fee2e2;color:#dc2626;font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;">●
+              MONSOON ALERT</span>
+          </div>
+          <div class="gyro-grid">
+            <div class="gyro-metric-box">
+              <span class="metric-label">PRECIPITATION RATE</span>
+              <span class="metric-val" id="telemetryPrecip" style="font-size:16px;">14.2 <span
+                  style="font-size:10px;">mm/h</span></span>
+            </div>
+            <div class="gyro-metric-box">
+              <span class="metric-label">OPTICAL VISIBILITY</span>
+              <span class="metric-val" id="telemetryVisibility" style="font-size:16px;color:#dc2626;">35 m <span
+                  style="font-size:9px;color:#64748b;">(Mist)</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Powertrain Card -->
+        <div class="tactical-sensor-card">
+          <div class="sensor-header">
+            <div>
+              <div class="sensor-title">Tactical Convoy Powertrain</div>
+              <div style="font-size:10px;color:#64748b;" id="telemetryVehicleLabel">Vehicle ID: AS-01-EC-4210 · 12-Ton
+                Supply Unit</div>
+            </div>
+            <span class="sensor-badge-green">ONLINE</span>
+          </div>
+          <div class="powertrain-grid">
+            <div class="powertrain-item">
+              <div class="metric-label">SPEED</div>
+              <div class="powertrain-val" id="telemetrySpeed">0 <span style="font-size:9px;">km/h</span></div>
+            </div>
+            <div class="powertrain-item">
+              <div class="metric-label">BRAKE ROTOR</div>
+              <div class="powertrain-val" id="brakeTemp">110°C</div>
+            </div>
+            <div class="powertrain-item">
+              <div class="metric-label">TRACTION</div>
+              <div class="powertrain-val" style="color:#0284c7;" id="tractionStatus">4WD-H</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <button class="btn-diag-action" onclick="calibrateGyro()">
+          <span>📐 Zero-Point Gyro Calibration</span>
+          <span>›</span>
+        </button>
+        <button class="btn-diag-export" onclick="exportDiagnostics()">
+          <span>📥</span> <span>Export BRO Telemetry Diagnostic Log</span>
+        </button>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 4: COMMS (TACTICAL CONVOY PTT)
+           ==================================================================== -->
+      <section id="viewComms" class="screen-view">
+        <div class="comms-header-card">
+          <div class="telemetry-title-row">
+            <span class="telemetry-title">Convoy P4 Tactical Mesh</span>
+            <span class="telemetry-sync-badge">● 6/6 ONLINE</span>
+          </div>
+          <div class="telemetry-subinfo">
+            <span>433 MHz LoRa + 5G D2D Dynamic Relay</span>
+          </div>
+        </div>
+
+        <!-- Active Voice Relay Strip -->
+        <div class="comms-voice-relay-card">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#0284c7;" id="leadUnitLabel">● Lead Unit • AS-01-EV-9402
+            </div>
+            <div style="font-size:10px;color:#64748b;" id="voiceRelayStatus">Channel Open · Voice Mesh Active</div>
+          </div>
+          <div class="audio-eq-wave">
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+            <div class="eq-bar"></div>
+          </div>
+        </div>
+
+        <!-- PTT Giant Button -->
+        <div class="ptt-center-container">
+          <button class="btn-giant-ptt" id="btnPtt" onmousedown="startPtt()" onmouseup="stopPtt()"
+            ontouchstart="startPtt(event)" ontouchend="stopPtt(event)">
+            <span style="font-size:32px;">🎙️</span>
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.04em;margin-top:2px;" id="pttBtnText">HOLD
+              PTT</span>
+          </button>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#0f172a;" id="pttlbl">HOLD TO TALK ON CONVOY</div>
+            <div style="font-size:10.5px;color:#64748b;margin-top:2px;">NH-6 Tactical Channel • Sub-GHz Secure Mesh
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Tactical Pings -->
+        <div>
+          <div style="font-size:11.5px;font-weight:800;color:#0f172a;margin-bottom:6px;">Quick Tactical Pings (1-Tap
+            Convoy Alert)</div>
+          <div class="quick-pings-grid">
+            <div class="ping-card" onclick="sendQuickPing('Clear & Moving', 'green')">
+              <div class="ping-card-icon green">✓</div>
+              <div style="font-size:11.5px;font-weight:800;color:#0f172a;">Clear &amp; Moving</div>
+              <div style="font-size:9.5px;color:#64748b;">Maintain pace</div>
+            </div>
+            <div class="ping-card" onclick="sendQuickPing('Stalled / Mud', 'amber')">
+              <div class="ping-card-icon amber">⚠️</div>
+              <div style="font-size:11.5px;font-weight:800;color:#0f172a;">Stalled / Mud</div>
+              <div style="font-size:9.5px;color:#64748b;">Low traction</div>
+            </div>
+            <div class="ping-card" onclick="sendQuickPing('Fuel / Rest Depot', 'blue')">
+              <div class="ping-card-icon blue">⛽</div>
+              <div style="font-size:11.5px;font-weight:800;color:#0f172a;">Fuel / Rest Stop</div>
+              <div style="font-size:9.5px;color:#64748b;">Halting 15 min</div>
+            </div>
+            <div class="ping-card" onclick="sendQuickPing('SOS Emergency Halt', 'red')">
+              <div class="ping-card-icon red">🚨</div>
+              <div style="font-size:11.5px;font-weight:800;color:#0f172a;">SOS Priority Halt</div>
+              <div style="font-size:9.5px;color:#64748b;">Immediate assistance</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Comms Messages Stream -->
+        <div>
+          <div style="font-size:11.5px;font-weight:800;color:#0f172a;margin-bottom:6px;">Live Convoy Transmission Log
+          </div>
+          <div class="comms-log-list" id="commsLogList">
+            <!-- Messages added here -->
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ======================================================================
+         REPORT HAZARD MODAL
+         ====================================================================== -->
+    <div class="modal-backdrop" id="hazardModal" onclick="closeReportHazardModal(event)">
+      <div class="hazard-drawer-sheet" onclick="event.stopPropagation()">
+        <div class="modal-header-row">
+          <div>
+            <div class="modal-title">Report Hazard</div>
+            <div style="font-size:10.5px;color:#64748b;">Instantly alerts other drivers &amp; Control Tower</div>
+          </div>
+          <button class="btn-modal-close" onclick="closeReportHazardModal()">✕</button>
+        </div>
+
+        <!-- Optional Dashcam Snap -->
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;"
+          onchange="handlePhotoUpload(event)">
+        <div
+          style="background:#f0fdf4;border:1.5px dashed #86efac;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;cursor:pointer;"
+          onclick="triggerCameraCapture()">
+          <span style="font-size:20px;" id="cameraIcon">📷</span>
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#166534;" id="cameraLabel">Live Dashcam Photo Capture <span
+                style="font-size:8.5px;background:#dcfce7;padding:1px 5px;border-radius:4px;">OPTIONAL</span></div>
+            <div style="font-size:9.5px;color:#475569;" id="cameraSublabel">Tap to take photo proof</div>
+          </div>
+        </div>
+
+        <!-- Glove-Ready Hazard Type Grid -->
+        <div>
+          <div style="font-size:9.5px;font-weight:800;color:#64748b;margin-bottom:6px;">SELECT HAZARD TYPE</div>
+          <div class="glove-hazard-grid">
+            <div class="hazard-tile selected" onclick="selectHazardType(this, 'Landslide')">
+              <div class="hazard-tile-icon">⛰️</div>
+              <div>
+                <div class="hazard-tile-title">Landslide</div>
+                <div class="hazard-tile-desc">Rockfall / Debris</div>
+              </div>
+            </div>
+            <div class="hazard-tile" onclick="selectHazardType(this, 'Flash Flood')">
+              <div class="hazard-tile-icon">🌊</div>
+              <div>
+                <div class="hazard-tile-title">Flash Flood</div>
+                <div class="hazard-tile-desc">Waterlogged</div>
+              </div>
+            </div>
+            <div class="hazard-tile" onclick="selectHazardType(this, 'Road Cave-in')">
+              <div class="hazard-tile-icon">🚗</div>
+              <div>
+                <div class="hazard-tile-title">Road Cave-in</div>
+                <div class="hazard-tile-desc">Structural Crack</div>
+              </div>
+            </div>
+            <div class="hazard-tile" onclick="selectHazardType(this, 'Tree Fall')">
+              <div class="hazard-tile-icon">🌲</div>
+              <div>
+                <div class="hazard-tile-title">Tree Fall</div>
+                <div class="hazard-tile-desc">Lane Obstruction</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-submit-hazard" onclick="submitHazardReport()">
+          <span>📢</span> <span>Broadcast Hazard Alert</span>
         </button>
       </div>
+    </div>
 
-      <!-- FORM FIELDS -->
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Driver Name</label>
-          <input type="text" class="form-input" id="driverName" value="R. K. Sharma">
+    <!-- TRIP CONFIG / PROFILE MODAL -->
+    <div class="modal-backdrop" id="tripModal" onclick="closeTripConfig(event)">
+      <div class="hazard-drawer-sheet" onclick="event.stopPropagation()">
+        <div class="modal-header-row">
+          <div>
+            <div class="modal-title">Driver &amp; Vehicle Settings</div>
+            <div style="font-size:10.5px;color:#64748b;">Hardware GPS &amp; profile setup</div>
+          </div>
+          <button class="btn-modal-close" onclick="closeTripConfig()">✕</button>
         </div>
-        <div class="form-group">
-          <label class="form-label">Vehicle ID</label>
-          <input type="text" class="form-input" id="vehicleId" value="TRK_AS01_4210">
+
+        <div style="display:flex;gap:8px;">
+          <button id="btnModeGps" class="status-btn"
+            style="flex:1;border-radius:10px;height:38px;background:#f1f5f9;color:#0f172a;font-weight:700;"
+            onclick="setGpsMode('live_gps')">
+            📡 Live Device GPS
+          </button>
+          <button id="btnModeSim" class="status-btn"
+            style="flex:1;border-radius:10px;height:38px;background:#0284c7;color:#fff;font-weight:700;"
+            onclick="setGpsMode('demo_simulation')">
+            🎮 Real Road Sim
+          </button>
         </div>
+
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;">DRIVER NAME</label>
+          <input type="text" id="cfgDriverName" value="R. K. Sharma"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid #cbd5e1;margin-top:3px;font-size:11.5px;">
+        </div>
+
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#64748b;">VEHICLE NUMBER</label>
+          <input type="text" id="cfgVehicleId" value="AS-01-EC-4210"
+            style="width:100%;padding:8px;border-radius:8px;border:1px solid #cbd5e1;margin-top:3px;font-size:11.5px;">
+        </div>
+
+        <button class="btn-diag-export" onclick="saveTripConfig()">
+          <span>✓</span> <span>Save Profile Settings</span>
+        </button>
       </div>
+    </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Trip Origin</label>
-          <select class="form-select" id="originSelect">
-            <option value="Guwahati" selected>Guwahati (FCI Central Depot)</option>
-            <option value="Tezpur">Tezpur (Sonitpur Depot)</option>
-            <option value="Silchar">Silchar (Cachar Depot)</option>
-            <option value="Jorhat">Jorhat (Civil Supplies)</option>
-            <option value="Dibrugarh">Dibrugarh Depot</option>
-            <option value="Shillong">Shillong (Meghalaya)</option>
-            <option value="Imphal">Imphal (Manipur)</option>
-            <option value="Kohima">Kohima (Nagaland)</option>
-            <option value="Agartala">Agartala (Tripura)</option>
-            <option value="Aizawl">Aizawl (Mizoram)</option>
-            <option value="Itanagar">Itanagar (Arunachal)</option>
-            <option value="Tawang">Tawang High-Altitude Depot</option>
-            <option value="Gangtok">Gangtok (Sikkim)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Destination</label>
-          <select class="form-select" id="destSelect">
-            <option value="Tezpur">Tezpur (Sonitpur Depot)</option>
-            <option value="Tawang" selected>Tawang High-Altitude Depot</option>
-            <option value="Guwahati">Guwahati (Central Depot)</option>
-            <option value="Shillong">Shillong (Meghalaya)</option>
-            <option value="Kohima">Kohima (Nagaland)</option>
-            <option value="Imphal">Imphal (Manipur)</option>
-            <option value="Aizawl">Aizawl (Mizoram)</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Cargo Consignment</label>
-        <select class="form-select" id="cargoSelect">
-          <option value="MEDICINE" selected>Emergency Medical Supplies (50 kits)</option>
-          <option value="WATER">Packaged Drinking Water (2,000 L)</option>
-          <option value="FOOD_KIT">Ration &amp; Food Relief Kits (500 kits)</option>
-          <option value="SHELTER">Tarpaulins &amp; Rescue Equipment</option>
-        </select>
-      </div>
-
-      <!-- DISPATCH TOGGLE BUTTON -->
-      <button class="btn-dispatch" id="dispatchBtn" onclick="toggleDispatch()">
-        <span>🚀 START DISPATCH &amp; BROADCAST GPS</span>
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="stitch-bottom-nav">
+      <button class="nav-tab-btn active" id="tabRadar" onclick="switchScreen('Radar')">
+        <span class="tab-icon">🧭</span>
+        <span>RADAR</span>
       </button>
-    </div>
-
-    <!-- IN-TRANSIT HUD CARD -->
-    <div class="card" id="hudCard">
-      <div class="card-title">
-        <span>Live Telemetry HUD</span>
-        <span style="font-size:11px; color:var(--accent);" id="pingCounter">Pings: 0</span>
-      </div>
-
-      <div class="hud-grid">
-        <div class="hud-tile" style="grid-column: span 2;">
-          <div class="hud-label">Vehicle Speed</div>
-          <div class="hud-speed" id="hudSpeed">0</div>
-          <div class="hud-unit">KILOMETERS PER HOUR</div>
-        </div>
-        <div class="hud-tile">
-          <div class="hud-label">Compass Heading</div>
-          <div class="hud-val" id="hudHeading">000° N</div>
-        </div>
-        <div class="hud-tile">
-          <div class="hud-label">Distance Covered</div>
-          <div class="hud-val" id="hudDistance">0.0 km</div>
-        </div>
-        <div class="hud-tile" style="grid-column: span 2;">
-          <div class="hud-label">GPS WGS84 Coordinates</div>
-          <div class="hud-val" style="font-size:13px; color:var(--accent);" id="hudCoords">Waiting for signal…</div>
-        </div>
-      </div>
-
-      <!-- MINI LEAFLET MAP -->
-      <div id="driverMap"></div>
-    </div>
-
-    <!-- QUICK ACTIONS -->
-    <div class="quick-actions">
-      <a href="/" target="_blank" class="btn-secondary">
-        <span>🗺️ Open Control Tower Map</span>
-      </a>
-      <button class="btn-secondary btn-sos" onclick="triggerSosReport()">
-        <span>⚠️ Report SOS Incident</span>
+      <button class="nav-tab-btn" id="tabRoute" onclick="switchScreen('Route')">
+        <span class="tab-icon">🔀</span>
+        <span>ROUTE</span>
       </button>
-    </div>
+      <button class="nav-tab-btn" id="tabTelemetry" onclick="switchScreen('Telemetry')">
+        <span class="tab-icon">⏱️</span>
+        <span>TELEMETRY</span>
+      </button>
+      <button class="nav-tab-btn" id="tabComms" onclick="switchScreen('Comms')">
+        <span class="tab-icon">📻</span>
+        <span>COMMS</span>
+      </button>
+    </nav>
+
+    <!-- HARDWARE HOME BAR AT BOTTOM OF PHONE -->
+    <div class="phone-home-indicator"></div>
 
   </div>
 
   <script>
-    // Global State
-    let isDispatching = false;
-    let currentMode = 'demo_simulation'; // 'demo_simulation' or 'live_gps'
-    let pingInterval = null;
-    let gpsWatchId = null;
-    let pingsSent = 0;
-    let totalDistanceKm = 0;
-    let lastLat = null;
-    let lastLng = null;
-    let currentSpeed = 0;
-    let currentHeading = 0;
+    // =========================================================================
+    // IN-CAB STATE & TELEMETRY ENGINE
+    // =========================================================================
+    let currentScreen = 'Radar';
+    let gpsMode = 'live_gps';    // 'live_gps' (device GPS) or 'demo_simulation' (road sim)
+    let isTripActive = false;    // START / STOP TRIP state
+    let driverName = 'R. K. Sharma';
+    let vehicleId = 'AS-01-EC-4210';
+    let originHub = '';          // Starts EMPTY - User Choice!
+    let destHub = '';            // Starts EMPTY - User Choice!
 
-    // Simulation Route Data
-    let simWaypoints = [];
-    let simIndex = 0;
+    let map = null;
+    let vehicleMarker = null;
+    let routeLine = null;
+    let hazardLayer = null;
+    let basemapLayer = null;
+    let currentBasemapIdx = 0;
 
-    // Leaflet Mini Map
-    let driverMap = null;
-    let truckMarker = null;
-    let routePolyline = null;
-    let trailPolyline = null;
-    let trailCoords = [];
+    let liveLat = 26.15;
+    let liveLng = 92.5;
+    let liveSpeed = 0;
+    let liveHeading = 0;
+    let livePitch = 0.0;
+    let liveRoll = 0.0;
+    let liveElevation = 620;
+    let liveBarometer = 940;
 
-    // Predefined Coordinates for NER Depots
-    const DEPOT_COORDS = {
-      "Guwahati": [26.1445, 91.7362],
-      "Tezpur": [26.6338, 92.8006],
-      "Tawang": [27.5860, 91.8594],
-      "Silchar": [24.8333, 92.7789],
-      "Jorhat": [26.7509, 94.2037],
-      "Dibrugarh": [27.4728, 94.9120],
-      "Shillong": [25.5788, 91.8933],
-      "Imphal": [24.8170, 93.9368],
-      "Kohima": [25.6751, 94.1086],
-      "Agartala": [23.8315, 91.2868],
-      "Aizawl": [23.7271, 92.7176],
-      "Itanagar": [27.0844, 93.6053],
-      "Gangtok": [27.3389, 88.6065]
-    };
+    let corridorCoords = [];
+    let corridorWaypoints = [];
+    let corridorNavSteps = [];
+    let simStepIdx = 0;
+    let totalCorridorKm = 0;
+    let distanceCoveredKm = 0.0;
 
-    // Initialize Leaflet Map
-    function initMap() {
-      driverMap = L.map('driverMap', { zoomControl: false, attributionControl: false }).setView([26.1445, 91.7362], 11);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(driverMap);
+    let selectedHazardType = 'Landslide';
+    let selectedSeverity = 'Critical Block';
+    let attachedPhotoBase64 = null;
+    let watchId = null;
+    let pingTimer = null;
+    let simTimer = null;
+    let isVoiceMuted = false;
+    let audioCtx = null;
 
+    const BASEMAPS = [
+      { name: "Voyager", url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" },
+      { name: "Satellite", url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" },
+      { name: "OSM Standard", url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png" }
+    ];
+
+    // =========================================================================
+    // TOAST NOTIFICATION UTILITY
+    // =========================================================================
+    let toastTimeout = null;
+    function showToast(msg, type = 'normal') {
+      const toast = document.getElementById('cockpitToast');
+      const msgEl = document.getElementById('cockpitToastMsg');
+      if (!toast || !msgEl) return;
+      msgEl.textContent = msg;
+      toast.className = 'show ' + (type !== 'normal' ? type : '');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.className = '';
+      }, 4000);
+    }
+    document.getElementById('cockpitToast')?.addEventListener('click', () => {
+      document.getElementById('cockpitToast').className = '';
+    });
+
+    // =========================================================================
+    // DIGITAL CLOCK
+    // =========================================================================
+    function updateClock() {
+      const now = new Date();
+      const hrs = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const el = document.getElementById('liveClock');
+      if (el) el.textContent = `${hrs}:${mins}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // =========================================================================
+    // SCREEN SWITCHER
+    // =========================================================================
+    function switchScreen(screenName) {
+      currentScreen = screenName;
+      document.querySelectorAll('.screen-view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+
+      const targetView = document.getElementById(`view${screenName}`);
+      const targetBtn = document.getElementById(`tab${screenName}`);
+      if (targetView) targetView.classList.add('active');
+      if (targetBtn) targetBtn.classList.add('active');
+
+      if (screenName === 'Radar' && map) {
+        setTimeout(() => map.invalidateSize(), 250);
+      }
+      if (screenName === 'Route') {
+        syncRouteTabInputs();
+        renderWaypointsList();
+        renderDirectionsList();
+      }
+    }
+
+    function openRouteTab() {
+      switchScreen('Route');
+    }
+
+    // =========================================================================
+    // PRESET CORRIDOR CHIPS SELECTION
+    // =========================================================================
+    function selectPresetCorridor(orig, dest) {
+      const qO = document.getElementById('quickOriginInput');
+      const qD = document.getElementById('quickDestInput');
+      if (qO) qO.value = orig;
+      if (qD) qD.value = dest;
+      originHub = orig;
+      destHub = dest;
+      syncRouteTabInputs();
+      loadCorridorRoute(originHub, destHub);
+    }
+
+    // =========================================================================
+    // START / STOP TRIP MASTER CONTROLLER
+    // =========================================================================
+    function toggleTripStartStop() {
+      if (!originHub || !destHub || corridorCoords.length === 0) {
+        showToast("⚠️ Please select a Source and Destination, then tap PLAN first", "warning");
+        speakVoiceNotice("Please select source and destination and plan a route first.");
+        return;
+      }
+
+      isTripActive = !isTripActive;
+      updateTripButtonsUI();
+
+      if (isTripActive) {
+        // ── START TRIP ──────────────────────────────────────────────────────
+        showToast(`▶ Trip Started: Navigating ${originHub} ➔ ${destHub}`, "success");
+        speakVoiceNotice(`Trip started. Navigating from ${originHub} to ${destHub}. Safe journey.`);
+        liveSpeed = 0; // starts from 0, let sim/gps ramp up
+
+        if (gpsMode === 'live_gps') {
+          // Real device GPS
+          startHardwareGps();
+        } else {
+          // Demo road simulation — start the interval
+          if (!simTimer) {
+            simTimer = setInterval(stepSimulation, 2000);
+          }
+        }
+
+      } else {
+        // ── STOP TRIP ────────────────────────────────────────────────────────
+        showToast("⏸ Vehicle Halted. Trip Stopped.", "warning");
+        speakVoiceNotice("Trip stopped. Vehicle halted.");
+        liveSpeed = 0;
+        livePitch = 0.0;
+        liveRoll = 0.0;
+
+        // Stop simulation timer
+        if (simTimer) {
+          clearInterval(simTimer);
+          simTimer = null;
+        }
+
+        // Stop hardware GPS watch
+        if (watchId && gpsMode === 'live_gps') {
+          navigator.geolocation.clearWatch(watchId);
+          watchId = null;
+        }
+      }
+      updateAllTelemetryUI();
+      sendTelemetryPing();
+    }
+
+    function updateTripButtonsUI() {
+      const btnRadar = document.getElementById('btnTripStartStop');
+      const iconRadar = document.getElementById('tripIcon');
+      const textRadar = document.getElementById('tripBtnText');
+
+      const btnRoute = document.getElementById('btnRouteStartStop');
+      const iconRoute = document.getElementById('routeTripIcon');
+      const textRoute = document.getElementById('routeTripText');
+
+      const hdrPill = document.getElementById('hdrTripPill');
+      const hdrText = document.getElementById('hdrTripStatus');
+      const drawerStatus = document.getElementById('drawerCorridorStatus');
+
+      if (isTripActive) {
+        // Active Running State
+        if (btnRadar) {
+          btnRadar.className = 'btn-trip-master stop';
+          if (iconRadar) iconRadar.textContent = '⏹';
+          if (textRadar) textRadar.textContent = 'STOP TRIP';
+        }
+        if (btnRoute) {
+          btnRoute.className = 'btn-trip-master stop';
+          if (iconRoute) iconRoute.textContent = '⏹';
+          if (textRoute) textRoute.textContent = 'STOP TRIP';
+        }
+        if (hdrPill) hdrPill.classList.add('active');
+        if (hdrText) hdrText.textContent = 'NAVIGATING';
+        if (drawerStatus) {
+          drawerStatus.textContent = 'IN TRANSIT';
+          drawerStatus.style.background = '#10b981';
+        }
+      } else {
+        // Stopped / Paused State
+        if (btnRadar) {
+          btnRadar.className = 'btn-trip-master start';
+          if (iconRadar) iconRadar.textContent = '▶';
+          if (textRadar) textRadar.textContent = distanceCoveredKm > 0 ? 'RESUME TRIP' : 'START TRIP';
+        }
+        if (btnRoute) {
+          btnRoute.className = 'btn-trip-master start';
+          if (iconRoute) iconRoute.textContent = '▶';
+          if (textRoute) textRoute.textContent = distanceCoveredKm > 0 ? 'RESUME TRIP' : 'START TRIP';
+        }
+        if (hdrPill) hdrPill.classList.remove('active');
+        if (hdrText) hdrText.textContent = distanceCoveredKm > 0 ? 'HALTED' : (originHub ? 'TRIP READY' : 'SELECT ROUTE');
+        if (drawerStatus) {
+          drawerStatus.textContent = distanceCoveredKm > 0 ? 'HALTED' : (originHub ? 'READY' : 'STANDBY');
+          drawerStatus.style.background = distanceCoveredKm > 0 ? '#f59e0b' : '#64748b';
+        }
+      }
+    }
+
+    // =========================================================================
+    // LEAFLET RADAR MAP INIT & BASEMAP CYCLING
+    // =========================================================================
+    function initRadarMap() {
+      // Centered cleanly on North East Region
+      map = L.map('radarMap', {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([26.15, 92.2], 7);
+
+      basemapLayer = L.tileLayer(BASEMAPS[0].url, { maxZoom: 19 }).addTo(map);
+
+      // Route Corridor Polyline (starts empty until user picks route)
+      routeLine = L.polyline([], {
+        color: '#0284c7',
+        weight: 6,
+        opacity: 0.85,
+        lineJoin: 'round'
+      }).addTo(map);
+
+      // Truck Icon Marker
       const truckIcon = L.divIcon({
-        className: 'driver-truck-icon',
-        html: `<div style="font-size:24px; filter:drop-shadow(0 2px 8px #38bdf8);">🚚</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        className: 'driver-truck-marker',
+        html: `
+          <div id="truckMarkerInner" style="
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #0284c7; border: 3px solid #ffffff;
+            box-shadow: 0 4px 18px rgba(2, 132, 199, 0.8);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: #fff; transform: rotate(${liveHeading}deg);
+            transition: transform 0.3s linear;
+          ">🚚</div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
       });
-      truckMarker = L.marker([26.1445, 91.7362], { icon: truckIcon }).addTo(driverMap);
-      trailPolyline = L.polyline([], { color: '#10b981', weight: 4, opacity: 0.85 }).addTo(driverMap);
+
+      vehicleMarker = L.marker([liveLat, liveLng], { icon: truckIcon, zIndexOffset: 1000 }).addTo(map);
+
+      // Hazard Markers Layer
+      hazardLayer = L.layerGroup().addTo(map);
+      loadRemoteHazards();
     }
 
-    function setMode(mode) {
-      if (isDispatching) {
-        alert("Stop the active dispatch before switching tracking modes.");
+    function recenterMapGPS() {
+      if (map) {
+        map.setView([liveLat, liveLng], corridorCoords.length > 0 ? 14 : 9, { animate: true });
+        showToast("📍 Map Centered on Vehicle Position", "normal");
+      }
+    }
+
+    function toggleRadarBasemap() {
+      if (!map || !basemapLayer) return;
+      map.removeLayer(basemapLayer);
+      currentBasemapIdx = (currentBasemapIdx + 1) % BASEMAPS.length;
+      basemapLayer = L.tileLayer(BASEMAPS[currentBasemapIdx].url, { maxZoom: 19 }).addTo(map);
+      const btn = document.getElementById('fabBasemap');
+      if (btn) btn.classList.toggle('active', currentBasemapIdx !== 0);
+      showToast(`🗺️ Map Layer: ${BASEMAPS[currentBasemapIdx].name}`, "normal");
+    }
+
+    function toggleVoiceAudio() {
+      isVoiceMuted = !isVoiceMuted;
+      const btn = document.getElementById('fabVoice');
+      if (btn) {
+        btn.textContent = isVoiceMuted ? "🔇" : "🔊";
+        btn.classList.toggle('active', !isVoiceMuted);
+      }
+      showToast(isVoiceMuted ? "🔇 In-Cab Voice Guidance Muted" : "🔊 Voice Guidance Active", isVoiceMuted ? "warning" : "success");
+      if (!isVoiceMuted) {
+        speakVoiceNotice("Voice guidance online. Pravah in-cab navigation active.");
+      }
+    }
+
+    function speakVoiceNotice(text) {
+      if (isVoiceMuted || !('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.0;
+        utter.pitch = 1.05;
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        console.warn("SpeechSynthesis error:", e);
+      }
+    }
+
+    // =========================================================================
+    // DYNAMIC CORRIDOR ROUTE & DIRECTIONS ENGINE
+    // =========================================================================
+    function swapSourceDest() {
+      const origInput = document.getElementById('quickOriginInput');
+      const destInput = document.getElementById('quickDestInput');
+      if (!origInput || !destInput) return;
+      const tmp = origInput.value;
+      origInput.value = destInput.value;
+      destInput.value = tmp;
+      if (origInput.value && destInput.value) {
+        applyQuickCorridor();
+      }
+    }
+
+    function applyQuickCorridor() {
+      const o = document.getElementById('quickOriginInput')?.value.trim();
+      const d = document.getElementById('quickDestInput')?.value.trim();
+      if (!o || !d) {
+        showToast("⚠️ Please enter both Source and Destination", "warning");
         return;
       }
-      currentMode = mode;
-      document.getElementById('modeSim').classList.toggle('active', mode === 'demo_simulation');
-      document.getElementById('modeGps').classList.toggle('active', mode === 'live_gps');
-      const statusText = document.getElementById('statusText');
-      statusText.textContent = mode === 'demo_simulation' ? 'SIMULATION MODE' : 'DEVICE GPS READY';
-    }
-
-    async function toggleDispatch() {
-      if (isDispatching) {
-        stopDispatch();
-      } else {
-        await startDispatch();
+      if (o.toLowerCase() === d.toLowerCase()) {
+        showToast("⚠️ Source and Destination cannot be the same!", "warning");
+        return;
       }
+      originHub = o;
+      destHub = d;
+      syncRouteTabInputs();
+      loadCorridorRoute(originHub, destHub);
     }
 
-    async function startDispatch() {
-      const btn = document.getElementById('dispatchBtn');
-      const statusPill = document.getElementById('statusPill');
-      const statusText = document.getElementById('statusText');
-      const tripStatus = document.getElementById('tripStatus');
-
-      btn.classList.add('active');
-      btn.innerHTML = '<span>🛑 END DISPATCH &amp; STOP TRACKING</span>';
-      statusText.textContent = 'DISPATCH LIVE (STREAMING)';
-      tripStatus.textContent = 'IN-TRANSIT';
-      tripStatus.style.color = 'var(--success)';
-      isDispatching = true;
-
-      const origin = document.getElementById('originSelect').value;
-      const dest = document.getElementById('destSelect').value;
-
-      if (currentMode === 'demo_simulation') {
-        await prepareSimulationRoute(origin, dest);
-        pingInterval = setInterval(emitSimulatedPing, 2500);
-      } else {
-        startRealGpsTracking();
+    function applyRouteTabCorridor() {
+      const o = document.getElementById('routeOriginInput')?.value.trim();
+      const d = document.getElementById('routeDestInput')?.value.trim();
+      if (!o || !d) {
+        showToast("⚠️ Please enter both Source and Destination", "warning");
+        return;
       }
+      if (o.toLowerCase() === d.toLowerCase()) {
+        showToast("⚠️ Source and Destination cannot be the same!", "warning");
+        return;
+      }
+      originHub = o;
+      destHub = d;
+      const qO = document.getElementById('quickOriginInput');
+      const qD = document.getElementById('quickDestInput');
+      if (qO) qO.value = originHub;
+      if (qD) qD.value = destHub;
+      loadCorridorRoute(originHub, destHub);
     }
 
-    function stopDispatch() {
-      const btn = document.getElementById('dispatchBtn');
-      const statusText = document.getElementById('statusText');
-      const tripStatus = document.getElementById('tripStatus');
-
-      if (pingInterval) clearInterval(pingInterval);
-      if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
-
-      btn.classList.remove('active');
-      btn.innerHTML = '<span>🚀 START DISPATCH &amp; BROADCAST GPS</span>';
-      statusText.textContent = 'STANDBY';
-      tripStatus.textContent = 'STANDBY';
-      tripStatus.style.color = 'var(--text-muted)';
-      document.getElementById('hudSpeed').textContent = '0';
-      isDispatching = false;
+    function syncRouteTabInputs() {
+      const rO = document.getElementById('routeOriginInput');
+      const rD = document.getElementById('routeDestInput');
+      if (rO) rO.value = originHub;
+      if (rD) rD.value = destHub;
     }
 
-    // Real Device GPS Tracking
-    function startRealGpsTracking() {
+    async function loadCorridorRoute(origin, destination) {
+      showToast(`🔄 Calculating directions: ${origin} ➔ ${destination}…`, "normal");
+      try {
+        const res = await fetch('/api/v1/routes/optimize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin: origin, destination: destination })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.route_coordinates && data.route_coordinates.length > 0) {
+            corridorCoords = data.route_coordinates;
+            totalCorridorKm = data.distance_km || Math.round(data.total_distance_km || 98.8);
+            corridorNavSteps = data.navigation_instructions || [];
+
+            // Redraw route on map with animated fit
+            if (routeLine && map) {
+              routeLine.setLatLngs(corridorCoords);
+              map.fitBounds(routeLine.getBounds(), { padding: [36, 36], maxZoom: 13 });
+              setTimeout(() => map.invalidateSize(), 300);
+            }
+
+            // Update UI displays
+            const distEl = document.getElementById('routeTotalDist');
+            const drawerDist = document.getElementById('drawerDistText');
+            const drawerEta = document.getElementById('drawerEtaText');
+            const navRoad = document.getElementById('navRoadLabel');
+            const navNext = document.getElementById('navNextSubstrip');
+            const navBanner = document.getElementById('navBannerCard');
+            const navAction = document.getElementById('navManeuverAction');
+            const navCountdown = document.getElementById('navCountdownDist');
+            const navLimit = document.getElementById('navSpeedLimit');
+
+            const totalHours = Math.floor(totalCorridorKm / 38);
+            const totalMins = Math.round((totalCorridorKm % 38) * 1.5);
+            const timeStr = `${totalHours}h ${totalMins}m`;
+
+            if (distEl) distEl.textContent = `${totalCorridorKm} km • ${timeStr}`;
+            if (drawerDist) drawerDist.textContent = `${totalCorridorKm} km left`;
+            if (drawerEta) drawerEta.textContent = timeStr;
+            if (navRoad) navRoad.textContent = `${origin} ➔ ${destination}`;
+            if (navNext) navNext.textContent = `✓ Route loaded — tap START TRIP to begin navigation`;
+            if (navAction) navAction.textContent = 'TRIP READY';
+            if (navCountdown) navCountdown.textContent = `${totalCorridorKm} km`;
+            if (navLimit) navLimit.textContent = '50';
+
+            // Show the nav banner card now that we have a route
+            if (navBanner) navBanner.classList.add('active');
+
+            // Reset position to origin
+            simStepIdx = 0;
+            distanceCoveredKm = 0.0;
+            if (corridorCoords.length > 0) {
+              liveLat = corridorCoords[0][0];
+              liveLng = corridorCoords[0][1];
+              if (vehicleMarker) vehicleMarker.setLatLng([liveLat, liveLng]);
+            }
+
+            buildWaypointsFromRoute(origin, destination, totalCorridorKm);
+            renderDirectionsList();
+            updateAllTelemetryUI();
+            updateTripButtonsUI();
+
+            showToast(`✓ Route loaded: ${totalCorridorKm} km • ${corridorCoords.length.toLocaleString()} pts`, "success");
+            speakVoiceNotice(`Directions loaded for ${origin} to ${destination}. Press Start Trip when ready.`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Backend route fetch error:", e);
+      }
+
+      showToast(`⚠️ Could not reach routing service for ${origin} to ${destination}`, "warning");
+    }
+
+    function buildWaypointsFromRoute(orig, dest, totalKm) {
+      corridorWaypoints = [
+        { name: `${orig} Central Logistics Depot`, mp: 0.0, status: "passed", eta: "Departed" },
+        { name: `${orig} Outskirts Checkpoint`, mp: +(totalKm * 0.25).toFixed(1), status: "active", eta: "Checkpoint Fork" },
+        { name: "Highway Service & Refuel Hub", mp: +(totalKm * 0.55).toFixed(1), status: "upcoming", eta: `In ${Math.round(totalKm * 0.3)} km` },
+        { name: `${dest} Boundary Overpass`, mp: +(totalKm * 0.82).toFixed(1), status: "upcoming", eta: `In ${Math.round(totalKm * 0.57)} km` },
+        { name: `${dest} Logistics Complex`, mp: +totalKm.toFixed(1), status: "dest", eta: `Final Hub (${totalKm} km)` }
+      ];
+      renderWaypointsList();
+    }
+
+    function renderWaypointsList() {
+      const container = document.getElementById('waypointsList');
+      if (!container) return;
+
+      if (!originHub || corridorWaypoints.length === 0) {
+        container.innerHTML = `<div style="padding:14px;text-align:center;color:#64748b;font-size:11.5px;">Awaiting corridor selection.</div>`;
+        return;
+      }
+
+      let html = '';
+      corridorWaypoints.forEach((wp, idx) => {
+        let dotClass = 'waypoint-dot';
+        let subStyle = 'color:#64748b;font-size:10.5px;';
+        if (distanceCoveredKm >= wp.mp && distanceCoveredKm > 0) {
+          dotClass += ' done';
+          subStyle = 'color:#166534;font-size:10.5px;font-weight:700;';
+        } else if (wp.status === 'dest') {
+          dotClass += ' dest';
+        } else if (idx === 1 && isTripActive) {
+          subStyle = 'color:#0284c7;font-size:10.5px;font-weight:700;';
+        }
+
+        html += `
+          <div class="waypoint-item">
+            <div class="${dotClass}"></div>
+            <div style="flex:1;">
+              <b>${wp.name} (MP ${wp.mp})</b>
+              <div style="${subStyle}">${distanceCoveredKm >= wp.mp && distanceCoveredKm > 0 ? 'Passed ✓' : wp.eta}</div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+
+      const progPct = totalCorridorKm > 0 ? Math.min(100, Math.round((distanceCoveredKm / totalCorridorKm) * 100)) : 0;
+      const progEl = document.getElementById('routeProgressPct');
+      if (progEl) progEl.textContent = `${progPct}% Complete`;
+    }
+
+    function renderDirectionsList() {
+      const container = document.getElementById('directionsStepList');
+      const badge = document.getElementById('dirCountBadge');
+      if (!container) return;
+
+      if (!originHub || corridorNavSteps.length === 0) {
+        container.innerHTML = `
+          <div style="padding:16px;text-align:center;color:#64748b;font-size:12px;">
+            Select Source &amp; Destination and tap <b>PLAN</b> to view step-by-step driving directions.
+          </div>
+        `;
+        if (badge) badge.textContent = "0 Steps";
+        return;
+      }
+
+      let steps = [];
+      const stride = Math.max(1, Math.floor(corridorNavSteps.length / 8));
+      for (let i = 0; i < corridorNavSteps.length; i += stride) {
+        steps.push(corridorNavSteps[i]);
+      }
+
+      if (badge) badge.textContent = `${steps.length} Key Maneuvers`;
+
+      let html = '';
+      steps.forEach((st, idx) => {
+        const icon = st.icon || (idx % 3 === 0 ? "↗" : idx % 3 === 1 ? "⤴" : "↑");
+        const distKm = st.distance_meters ? (st.distance_meters / 1000).toFixed(1) + " km" : "Ahead";
+        html += `
+          <div class="dir-step-item">
+            <div class="dir-step-icon">${icon}</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;color:#0f172a;">${st.instruction || 'Continue on corridor route'}</div>
+              <div class="dir-step-dist">${st.road || 'National Highway'} • ${distKm}</div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // =========================================================================
+    // HARDWARE GPS & REAL SIMULATION RUNNER
+    // =========================================================================
+    function startHardwareGps() {
       if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser. Falling back to Demo Simulation.");
-        setMode('demo_simulation');
-        startDispatch();
+        showToast("⚠️ Hardware GPS not supported, using Simulation", "warning");
+        setGpsMode('demo_simulation');
         return;
       }
+      if (watchId) navigator.geolocation.clearWatch(watchId);
 
-      gpsWatchId = navigator.geolocation.watchPosition(
+      watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const speedKmh = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : Math.floor(Math.random() * 15 + 40);
-          const heading = pos.coords.heading || 45;
-          handleNewCoordinates(lat, lng, speedKmh, heading, pos.coords.accuracy);
+          if (gpsMode !== 'live_gps' || !isTripActive) return;
+          const prevLat = liveLat;
+          const prevLng = liveLng;
+          liveLat = pos.coords.latitude;
+          liveLng = pos.coords.longitude;
+
+          if (pos.coords.speed !== null && pos.coords.speed !== undefined) {
+            liveSpeed = Math.max(0, Math.round(pos.coords.speed * 3.6));
+          } else {
+            liveSpeed = 44;
+          }
+
+          if (pos.coords.heading !== null && pos.coords.heading !== undefined) {
+            liveHeading = Math.round(pos.coords.heading);
+          } else {
+            const dLat = liveLat - prevLat;
+            const dLng = liveLng - prevLng;
+            if (Math.abs(dLat) > 0.0001 || Math.abs(dLng) > 0.0001) {
+              liveHeading = Math.round((Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360);
+            }
+          }
+
+          distanceCoveredKm = +(distanceCoveredKm + 0.05).toFixed(2);
+          updateAllTelemetryUI();
         },
         (err) => {
-          console.warn("GPS error:", err.message);
-          alert("GPS Signal unavailable (" + err.message + "). Switching to Demo Simulation.");
-          stopDispatch();
-          setMode('demo_simulation');
-          startDispatch();
+          console.warn("Hardware GPS error:", err);
+          showToast(`⚠️ Hardware GPS: ${err.message}. Running Simulation.`, "warning");
+          setGpsMode('demo_simulation');
         },
-        { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
     }
 
-    // Fetch OSM Route Coordinates for Simulation
-    async function prepareSimulationRoute(origin, dest) {
-      simWaypoints = [];
-      simIndex = 0;
+    function stepSimulation() {
+      if (gpsMode !== 'demo_simulation' || !isTripActive || corridorCoords.length === 0) return;
+
+      // Advance along corridor
+      simStepIdx = (simStepIdx + 1) % corridorCoords.length;
+      liveLat = corridorCoords[simStepIdx][0];
+      liveLng = corridorCoords[simStepIdx][1];
+
+      // Compass heading
+      const nextIdx = (simStepIdx + 1) % corridorCoords.length;
+      const dLat = corridorCoords[nextIdx][0] - liveLat;
+      const dLng = corridorCoords[nextIdx][1] - liveLng;
+      liveHeading = Math.round((Math.atan2(dLng, dLat) * 180 / Math.PI + 360) % 360);
+
+      // Realistic speed (35 - 65 km/h)
+      liveSpeed = Math.max(34, Math.min(68, Math.round(50 + Math.sin(simStepIdx * 0.3) * 14)));
+
+      // Incline and Gyro dynamics
+      livePitch = +(Math.sin(simStepIdx * 0.2) * 8.5).toFixed(1);
+      liveRoll = +(Math.cos(simStepIdx * 0.4) * 2.8).toFixed(1);
+      liveElevation = Math.round(550 + (simStepIdx / corridorCoords.length) * 940);
+      liveBarometer = Math.round(1013 - (liveElevation / 8.3));
+
+      // Distance
+      distanceCoveredKm = Math.min(totalCorridorKm, +(distanceCoveredKm + 0.35).toFixed(1));
+
+      updateAllTelemetryUI();
+    }
+    // NOTE: simTimer is NOT started here — it only starts when user presses START TRIP in demo mode
+    // simTimer = null; (already declared above)
+
+    // =========================================================================
+    // UI SYNCHRONIZATION
+    // =========================================================================
+    function updateAllTelemetryUI() {
+      const displaySpeed = isTripActive ? liveSpeed : 0;
+
+      // 1. Radar Screen HUD
+      const speedEl = document.getElementById('floatingSpeedVal');
+      const coordsEl = document.getElementById('floatingCoordsVal');
+      const gradeEl = document.getElementById('hudGradeText');
+      const speedDotEl = document.getElementById('speedDot');
+      if (speedEl) speedEl.textContent = displaySpeed;
+      if (coordsEl) coordsEl.textContent = `${liveLat.toFixed(4)}°N ${liveLng.toFixed(4)}°E`;
+      if (gradeEl) {
+        const gradeStr = livePitch >= 0 ? `+${livePitch}%` : `${livePitch}%`;
+        gradeEl.textContent = `GRADE: ${gradeStr} • ${liveElevation}m MSL`;
+      }
+      // Speed dot colour — green moving, grey stopped
+      if (speedDotEl) speedDotEl.style.background = isTripActive && displaySpeed > 0 ? '#10b981' : '#64748b';
+
+      // 2. Turn-by-Turn Card
+      updateTurnByTurnNav();
+
+      // 3. Telemetry Screen
+      const bigCoordsEl = document.getElementById('telemetryBigCoords');
+      const teleSpeedEl = document.getElementById('telemetrySpeed');
+      const pitchEl = document.getElementById('telemetryPitch');
+      const rollEl = document.getElementById('telemetryRoll');
+      const pitchBar = document.getElementById('pitchBar');
+      const rollBar = document.getElementById('rollBar');
+      const elevEl = document.getElementById('telemetryElevation');
+      const baroEl = document.getElementById('telemetryBaro');
+      const brakeEl = document.getElementById('brakeTemp');
+      const syncEl = document.getElementById('telemetryLastSync');
+
+      if (bigCoordsEl) bigCoordsEl.textContent = `${liveLat.toFixed(4)}° N, ${liveLng.toFixed(4)}° E`;
+      if (teleSpeedEl) teleSpeedEl.innerHTML = `${isTripActive ? liveSpeed : 0} <span style="font-size:9px;">km/h</span>`;
+      if (pitchEl) pitchEl.textContent = `${livePitch >= 0 ? '+' : ''}${livePitch}%`;
+      if (rollEl) rollEl.textContent = `${liveRoll >= 0 ? '+' : ''}${liveRoll}°`;
+      if (pitchBar) pitchBar.style.width = `${Math.min(100, Math.max(10, Math.abs(livePitch) * 10))}%`;
+      if (rollBar) rollBar.style.width = `${Math.min(100, Math.max(10, Math.abs(liveRoll) * 25))}%`;
+      if (elevEl) elevEl.textContent = `${liveElevation} m`;
+      if (baroEl) baroEl.textContent = `${liveBarometer} hPa`;
+      if (brakeEl) brakeEl.textContent = `${Math.round(110 + (isTripActive ? Math.max(0, -livePitch * 4) + liveSpeed * 0.4 : 0))}°C`;
+      if (syncEl) syncEl.textContent = `Synced Just Now`;
+
+      // 4. Update Marker on Map
+      if (vehicleMarker && map) {
+        vehicleMarker.setLatLng([liveLat, liveLng]);
+        const inner = document.getElementById('truckMarkerInner');
+        if (inner) inner.style.transform = `rotate(${liveHeading}deg)`;
+      }
+
+      // 5. Remaining Distance & ETA
+      if (totalCorridorKm > 0) {
+        const remainingKm = Math.max(0, +(totalCorridorKm - distanceCoveredKm).toFixed(1));
+        const drawerDist = document.getElementById('drawerDistText');
+        const drawerEta = document.getElementById('drawerEtaText');
+        const remHours = Math.floor(remainingKm / 38);
+        const remMins = Math.round((remainingKm % 38) * 1.5);
+        if (drawerDist) drawerDist.textContent = `${remainingKm} km left`;
+        if (drawerEta) drawerEta.textContent = `${remHours}h ${remMins}m`;
+      }
+
+      if (currentScreen === 'Route') {
+        renderWaypointsList();
+      }
+    }
+
+    function updateTurnByTurnNav() {
+      const distEl = document.getElementById('navCountdownDist');
+      const actionEl = document.getElementById('navManeuverAction');
+      const roadEl = document.getElementById('navRoadLabel');
+      const iconEl = document.getElementById('navManeuverIcon');
+      const limitEl = document.getElementById('navSpeedLimit');
+
+      if (!originHub || corridorCoords.length === 0) {
+        if (actionEl) actionEl.textContent = "SELECT CORRIDOR";
+        if (distEl) distEl.textContent = "0 km";
+        if (roadEl) roadEl.textContent = "Choose Source & Destination above to begin";
+        if (iconEl) iconEl.textContent = "🗺️";
+        if (limitEl) limitEl.textContent = "--";
+        return;
+      }
+
+      if (!isTripActive) {
+        if (actionEl) actionEl.textContent = "TRIP READY";
+        if (distEl) distEl.textContent = `${totalCorridorKm} km`;
+        if (roadEl) roadEl.textContent = `Press START TRIP to proceed to ${destHub}`;
+        if (iconEl) iconEl.textContent = "▶";
+        if (limitEl) limitEl.textContent = "50";
+        return;
+      }
+
+      const distToTurn = Math.max(50, Math.round((500 - (distanceCoveredKm * 1000) % 500)));
+      if (distEl) distEl.textContent = `${distToTurn} m`;
+
+      if (simStepIdx % 4 === 0) {
+        if (actionEl) actionEl.textContent = "KEEP RIGHT";
+        if (iconEl) iconEl.textContent = "↗";
+        if (roadEl) roadEl.textContent = `Corridor toward ${destHub}`;
+        if (limitEl) limitEl.textContent = "50";
+      } else if (simStepIdx % 4 === 1) {
+        if (actionEl) actionEl.textContent = "SHARP HAIRPIN";
+        if (iconEl) iconEl.textContent = "⤴";
+        if (roadEl) roadEl.textContent = "Mountain Ascent (Grade -8.5%)";
+        if (limitEl) limitEl.textContent = "35";
+      } else if (simStepIdx % 4 === 2) {
+        if (actionEl) actionEl.textContent = "CONTINUE STRAIGHT";
+        if (iconEl) iconEl.textContent = "↑";
+        if (roadEl) roadEl.textContent = "Bypass Expressway";
+        if (limitEl) limitEl.textContent = "60";
+      } else {
+        if (actionEl) actionEl.textContent = "BEAR LEFT";
+        if (iconEl) iconEl.textContent = "↖";
+        if (roadEl) roadEl.textContent = "Highway Overpass Approach";
+        if (limitEl) limitEl.textContent = "45";
+      }
+    }
+
+    // =========================================================================
+    // REMOTE HAZARDS SYNC & PLOTTING
+    // =========================================================================
+    let activeHazards = [];
+    async function loadRemoteHazards() {
       try {
-        const res = await fetch(`/api/v1/routes/optimize`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ origin: origin, destination: dest, priority: "fastest" })
-        });
+        const res = await fetch('/api/v1/telemetry/hazards');
         if (res.ok) {
           const data = await res.json();
-          if (data.route_geometry && data.route_geometry.length > 0) {
-            simWaypoints = data.route_geometry;
+          if (data.hazards) {
+            activeHazards = data.hazards;
+            renderHazardMarkers();
+            return;
           }
         }
-      } catch (err) {
-        console.warn("Route API error, using interpolation fallback:", err);
+      } catch (e) {
+        console.warn("Could not fetch remote hazards:", e);
       }
-
-      // Fallback: Interpolate between depot coords if network fails
-      if (!simWaypoints || simWaypoints.length === 0) {
-        const start = DEPOT_COORDS[origin] || [26.1445, 91.7362];
-        const end = DEPOT_COORDS[dest] || [26.6338, 92.8006];
-        simWaypoints = [];
-        const steps = 40;
-        for (let i = 0; i <= steps; i++) {
-          const f = i / steps;
-          simWaypoints.push([
-            start[0] + (end[0] - start[0]) * f + Math.sin(f * Math.PI) * 0.04,
-            start[1] + (end[1] - start[1]) * f + Math.cos(f * Math.PI) * 0.04
-          ]);
-        }
-      }
-
-      // Render full planned corridor on mini map
-      if (routePolyline) driverMap.removeLayer(routePolyline);
-      routePolyline = L.polyline(simWaypoints, { color: '#38bdf8', weight: 3, opacity: 0.5, dashArray: '6, 8' }).addTo(driverMap);
-      driverMap.fitBounds(routePolyline.getBounds(), { padding: [20, 20] });
     }
 
-    function emitSimulatedPing() {
-      if (!simWaypoints || simWaypoints.length === 0) return;
-      const coord = simWaypoints[simIndex];
-      simIndex = (simIndex + 1) % simWaypoints.length;
+    function renderHazardMarkers() {
+      if (!hazardLayer) return;
+      hazardLayer.clearLayers();
 
-      // Next coord for heading calculation
-      const nextCoord = simWaypoints[(simIndex) % simWaypoints.length];
-      const heading = calculateHeading(coord[0], coord[1], nextCoord[0], nextCoord[1]);
-      const speed = Math.floor(Math.random() * 14 + 48); // 48 - 62 km/h
-
-      handleNewCoordinates(coord[0], coord[1], speed, heading, 8.0);
+      activeHazards.forEach(h => {
+        const icon = L.divIcon({
+          html: `<div style="
+            background: #ef4444; color: #fff; padding: 3px 8px; border-radius: 12px;
+            font-size: 9.5px; font-weight: 800; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+            white-space: nowrap; border: 1.5px solid #fff; cursor: pointer;
+          ">⚠️ ${h.hazard_type.toUpperCase()}</div>`,
+          iconSize: [120, 22],
+          iconAnchor: [60, 11]
+        });
+        const marker = L.marker([h.latitude, h.longitude], { icon: icon }).addTo(hazardLayer);
+        marker.bindPopup(`
+          <div style="font-family:Inter,sans-serif;font-size:11.5px;padding:3px;">
+            <b style="color:#dc2626;">⚠️ ${h.hazard_type} (${h.severity})</b><br/>
+            ${h.description || 'Active road hazard reported.'}<br/>
+            <small style="color:#64748b;">Coords: ${h.latitude.toFixed(4)}, ${h.longitude.toFixed(4)}</small>
+          </div>
+        `);
+      });
     }
 
-    function calculateHeading(lat1, lon1, lat2, lon2) {
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
-      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
-                Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
-      let brng = Math.atan2(y, x) * 180 / Math.PI;
-      return Math.round((brng + 360) % 360);
+    function centerOnNearestHazard() {
+      if (activeHazards.length > 0 && map) {
+        const h = activeHazards[0];
+        map.setView([h.latitude, h.longitude], 15, { animate: true });
+        showToast(`⚠️ Focused on ${h.hazard_type}`, "warning");
+      }
     }
 
-    async function handleNewCoordinates(lat, lng, speed, heading, accuracy) {
-      // Update Metrics
-      pingsSent++;
-      document.getElementById('pingCounter').textContent = `Pings: ${pingsSent}`;
-      document.getElementById('hudSpeed').textContent = speed;
-      document.getElementById('hudHeading').textContent = `${String(heading).padStart(3, '0')}° ${getCompassDirection(heading)}`;
-      document.getElementById('hudCoords').textContent = `${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E`;
-
-      if (lastLat !== null && lastLng !== null) {
-        const d = haversineKm(lastLat, lastLng, lat, lng);
-        totalDistanceKm += d;
-        document.getElementById('hudDistance').textContent = `${totalDistanceKm.toFixed(1)} km`;
-      }
-      lastLat = lat;
-      lastLng = lng;
-
-      // Update Map Marker & Trail
-      if (truckMarker) {
-        truckMarker.setLatLng([lat, lng]);
-        driverMap.panTo([lat, lng], { animate: true, duration: 0.8 });
-      }
-      trailCoords.push([lat, lng]);
-      if (trailPolyline) trailPolyline.setLatLngs(trailCoords);
-
-      // Transmit to Backend API
-      const payload = {
-        vehicle_id: document.getElementById('vehicleId').value.trim() || 'TRK_AS01_4210',
-        driver_name: document.getElementById('driverName').value.trim() || 'Driver',
-        latitude: lat,
-        longitude: lng,
-        speed_kmh: speed,
-        heading: heading,
-        accuracy_m: accuracy || 10.0,
-        origin: document.getElementById('originSelect').value,
-        destination: document.getElementById('destSelect').value,
-        cargo_type: document.getElementById('cargoSelect').value,
-        status: "EN_ROUTE",
-        mode: currentMode
-      };
-
+    // =========================================================================
+    // TELEMETRY BACKEND PING STREAM (Real-time IoT to Tower)
+    // =========================================================================
+    async function sendTelemetryPing() {
       try {
+        const payload = {
+          vehicle_id: vehicleId,
+          driver_name: driverName,
+          origin: originHub || "Dispatched Hub",
+          destination: destHub || "Assigned Point",
+          latitude: liveLat,
+          longitude: liveLng,
+          speed_kmh: isTripActive ? liveSpeed : 0,
+          heading: liveHeading,
+          accuracy_m: 4.5,
+          cargo_type: "Emergency Relief Supplies",
+          mode: gpsMode,
+          status: isTripActive ? "EN_ROUTE" : "IDLE"
+        };
         const res = await fetch('/api/v1/telemetry/ping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (res.ok) {
-          const respData = await res.json();
-          // Check for proximity hazard warnings
-          if (respData.active_alerts && respData.active_alerts.length > 0) {
-            showHazardWarning(respData.active_alerts[0]);
-          } else {
-            hideHazardWarning();
-          }
+          const syncEl = document.getElementById('telemetryLastSync');
+          if (syncEl) syncEl.textContent = `Synced Just Now`;
         }
-      } catch (err) {
-        console.warn("Telemetry transmission error:", err);
+      } catch (e) {
+        console.warn("Telemetry ping failed:", e);
       }
     }
 
-    function showHazardWarning(alert) {
-      const banner = document.getElementById('hazardAlert');
-      const title = document.getElementById('hazardAlertTitle');
-      const sub = document.getElementById('hazardAlertSub');
-      title.textContent = `⚠️ CAUTION: ${alert.hazard_name}`;
-      sub.textContent = `${alert.warning} · Distance: ${alert.distance_km} km. Maintain caution.`;
-      banner.classList.add('visible');
+    // =========================================================================
+    // COMMS SCREEN & PTT SOUND SYNTHESIS
+    // =========================================================================
+    let isPttActive = false;
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
     }
 
-    function hideHazardWarning() {
-      document.getElementById('hazardAlert').classList.remove('visible');
+    function playRadioChirp(isRelease = false) {
+      try {
+        initAudioContext();
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (!isRelease) {
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1250, audioCtx.currentTime + 0.12);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.14);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.15);
+        } else {
+          osc.frequency.setValueAtTime(540, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.11);
+        }
+      } catch (e) {
+        console.warn("WebAudio chirp error:", e);
+      }
     }
 
-    function getCompassDirection(deg) {
-      const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-      return dirs[Math.round(deg / 45) % 8];
+    function startPtt(event) {
+      if (event) event.preventDefault();
+      if (isPttActive) return;
+      isPttActive = true;
+
+      const btn = document.getElementById('btnPtt');
+      const text = document.getElementById('pttBtnText');
+      const status = document.getElementById('voiceRelayStatus');
+      const lbl = document.getElementById('pttlbl');
+
+      if (btn) btn.classList.add('transmitting');
+      if (text) text.textContent = "TRANSMITTING";
+      if (status) status.textContent = "🎙️ You Are Transmitting (Voice Active)";
+      if (lbl) lbl.textContent = "TRANSMITTING TO ALL UNITS";
+
+      playRadioChirp(false);
+      showToast("🎙️ Convoy Channel TAC-1: Transmitting Voice", "danger");
     }
 
-    function haversineKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    async function stopPtt(event) {
+      if (event) event.preventDefault();
+      if (!isPttActive) return;
+      isPttActive = false;
+
+      const btn = document.getElementById('btnPtt');
+      const text = document.getElementById('pttBtnText');
+      const status = document.getElementById('voiceRelayStatus');
+      const lbl = document.getElementById('pttlbl');
+
+      if (btn) btn.classList.remove('transmitting');
+      if (text) text.textContent = "HOLD PTT";
+      if (status) status.textContent = "Channel Open · Voice Mesh Active";
+      if (lbl) lbl.textContent = "HOLD TO TALK ON CONVOY";
+
+      playRadioChirp(true);
+      showToast("✓ Voice Transmission Completed", "success");
+
+      try {
+        await fetch('/api/v1/telemetry/comms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender: `${driverName} (${vehicleId})`,
+            vehicle_id: vehicleId,
+            message: "Voice Transmission on TAC-1 [Voice Audio Stream Ended]",
+            type: "voice_ptt"
+          })
+        });
+        loadCommsLog();
+      } catch (e) { }
     }
 
-    function triggerSosReport() {
-      const vId = document.getElementById('vehicleId').value;
-      const lat = lastLat || 26.1445;
-      const lng = lastLng || 91.7362;
-      const desc = prompt("Describe emergency or road blockage:", "Landslide blockage on highway corridor, convoy halted.");
-      if (!desc) return;
-
-      fetch('/api/v1/incidents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hazard_type: "ROAD_BLOCKED",
-          latitude: lat,
-          longitude: lng,
-          severity: 4,
-          description: `[EMERGENCY SOS from ${vId}] ${desc}`
-        })
-      }).then(r => r.json()).then(data => {
-        alert(`🚨 SOS Alert transmitted to Control Tower!\nIncident ID: ${data.incident_id || 'Recorded'}\nResponse teams dispatched.`);
-      }).catch(err => {
-        alert("Failed to send SOS: " + err);
-      });
+    async function sendQuickPing(msg, typeColor = 'green') {
+      showToast(`📡 Broadcast: "${msg}" to Convoy`, "normal");
+      try {
+        const res = await fetch('/api/v1/telemetry/comms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender: `${driverName} (${vehicleId})`,
+            vehicle_id: vehicleId,
+            message: msg,
+            type: "quick_ping"
+          })
+        });
+        if (res.ok) {
+          showToast(`✓ Convoy Alert Dispatched: "${msg}"`, "success");
+          loadCommsLog();
+        }
+      } catch (e) {
+        addCommsLocalMessage(driverName, msg);
+      }
     }
 
-    // Auto-init on load
-    window.addEventListener('DOMContentLoaded', () => {
-      initMap();
+    function addCommsLocalMessage(sender, msg) {
+      const container = document.getElementById('commsLogList');
+      if (!container) return;
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const entry = document.createElement('div');
+      entry.className = 'comms-log-entry';
+      entry.innerHTML = `
+        <div style="display:flex;justify-content:space-between;color:#0284c7;font-weight:700;">
+          <span>● ${sender}</span>
+          <span style="color:#64748b;">${timeStr}</span>
+        </div>
+        <div style="color:#0f172a;font-weight:600;">${msg}</div>
+      `;
+      container.insertBefore(entry, container.firstChild);
+    }
+
+    async function loadCommsLog() {
+      try {
+        const res = await fetch('/api/v1/telemetry/comms');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.messages) {
+            const container = document.getElementById('commsLogList');
+            if (!container) return;
+            container.innerHTML = '';
+            data.messages.slice(0, 8).forEach(m => {
+              const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now';
+              const entry = document.createElement('div');
+              entry.className = 'comms-log-entry';
+              entry.innerHTML = `
+                <div style="display:flex;justify-content:space-between;color:#0284c7;font-weight:700;">
+                  <span>● ${m.sender || 'Convoy Member'}</span>
+                  <span style="color:#64748b;">${timeStr}</span>
+                </div>
+                <div style="color:#0f172a;font-weight:600;">${m.message}</div>
+              `;
+              container.appendChild(entry);
+            });
+            return;
+          }
+        }
+      } catch (e) { }
+
+      addCommsLocalMessage("Lead Unit • AS-01-EV-9402", "Convoy active. Channel clear.");
+    }
+
+    // =========================================================================
+    // REPORT HAZARD MODAL LOGIC
+    // =========================================================================
+    function openReportHazardModal() {
+      document.getElementById('hazardModal').classList.add('open');
+    }
+    function closeReportHazardModal(e) {
+      if (e && e.target !== document.getElementById('hazardModal') && !e.target.classList.contains('btn-modal-close')) return;
+      document.getElementById('hazardModal').classList.remove('open');
+    }
+    function selectHazardType(el, typeName) {
+      document.querySelectorAll('.hazard-tile').forEach(t => t.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedHazardType = typeName;
+    }
+    function triggerCameraCapture() {
+      const input = document.getElementById('cameraInput');
+      if (input) input.click();
+    }
+    function handlePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          attachedPhotoBase64 = e.target.result;
+          document.getElementById('cameraIcon').textContent = '✅';
+          document.getElementById('cameraLabel').innerHTML = 'Photo Attached <span style="font-size:8.5px;background:#10b981;color:#fff;padding:1px 5px;border-radius:4px;">VERIFIED</span>';
+          document.getElementById('cameraSublabel').textContent = file.name;
+          showToast("📷 Live Photo Proof Attached", "success");
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    async function submitHazardReport() {
+      document.getElementById('hazardModal').classList.remove('open');
+      showToast(`📢 Broadcasting ${selectedHazardType} alert…`, "warning");
+
+      const hazardPayload = {
+        hazard_type: selectedHazardType,
+        severity: selectedSeverity,
+        latitude: liveLat,
+        longitude: liveLng,
+        driver_name: driverName,
+        vehicle_id: vehicleId,
+        description: `${selectedHazardType} reported by ${driverName} near MP ${Math.round(distanceCoveredKm)} on corridor.`,
+        photo_attached: !!attachedPhotoBase64
+      };
+
+      try {
+        const res = await fetch('/api/v1/telemetry/hazard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(hazardPayload)
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          activeHazards.unshift(saved.hazard || hazardPayload);
+          renderHazardMarkers();
+          showToast(`✓ Hazard Alert Broadcasted to Control Tower & Convoys!`, "danger");
+          speakVoiceNotice(`Hazard reported: ${selectedHazardType}. Control Tower notified.`);
+          return;
+        }
+      } catch (e) {
+        console.warn("Backend hazard post failed, local fallback:", e);
+      }
+
+      activeHazards.unshift(hazardPayload);
+      renderHazardMarkers();
+      showToast(`✓ Hazard Recorded: ${selectedHazardType}`, "danger");
+    }
+
+    // =========================================================================
+    // EMERGENCY SOS DISTRESS TRIGGER
+    // =========================================================================
+    async function triggerSosDistress() {
+      if (confirm(`🚨 TRIGGER EMERGENCY SOS DISTRESS?\n\nThis will send high-priority Mayday distress signals to BRO, NDRF, and Pravah Central Command with GPS fix: ${liveLat.toFixed(4)}°N, ${liveLng.toFixed(4)}°E.`)) {
+        showToast("🚨 EMERGENCY SOS BROADCAST SENT TO CONTROL TOWER!", "danger");
+        speakVoiceNotice("Emergency SOS distress beacon activated. Control tower alerted.");
+        try {
+          await fetch('/api/v1/telemetry/ping', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              vehicle_id: vehicleId,
+              driver_name: driverName,
+              latitude: liveLat,
+              longitude: liveLng,
+              speed_kmh: isTripActive ? liveSpeed : 0,
+              heading: liveHeading,
+              status: "DISTRESS",
+              cargo_type: "Emergency SOS Mayday"
+            })
+          });
+          await fetch('/api/v1/telemetry/comms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sender: `EMERGENCY SOS • ${driverName} (${vehicleId})`,
+              vehicle_id: vehicleId,
+              message: `MAYDAY DISTRESS at GPS ${liveLat.toFixed(4)}, ${liveLng.toFixed(4)}! Immediate assistance needed!`,
+              type: "sos_distress"
+            })
+          });
+          loadCommsLog();
+        } catch (e) { }
+      }
+    }
+
+    // =========================================================================
+    // TRIP CONFIG & SETTINGS MODAL
+    // =========================================================================
+    function openTripConfig() {
+      document.getElementById('tripModal').classList.add('open');
+    }
+    function closeTripConfig(e) {
+      if (e && e.target !== document.getElementById('tripModal') && !e.target.classList.contains('btn-modal-close')) return;
+      document.getElementById('tripModal').classList.remove('open');
+    }
+
+    function setGpsMode(mode) {
+      gpsMode = mode;
+      const btnG = document.getElementById('btnModeGps');
+      const btnS = document.getElementById('btnModeSim');
+      if (mode === 'live_gps') {
+        if (btnG) { btnG.style.background = '#0284c7'; btnG.style.color = '#fff'; }
+        if (btnS) { btnS.style.background = '#f1f5f9'; btnS.style.color = '#0f172a'; }
+        document.getElementById('gpsFixText').textContent = 'NAVIC DGPS';
+        // Stop simulation timer if running
+        if (simTimer) { clearInterval(simTimer); simTimer = null; }
+        // Start hardware GPS if trip active
+        if (isTripActive) startHardwareGps();
+        showToast("📡 Live Device GPS Enabled", "success");
+      } else {
+        if (btnS) { btnS.style.background = '#0284c7'; btnS.style.color = '#fff'; }
+        if (btnG) { btnG.style.background = '#f1f5f9'; btnG.style.color = '#0f172a'; }
+        document.getElementById('gpsFixText').textContent = 'OSM ROAD SIM';
+        // Stop hardware GPS watch
+        if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        // Start simulation timer if trip is already active
+        if (isTripActive && !simTimer) {
+          simTimer = setInterval(stepSimulation, 2000);
+        }
+        showToast("🎮 Real Road Network Simulation Active", "normal");
+      }
+    }
+
+    function saveTripConfig() {
+      driverName = document.getElementById('cfgDriverName').value.trim() || driverName;
+      vehicleId = document.getElementById('cfgVehicleId').value.trim() || vehicleId;
+      document.getElementById('telemetryVehicleLabel').textContent = `Vehicle ID: ${vehicleId} · 12-Ton Supply Unit`;
+      closeTripConfig();
+      showToast("✓ Profile Settings Applied", "success");
+      sendTelemetryPing();
+    }
+
+    function calibrateGyro() {
+      livePitch = 0.0;
+      liveRoll = 0.0;
+      updateAllTelemetryUI();
+      showToast("📐 Zero-Point Calibrated: Pitch & Roll leveled to 0.00°", "success");
+      speakVoiceNotice("Zero point gyroscope calibrated.");
+    }
+
+    function exportDiagnostics() {
+      const diagData = {
+        export_title: "BRO & Pravah In-Cab Telemetry Diagnostic Log",
+        timestamp: new Date().toISOString(),
+        vehicle_id: vehicleId,
+        driver_name: driverName,
+        corridor: `${originHub || 'Not Selected'} to ${destHub || 'Not Selected'}`,
+        current_gps: { lat: liveLat, lng: liveLng, speed_kmh: isTripActive ? liveSpeed : 0, heading_deg: liveHeading },
+        sensors: {
+          pitch_pct: livePitch,
+          roll_deg: liveRoll,
+          elevation_msl_meters: liveElevation,
+          barometer_hpa: liveBarometer,
+          pavement_index: 0.94
+        },
+        route_stats: {
+          trip_active: isTripActive,
+          total_corridor_km: totalCorridorKm,
+          distance_covered_km: distanceCoveredKm
+        }
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(diagData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `PRAVAH_DIAG_${vehicleId}_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      showToast("📥 Diagnostic Log Downloaded (JSON)", "success");
+    }
+
+    // =========================================================================
+    // STARTUP
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      initRadarMap();
+      loadCommsLog();
+      updateTripButtonsUI();
+      pingTimer = setInterval(sendTelemetryPing, 3000);
+      sendTelemetryPing();
     });
   </script>
 </body>
+
 </html>

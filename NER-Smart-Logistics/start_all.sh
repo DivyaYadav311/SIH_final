@@ -3,7 +3,12 @@
 # PRAVAH — Start All Microservices & Frontend
 # ==============================================================================
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -d "$SCRIPT_DIR/p4-path-optimization" ]; then
+    ROOT_DIR="$SCRIPT_DIR"
+else
+    ROOT_DIR="$SCRIPT_DIR/NER-Smart-Logistics"
+fi
 echo "Starting PRAVAH services from: $ROOT_DIR"
 
 # Kill any existing processes on the required ports
