@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pravah Driver Telemetry Portal — Live Vehicle GPS & Dispatch</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚚</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    :root {
+      --bg: #070d18;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --border: rgba(56, 189, 248, 0.18);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      background: rgba(10, 17, 32, 0.95);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { font-size: 24px; }
+    .brand-title { font-weight: 800; font-size: 16px; letter-spacing: -0.02em; color: #fff; }
+    .brand-sub { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: var(--success);
+    }
+    .status-pill.offline {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: var(--danger);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } 100% { opacity: 1; transform: scale(1); } }
+
+    /* CONTAINER */
+    .container {
+      max-width: 540px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+    }
+
+    /* CARD */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* FORM INPUTS */
+    .form-group { margin-bottom: 12px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .form-input, .form-select {
+      width: 100%;
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* MODE SWITCH */
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: rgba(2, 6, 23, 0.7);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      margin-bottom: 14px;
+    }
+    .mode-btn {
+      padding: 9px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      background: var(--accent);
+      color: #041226;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+    }
+
+    /* PRIMARY BUTTON */
+    .btn-dispatch {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #021226;
+      box-shadow: 0 4px 18px rgba(56, 189, 248, 0.4);
+    }
+    .btn-dispatch:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(56, 189, 248, 0.55); }
+    .btn-dispatch.active {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(239, 68, 68, 0.4);
+    }
+
+    /* HUD METRICS */
+    .hud-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .hud-tile {
+      background: rgba(2, 6, 23, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .hud-speed {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin: 4px 0;
+      text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+    }
+    .hud-unit { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+    .hud-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+    }
+    .hud-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+
+    /* HAZARD ALERT BANNER */
+    .hazard-alert {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1.5px solid var(--danger);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      animation: alertPulse 1.5s infinite;
+    }
+    @keyframes alertPulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .hazard-alert.visible { display: flex; }
+    .hazard-alert-icon { font-size: 24px; }
+    .hazard-alert-title { font-size: 13px; font-weight: 800; color: #fca5a5; }
+    .hazard-alert-sub { font-size: 11px; color: #fecaca; margin-top: 2px; }
+
+    /* MINI MAP */
+    #driverMap {
+      width: 100%;
+      height: 180px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      margin-top: 10px;
+      z-index: 10;
+    }
+
+    /* FOOTER QUICK ACTIONS */
+    .quick-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .btn-secondary {
+      flex: 1;
+      padding: 11px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.6);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent);
+    }
+    .btn-sos {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+    }
+    .btn-sos:hover {
+      background: rgba(239, 68, 68, 0.4);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🚚</div>
+      <div>
+        <div class="brand-title">PRAVAH DRIVER</div>
+        <div class="brand-sub">Live Telemetry &amp; GPS Dispatch</div>
+      </div>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot"></span>
+      <span id="statusText">GPS READY</span>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <div class="container">
+
+    <!-- HAZARD WARNING BANNER -->
+    <div class="hazard-alert" id="hazardAlert">
+      <div class="hazard-alert-icon">⚠️</div>
+      <div>
+        <div class="hazard-alert-title" id="hazardAlertTitle">CORRIDOR HAZARD DETECTED</div>
+        <div class="hazard-alert-sub" id="hazardAlertSub">Approaching monitored disaster risk zone. Reduce speed.</div>
+      </div>
+    </div>
+
+    <!-- DISPATCH SETUP / IN-TRANSIT CARD -->
+    <div class="card">
+      <div class="card-title">
+        <span>Vehicle &amp; Route Configuration</span>
+        <span style="font-size:11px; color:var(--text-muted); font-weight:500;" id="tripStatus">STANDBY</span>
+      </div>
+
+      <!-- MODE SWITCH -->
+      <div class="mode-switch">
+        <button class="mode-btn active" id="modeSim" onclick="setMode('demo_simulation')">
+          <span>🎮 Demo Simulation</span>
+        </button>
+        <button class="mode-btn" id="modeGps" onclick="setMode('live_gps')">
+          <span>📍 Real Device GPS</span>
+        </button>
+      </div>
+
+      <!-- FORM FIELDS -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Driver Name</label>
+          <input type="text" class="form-input" id="driverName" value="R. K. Sharma">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vehicle ID</label>
+          <input type="text" class="form-input" id="vehicleId" value="TRK_AS01_4210">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Trip Origin</label>
+          <select class="form-select" id="originSelect">
+            <option value="Guwahati" selected>Guwahati (FCI Central Depot)</option>
+            <option value="Tezpur">Tezpur (Sonitpur Depot)</option>
+            <option value="Silchar">Silchar (Cachar Depot)</option>
+            <option value="Jorhat">Jorhat (Civil Supplies)</option>
+            <option value="Dibrugarh">Dibrugarh Depot</option>
+            <option value="Shillong">Shillong (Meghalaya)</option>
+            <option value="Imphal">Imphal (Manipur)</option>
+            <option value="Kohima">Kohima (Nagaland)</option>
+            <option value="Agartala">Agartala (Tripura)</option>
+            <option value="Aizawl">Aizawl (Mizoram)</option>
+            <option value="Itanagar">Itanagar (Arunachal)</option>
+            <option value="Tawang">Tawang High-Altitude Depot</option>
+            <option value="Gangtok">Gangtok (Sikkim)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destination</label>
+          <select class="form-select" id="destSelect">
+            <option value="Tezpur">Tezpur (Sonitpur Depot)</option>
+            <option value="Tawang" selected>Tawang High-Altitude Depot</option>
+            <option value="Guwahati">Guwahati (Central Depot)</option>
+            <option value="Shillong">Shillong (Meghalaya)</option>
+            <option value="Kohima">Kohima (Nagaland)</option>
+            <option value="Imphal">Imphal (Manipur)</option>
+            <option value="Aizawl">Aizawl (Mizoram)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Cargo Consignment</label>
+        <select class="form-select" id="cargoSelect">
+          <option value="MEDICINE" selected>Emergency Medical Supplies (50 kits)</option>
+          <option value="WATER">Packaged Drinking Water (2,000 L)</option>
+          <option value="FOOD_KIT">Ration &amp; Food Relief Kits (500 kits)</option>
+          <option value="SHELTER">Tarpaulins &amp; Rescue Equipment</option>
+        </select>
+      </div>
+
+      <!-- DISPATCH TOGGLE BUTTON -->
+      <button class="btn-dispatch" id="dispatchBtn" onclick="toggleDispatch()">
+        <span>🚀 START DISPATCH &amp; BROADCAST GPS</span>
+      </button>
+    </div>
+
+    <!-- IN-TRANSIT HUD CARD -->
+    <div class="card" id="hudCard">
+      <div class="card-title">
+        <span>Live Telemetry HUD</span>
+        <span style="font-size:11px; color:var(--accent);" id="pingCounter">Pings: 0</span>
+      </div>
+
+      <div class="hud-grid">
+        <div class="hud-tile" style="grid-column: span 2;">
+          <div class="hud-label">Vehicle Speed</div>
+          <div class="hud-speed" id="hudSpeed">0</div>
+          <div class="hud-unit">KILOMETERS PER HOUR</div>
+        </div>
+        <div class="hud-tile">
+          <div class="hud-label">Compass Heading</div>
+          <div class="hud-val" id="hudHeading">000° N</div>
+        </div>
+        <div class="hud-tile">
+          <div class="hud-label">Distance Covered</div>
+          <div class="hud-val" id="hudDistance">0.0 km</div>
+        </div>
+        <div class="hud-tile" style="grid-column: span 2;">
+          <div class="hud-label">GPS WGS84 Coordinates</div>
+          <div class="hud-val" style="font-size:13px; color:var(--accent);" id="hudCoords">Waiting for signal…</div>
+        </div>
+      </div>
+
+      <!-- MINI LEAFLET MAP -->
+      <div id="driverMap"></div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="quick-actions">
+      <a href="/" target="_blank" class="btn-secondary">
+        <span>🗺️ Open Control Tower Map</span>
+      </a>
+      <button class="btn-secondary btn-sos" onclick="triggerSosReport()">
+        <span>⚠️ Report SOS Incident</span>
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // Global State
+    let isDispatching = false;
+    let currentMode = 'demo_simulation'; // 'demo_simulation' or 'live_gps'
+    let pingInterval = null;
+    let gpsWatchId = null;
+    let pingsSent = 0;
+    let totalDistanceKm = 0;
+    let lastLat = null;
+    let lastLng = null;
+    let currentSpeed = 0;
+    let currentHeading = 0;
+
+    // Simulation Route Data
+    let simWaypoints = [];
+    let simIndex = 0;
+
+    // Leaflet Mini Map
+    let driverMap = null;
+    let truckMarker = null;
+    let routePolyline = null;
+    let trailPolyline = null;
+    let trailCoords = [];
+
+    // Predefined Coordinates for NER Depots
+    const DEPOT_COORDS = {
+      "Guwahati": [26.1445, 91.7362],
+      "Tezpur": [26.6338, 92.8006],
+      "Tawang": [27.5860, 91.8594],
+      "Silchar": [24.8333, 92.7789],
+      "Jorhat": [26.7509, 94.2037],
+      "Dibrugarh": [27.4728, 94.9120],
+      "Shillong": [25.5788, 91.8933],
+      "Imphal": [24.8170, 93.9368],
+      "Kohima": [25.6751, 94.1086],
+      "Agartala": [23.8315, 91.2868],
+      "Aizawl": [23.7271, 92.7176],
+      "Itanagar": [27.0844, 93.6053],
+      "Gangtok": [27.3389, 88.6065]
+    };
+
+    // Initialize Leaflet Map
+    function initMap() {
+      driverMap = L.map('driverMap', { zoomControl: false, attributionControl: false }).setView([26.1445, 91.7362], 11);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(driverMap);
+
+      const truckIcon = L.divIcon({
+        className: 'driver-truck-icon',
+        html: `<div style="font-size:24px; filter:drop-shadow(0 2px 8px #38bdf8);">🚚</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      truckMarker = L.marker([26.1445, 91.7362], { icon: truckIcon }).addTo(driverMap);
+      trailPolyline = L.polyline([], { color: '#10b981', weight: 4, opacity: 0.85 }).addTo(driverMap);
+    }
+
+    function setMode(mode) {
+      if (isDispatching) {
+        alert("Stop the active dispatch before switching tracking modes.");
+        return;
+      }
+      currentMode = mode;
+      document.getElementById('modeSim').classList.toggle('active', mode === 'demo_simulation');
+      document.getElementById('modeGps').classList.toggle('active', mode === 'live_gps');
+      const statusText = document.getElementById('statusText');
+      statusText.textContent = mode === 'demo_simulation' ? 'SIMULATION MODE' : 'DEVICE GPS READY';
+    }
+
+    async function toggleDispatch() {
+      if (isDispatching) {
+        stopDispatch();
+      } else {
+        await startDispatch();
+      }
+    }
+
+    async function startDispatch() {
+      const btn = document.getElementById('dispatchBtn');
+      const statusPill = document.getElementById('statusPill');
+      const statusText = document.getElementById('statusText');
+      const tripStatus = document.getElementById('tripStatus');
+
+      btn.classList.add('active');
+      btn.innerHTML = '<span>🛑 END DISPATCH &amp; STOP TRACKING</span>';
+      statusText.textContent = 'DISPATCH LIVE (STREAMING)';
+      tripStatus.textContent = 'IN-TRANSIT';
+      tripStatus.style.color = 'var(--success)';
+      isDispatching = true;
+
+      const origin = document.getElementById('originSelect').value;
+      const dest = document.getElementById('destSelect').value;
+
+      if (currentMode === 'demo_simulation') {
+        await prepareSimulationRoute(origin, dest);
+        pingInterval = setInterval(emitSimulatedPing, 2500);
+      } else {
+        startRealGpsTracking();
+      }
+    }
+
+    function stopDispatch() {
+      const btn = document.getElementById('dispatchBtn');
+      const statusText = document.getElementById('statusText');
+      const tripStatus = document.getElementById('tripStatus');
+
+      if (pingInterval) clearInterval(pingInterval);
+      if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+
+      btn.classList.remove('active');
+      btn.innerHTML = '<span>🚀 START DISPATCH &amp; BROADCAST GPS</span>';
+      statusText.textContent = 'STANDBY';
+      tripStatus.textContent = 'STANDBY';
+      tripStatus.style.color = 'var(--text-muted)';
+      document.getElementById('hudSpeed').textContent = '0';
+      isDispatching = false;
+    }
+
+    // Real Device GPS Tracking
+    function startRealGpsTracking() {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser. Falling back to Demo Simulation.");
+        setMode('demo_simulation');
+        startDispatch();
+        return;
+      }
+
+      gpsWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const speedKmh = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : Math.floor(Math.random() * 15 + 40);
+          const heading = pos.coords.heading || 45;
+          handleNewCoordinates(lat, lng, speedKmh, heading, pos.coords.accuracy);
+        },
+        (err) => {
+          console.warn("GPS error:", err.message);
+          alert("GPS Signal unavailable (" + err.message + "). Switching to Demo Simulation.");
+          stopDispatch();
+          setMode('demo_simulation');
+          startDispatch();
+        },
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+      );
+    }
+
+    // Fetch OSM Route Coordinates for Simulation
+    async function prepareSimulationRoute(origin, dest) {
+      simWaypoints = [];
+      simIndex = 0;
+      try {
+        const res = await fetch(`/api/v1/routes/optimize`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin: origin, destination: dest, priority: "fastest" })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.route_geometry && data.route_geometry.length > 0) {
+            simWaypoints = data.route_geometry;
+          }
+        }
+      } catch (err) {
+        console.warn("Route API error, using interpolation fallback:", err);
+      }
+
+      // Fallback: Interpolate between depot coords if network fails
+      if (!simWaypoints || simWaypoints.length === 0) {
+        const start = DEPOT_COORDS[origin] || [26.1445, 91.7362];
+        const end = DEPOT_COORDS[dest] || [26.6338, 92.8006];
+        simWaypoints = [];
+        const steps = 40;
+        for (let i = 0; i <= steps; i++) {
+          const f = i / steps;
+          simWaypoints.push([
+            start[0] + (end[0] - start[0]) * f + Math.sin(f * Math.PI) * 0.04,
+            start[1] + (end[1] - start[1]) * f + Math.cos(f * Math.PI) * 0.04
+          ]);
+        }
+      }
+
+      // Render full planned corridor on mini map
+      if (routePolyline) driverMap.removeLayer(routePolyline);
+      routePolyline = L.polyline(simWaypoints, { color: '#38bdf8', weight: 3, opacity: 0.5, dashArray: '6, 8' }).addTo(driverMap);
+      driverMap.fitBounds(routePolyline.getBounds(), { padding: [20, 20] });
+    }
+
+    function emitSimulatedPing() {
+      if (!simWaypoints || simWaypoints.length === 0) return;
+      const coord = simWaypoints[simIndex];
+      simIndex = (simIndex + 1) % simWaypoints.length;
+
+      // Next coord for heading calculation
+      const nextCoord = simWaypoints[(simIndex) % simWaypoints.length];
+      const heading = calculateHeading(coord[0], coord[1], nextCoord[0], nextCoord[1]);
+      const speed = Math.floor(Math.random() * 14 + 48); // 48 - 62 km/h
+
+      handleNewCoordinates(coord[0], coord[1], speed, heading, 8.0);
+    }
+
+    function calculateHeading(lat1, lon1, lat2, lon2) {
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
+      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+                Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
+      let brng = Math.atan2(y, x) * 180 / Math.PI;
+      return Math.round((brng + 360) % 360);
+    }
+
+    async function handleNewCoordinates(lat, lng, speed, heading, accuracy) {
+      // Update Metrics
+      pingsSent++;
+      document.getElementById('pingCounter').textContent = `Pings: ${pingsSent}`;
+      document.getElementById('hudSpeed').textContent = speed;
+      document.getElementById('hudHeading').textContent = `${String(heading).padStart(3, '0')}° ${getCompassDirection(heading)}`;
+      document.getElementById('hudCoords').textContent = `${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E`;
+
+      if (lastLat !== null && lastLng !== null) {
+        const d = haversineKm(lastLat, lastLng, lat, lng);
+        totalDistanceKm += d;
+        document.getElementById('hudDistance').textContent = `${totalDistanceKm.toFixed(1)} km`;
+      }
+      lastLat = lat;
+      lastLng = lng;
+
+      // Update Map Marker & Trail
+      if (truckMarker) {
+        truckMarker.setLatLng([lat, lng]);
+        driverMap.panTo([lat, lng], { animate: true, duration: 0.8 });
+      }
+      trailCoords.push([lat, lng]);
+      if (trailPolyline) trailPolyline.setLatLngs(trailCoords);
+
+      // Transmit to Backend API
+      const payload = {
+        vehicle_id: document.getElementById('vehicleId').value.trim() || 'TRK_AS01_4210',
+        driver_name: document.getElementById('driverName').value.trim() || 'Driver',
+        latitude: lat,
+        longitude: lng,
+        speed_kmh: speed,
+        heading: heading,
+        accuracy_m: accuracy || 10.0,
+        origin: document.getElementById('originSelect').value,
+        destination: document.getElementById('destSelect').value,
+        cargo_type: document.getElementById('cargoSelect').value,
+        status: "EN_ROUTE",
+        mode: currentMode
+      };
+
+      try {
+        const res = await fetch('/api/v1/telemetry/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const respData = await res.json();
+          // Check for proximity hazard warnings
+          if (respData.active_alerts && respData.active_alerts.length > 0) {
+            showHazardWarning(respData.active_alerts[0]);
+          } else {
+            hideHazardWarning();
+          }
+        }
+      } catch (err) {
+        console.warn("Telemetry transmission error:", err);
+      }
+    }
+
+    function showHazardWarning(alert) {
+      const banner = document.getElementById('hazardAlert');
+      const title = document.getElementById('hazardAlertTitle');
+      const sub = document.getElementById('hazardAlertSub');
+      title.textContent = `⚠️ CAUTION: ${alert.hazard_name}`;
+      sub.textContent = `${alert.warning} · Distance: ${alert.distance_km} km. Maintain caution.`;
+      banner.classList.add('visible');
+    }
+
+    function hideHazardWarning() {
+      document.getElementById('hazardAlert').classList.remove('visible');
+    }
+
+    function getCompassDirection(deg) {
+      const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+      return dirs[Math.round(deg / 45) % 8];
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function triggerSosReport() {
+      const vId = document.getElementById('vehicleId').value;
+      const lat = lastLat || 26.1445;
+      const lng = lastLng || 91.7362;
+      const desc = prompt("Describe emergency or road blockage:", "Landslide blockage on highway corridor, convoy halted.");
+      if (!desc) return;
+
+      fetch('/api/v1/incidents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hazard_type: "ROAD_BLOCKED",
+          latitude: lat,
+          longitude: lng,
+          severity: 4,
+          description: `[EMERGENCY SOS from ${vId}] ${desc}`
+        })
+      }).then(r => r.json()).then(data => {
+        alert(`🚨 SOS Alert transmitted to Control Tower!\nIncident ID: ${data.incident_id || 'Recorded'}\nResponse teams dispatched.`);
+      }).catch(err => {
+        alert("Failed to send SOS: " + err);
+      });
+    }
+
+    // Auto-init on load
+    window.addEventListener('DOMContentLoaded', () => {
+      initMap();
+    });
+  </script>
+</body>
+</html>

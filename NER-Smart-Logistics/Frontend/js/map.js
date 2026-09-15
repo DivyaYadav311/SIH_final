@@ -19,9 +19,14 @@ const PravahMap = {
     ferries: null,
     routePolyline: null,
     hazardSegment: null,
-    routeMarkers: null
+    routeMarkers: null,
+    fleetVehicles: null
   },
   currentBase: "light",
+  activeFleetMarkers: {},
+  activeFleetTrails: {},
+  telemetryWs: null,
+  telemetryPollingTimer: null,
 
   init(containerId = "map") {
     if (this.map) return;
@@ -102,6 +107,9 @@ const PravahMap = {
     if (window.P4Routing && P4Routing.currentRoute && Array.isArray(P4Routing.currentRoute.route_coordinates) && P4Routing.currentRoute.route_coordinates.length > 0) {
       this.map.fitBounds(L.latLngBounds(P4Routing.currentRoute.route_coordinates), { padding: [50, 50] });
     }
+
+    // Initialize real-time fleet GPS tracking
+    this.initLiveFleetTracking();
   },
 
   // Basemap Switcher
@@ -600,6 +608,123 @@ const PravahMap = {
     }).addTo(this.map);
 
     this.map.flyTo([lat, lng], Math.max(this.map.getZoom(), 11), { duration: 1.2 });
+  },
+
+  initLiveFleetTracking() {
+    this.connectTelemetryWebSocket();
+    this.pollActiveVehicles();
+    if (!this.telemetryPollingTimer) {
+      this.telemetryPollingTimer = setInterval(() => this.pollActiveVehicles(), 3500);
+    }
+  },
+
+  connectTelemetryWebSocket() {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host || '127.0.0.1:8002';
+    const wsUrl = `${proto}//${host}/ws/telemetry`;
+    try {
+      this.telemetryWs = new WebSocket(wsUrl);
+      this.telemetryWs.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'vehicle_telemetry_ping' && data.vehicle) {
+            this.updateVehicleOnMap(data.vehicle);
+          }
+        } catch (e) {
+          console.warn("Telemetry WS parse error:", e);
+        }
+      };
+      this.telemetryWs.onclose = () => {
+        setTimeout(() => this.connectTelemetryWebSocket(), 6000);
+      };
+      this.telemetryWs.onerror = () => {};
+    } catch (err) {
+      console.warn("Telemetry WS init error, using polling fallback");
+    }
+  },
+
+  async pollActiveVehicles() {
+    try {
+      const res = await fetch('/api/v1/telemetry/vehicles');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.vehicles && Array.isArray(data.vehicles)) {
+          data.vehicles.forEach(v => this.updateVehicleOnMap(v));
+        }
+      }
+    } catch (e) {}
+  },
+
+  updateVehicleOnMap(v) {
+    if (!this.map || !v.latitude || !v.longitude) return;
+    const latlng = [v.latitude, v.longitude];
+    const vid = v.vehicle_id;
+
+    let marker = this.activeFleetMarkers[vid];
+    const heading = v.heading || 0;
+    const alertHtml = (v.active_alerts && v.active_alerts.length > 0)
+      ? `<div style="background:rgba(239,68,68,0.25);border:1.5px solid #ef4444;color:#fca5a5;padding:6px 8px;border-radius:6px;margin-top:6px;font-size:11px;font-weight:600;">⚠️ <b>${v.active_alerts[0].warning}</b><br/><span style="font-size:10px;color:#fecaca;">Hazard Distance: ${v.active_alerts[0].distance_km} km</span></div>`
+      : '';
+
+    const popupContent = `
+      <div style="font-family:Inter,sans-serif;font-size:12px;padding:4px;min-width:220px;color:#0f172a;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #38bdf8;padding-bottom:5px;margin-bottom:6px;">
+          <b style="color:#0284c7;font-size:14px;">🚚 ${v.vehicle_id}</b>
+          <span style="background:${v.status === 'EN_ROUTE' ? '#10b981' : '#64748b'};color:#fff;font-weight:700;font-size:10px;padding:2px 6px;border-radius:9999px;">${v.status || 'EN_ROUTE'}</span>
+        </div>
+        <div><b>Driver:</b> ${v.driver_name || 'Pilot'}</div>
+        <div><b>Corridor:</b> ${v.origin || 'Depot'} ➔ ${v.destination || 'Destination'}</div>
+        <div><b>Live Speed:</b> <span style="font-family:monospace;font-weight:800;color:#0284c7;font-size:13px;">${v.speed_kmh || 0} km/h</span></div>
+        <div><b>Heading:</b> ${heading}° · <b>Distance:</b> ${v.distance_traveled_km || 0} km</div>
+        <div><b>Cargo:</b> ${v.cargo_type || 'Relief Supplies'}</div>
+        ${alertHtml}
+        <div style="font-size:10px;color:#64748b;margin-top:6px;border-top:1px dashed #cbd5e1;padding-top:4px;">
+          Mode: ${v.mode === 'live_gps' ? '📍 Real Phone GPS' : '🎮 Demo Road Simulation'}
+        </div>
+      </div>
+    `;
+
+    if (!marker) {
+      const truckIcon = L.divIcon({
+        className: 'fleet-truck-gps-icon',
+        html: `
+          <div style="
+            width: 36px; height: 36px;
+            background: #0f172a;
+            border: 2px solid #38bdf8;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 14px rgba(56,189,248,0.75);
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          " title="${v.vehicle_id} (${v.driver_name})">🚚</div>
+        `,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+
+      marker = L.marker(latlng, { icon: truckIcon, zIndexOffset: 1200 }).addTo(this.map);
+      marker.bindPopup(popupContent);
+      this.activeFleetMarkers[vid] = marker;
+
+      const trail = L.polyline([latlng], { color: '#10b981', weight: 4, opacity: 0.85 }).addTo(this.map);
+      this.activeFleetTrails[vid] = trail;
+    } else {
+      marker.setLatLng(latlng);
+      marker.getPopup().setContent(popupContent);
+      if (this.activeFleetTrails[vid]) {
+        this.activeFleetTrails[vid].addLatLng(latlng);
+      }
+    }
+  },
+
+  focusVehicle(vehicle_id) {
+    const marker = this.activeFleetMarkers[vehicle_id];
+    if (marker && this.map) {
+      this.map.flyTo(marker.getLatLng(), 13, { duration: 1.2 });
+      marker.openPopup();
+    }
   }
 };
 window.OverviewMiniMap = {

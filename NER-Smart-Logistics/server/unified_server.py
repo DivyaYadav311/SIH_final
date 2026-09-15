@@ -62,6 +62,7 @@ module_status = {
     "p4_routing": "unavailable",
     "p5_logistics": "unavailable",
     "p6_control_tower": "unavailable",
+    "telemetry_tracker": "available",
     "gemini_ai": "available" if bool(os.getenv("GEMINI_API_KEY", "").strip()) else "fallback",
     "authentication": "api_key" if PRAVAH_API_KEY else "open",
 }
@@ -263,7 +264,8 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
 
     # Paths that never require authentication
     PUBLIC_PREFIXES = ("/health", "/docs", "/openapi.json", "/redoc",
-                       "/", "/index.html", "/css/", "/js/", "/ws/")
+                       "/", "/index.html", "/driver", "/driver.html",
+                       "/css/", "/js/", "/ws/", "/api/v1/telemetry/")
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
@@ -547,6 +549,27 @@ async def api_gemini_advisory(request: Request):
         return JSONResponse(status_code=500, content={"error": str(exc), "status": "error"})
 
 
+# ===== MOUNT LIVE FLEET TELEMETRY & GPS TRACKING ===========================
+try:
+    from server.telemetry_service import router as telemetry_router, telemetry_manager
+    app.include_router(telemetry_router)
+
+    @app.websocket("/ws/telemetry")
+    async def ws_telemetry(ws: WebSocket):
+        await ws.accept()
+        telemetry_manager.register_listener(ws)
+        try:
+            while True:
+                data = await ws.receive_text()
+        except WebSocketDisconnect:
+            telemetry_manager.remove_listener(ws)
+        except Exception:
+            telemetry_manager.remove_listener(ws)
+    logger.info("✓ Live Vehicle Telemetry & Fleet Tracking mounted on /api/v1/telemetry & /ws/telemetry")
+except Exception as exc:
+    logger.warning("Telemetry service failed to mount: %s", exc)
+
+
 # ---------------------------------------------------------------------------
 # SERVE FRONTEND AS STATIC FILES
 # ---------------------------------------------------------------------------
@@ -566,6 +589,14 @@ if FRONTEND_DIR.exists():
     @app.get("/index.html")
     async def serve_index_html():
         return await serve_index()
+
+    @app.get("/driver")
+    @app.get("/driver.html")
+    async def serve_driver():
+        driver_file = FRONTEND_DIR / "driver.html"
+        if driver_file.exists():
+            return FileResponse(str(driver_file))
+        return {"message": "Driver portal active", "file": str(driver_file)}
 else:
     @app.get("/")
     async def root():
