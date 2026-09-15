@@ -20,11 +20,17 @@ import requests
 
 OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
 OPEN_METEO_ELEVATION = "https://api.open-meteo.com/v1/elevation"
-NASA_COOLR = os.environ.get(
-    "NASA_COOLR_URL",
-    "https://gis.earthdata.nasa.gov/gis05/rest/services/"
-    "Landslides/COOLR_Events_Points/FeatureServer/0/query",
+# NASA COOLR endpoints — the legacy gis05 path often returns 404;
+# try the current portal path first, fall back to legacy.
+_NASA_COOLR_PRIMARY = (
+    "https://gis.earthdata.nasa.gov/portal/rest/services/"
+    "Landslides/COOLR_Events_Points/FeatureServer/0/query"
 )
+_NASA_COOLR_LEGACY = (
+    "https://gis.earthdata.nasa.gov/gis05/rest/services/"
+    "Landslides/COOLR_Events_Points/FeatureServer/0/query"
+)
+NASA_COOLR = os.environ.get("NASA_COOLR_URL", _NASA_COOLR_PRIMARY)
 OVERPASS = "https://overpass-api.de/api/interpreter"
 TIMEOUT = 15
 HTTP_HEADERS = {
@@ -163,6 +169,7 @@ def fetch_historical_landslide_count(
 
     NASA COOLR is an external service, so failure of this optional
     feature should not stop the entire live prediction pipeline.
+    Tries the primary endpoint first, then falls back to the legacy URL.
     """
 
     params = {
@@ -177,15 +184,23 @@ def fetch_historical_landslide_count(
         "f": "json",
     }
 
-    try:
-        data = _get(NASA_COOLR, params)
-        count = data.get("count")
-        if count is None:
-            raise ValueError("NASA COOLR response did not contain count")
-        return max(0, int(count))
-    except (requests.RequestException, ValueError, TypeError, KeyError) as exc:
-        print(f"WARNING: NASA COOLR unavailable: {exc}")
-        return 0
+    # Try configured URL first, then legacy fallback
+    urls_to_try = [NASA_COOLR]
+    if NASA_COOLR != _NASA_COOLR_LEGACY:
+        urls_to_try.append(_NASA_COOLR_LEGACY)
+
+    for url in urls_to_try:
+        try:
+            data = _get(url, params)
+            count = data.get("count")
+            if count is None:
+                raise ValueError("NASA COOLR response did not contain count")
+            return max(0, int(count))
+        except (requests.RequestException, ValueError, TypeError, KeyError) as exc:
+            print(f"WARNING: NASA COOLR unavailable at {url}: {exc}")
+            continue
+
+    return 0
 
 
 def _fetch_historical_landslide_count_live(

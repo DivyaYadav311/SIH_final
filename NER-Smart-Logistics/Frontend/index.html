@@ -2320,9 +2320,9 @@
                   <input name="description" value="Rockfall across uphill corridor, single-track access only" style="width:100%;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Attached Photo / Evidence (CLIP AI)</label>
+                  <label class="form-label">Attached Photo / Evidence (Gemini Vision AI & CLIP)</label>
                   <div style="display:flex;gap:8px;align-items:center;">
-                    <input name="image_url" id="inputIncidentImageUrl" value="https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&q=80" style="flex:1;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" oninput="P6ControlTower.handleUrlInput(this.value)" />
+                    <input name="image_url" id="inputIncidentImageUrl" value="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" style="flex:1;height:34px;padding:0 8px;border:1px solid var(--border-medium);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;" oninput="P6ControlTower.handleUrlInput(this.value)" />
                     <label for="inputIncidentFile" class="btn-secondary" style="height:34px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:11.5px;white-space:nowrap;border-radius:6px;border:1px solid var(--border-medium);background:var(--bg-surface-elevated);color:var(--text-primary);">
                       📷 Browse Photo
                     </label>
@@ -2330,7 +2330,7 @@
                   </div>
                   <!-- Attached Photo Live Thumbnail Preview -->
                   <div id="incidentPhotoPreviewBox" style="margin-top:8px;display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--bg-surface-subtle);border-radius:6px;border:1px solid var(--border-subtle);">
-                    <img id="incidentPhotoThumb" src="https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&q=80" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--border-subtle);cursor:pointer;" alt="Attached Evidence" onclick="P6ControlTower.previewPhoto(this.src)" />
+                    <img id="incidentPhotoThumb" src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--border-subtle);cursor:pointer;" alt="Attached Evidence" onclick="P6ControlTower.previewPhoto(this.src)" />
                     <div style="font-size:11px;color:var(--text-muted);">
                       <span id="incidentPhotoStatus" style="color:var(--status-safe);font-weight:700;">✓ Photo Evidence Attached</span><br/>
                       <span style="font-size:10px;color:var(--text-secondary);">Click thumbnail to inspect full resolution</span>

@@ -174,7 +174,7 @@ const PRAVAH_CONFIG = {
       status: "VERIFIED",
       road_id: "NH-13",
       description: "Mud and boulder blockage 4km north of Dirang. Single lane traffic.",
-      image_url: "https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?w=600&q=80",
+      image_url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&q=80",
       reported_at: "2026-09-08T14:22:00Z"
     },
     {
@@ -188,7 +188,7 @@ const PRAVAH_CONFIG = {
       status: "VERIFIED",
       road_id: "NH-27",
       description: "Water overflowing road surface (approx 1.5 ft) near Jagiroad culvert.",
-      image_url: "https://images.unsplash.com/photo-1547683905-f686c993aae5?w=600&q=80",
+      image_url: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=600&q=80",
       reported_at: "2026-09-08T16:45:00Z"
     },
     {

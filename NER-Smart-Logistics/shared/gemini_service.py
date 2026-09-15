@@ -43,11 +43,8 @@ def call_gemini(
         return None
 
     primary_model = preferred_model or cfg["model"]
-    # Fallback chain in case of temporary 503 capacity limits
-    candidate_models = [primary_model]
-    for alt in ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.7-flash"]:
-        if alt not in candidate_models:
-            candidate_models.append(alt)
+    # Fallback chain in case of temporary 503 or 429 capacity limits
+    candidate_models = ["gemini-flash-lite-latest", primary_model, "gemini-flash-latest", "gemini-3.7-flash"]
 
     payload: dict[str, Any] = {
         "contents": [
@@ -142,7 +139,7 @@ Highlight specific weather/terrain considerations relevant to this Northeast Ind
 
     # Deterministic fallback when API key is missing or offline
     fallback_text = (
-        f"**Corridor Operational Advisory ({origin} ➔ {dest})**\n\n"
+        f"**Corridor Operational Advisory ({origin} -> {dest})**\n\n"
         f"• **Risk Evaluation**: Assessed risk level is **{risk_level}** across {distance_km:.1f} km.\n"
         f"• **Hazard Dynamics**: Flood risk is rated at {int(flood_prob*100)}%, landslide susceptibility at {int(landslide_prob*100)}%, and disruption likelihood at {int(road_disruption*100)}%.\n"
         f"• **Convoy Dispatch Protocol**: For {cargo_type}, maintain telemetry tracking, verify IMD rainfall warnings before entering ghat sections, and keep satellite communications active at high-elevation chokepoints."

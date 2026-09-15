@@ -6,10 +6,13 @@ venv/
 __pycache__/
 *.py[cod]
 
-# Environment variables / API secrets
+# Environment variables / API secrets — NEVER commit real keys
 .env
+**/.env
 .env.*
+**/.env.*
 !.env.example
+!**/.env.example
 
 # IDE settings
 .vscode/
@@ -36,6 +39,12 @@ data/graph_cache/
 *.pt
 *.onnx
 **/models/*.zip
+*.metrics.json
+
+# --- SQLite databases ---
+*.db
+*.sqlite
+*.sqlite3
 
 # --- Large data files ---
 **/data/*.csv

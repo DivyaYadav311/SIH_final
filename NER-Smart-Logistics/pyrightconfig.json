@@ -1,0 +1,32 @@
+{
+  "include": [
+    "server",
+    "p1-flood/src",
+    "p2-landslide",
+    "p3-road-risk",
+    "p4-path-optimization",
+    "p5-logistics",
+    "p6-control-tower",
+    "shared"
+  ],
+  "extraPaths": [
+    "server",
+    "p1-flood/src",
+    "p2-landslide",
+    "p3-road-risk",
+    "p4-path-optimization",
+    "p5-logistics",
+    "p6-control-tower",
+    "shared"
+  ],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "reportMissingModuleSource": "none",
+  "reportMissingImports": "none",
+  "reportUndefinedVariable": "warning",
+  "reportOptionalMemberAccess": "none",
+  "reportGeneralTypeIssues": "none",
+  "useLibraryCodeForTypes": true,
+  "venvPath": ".",
+  "venv": "venv"
+}

@@ -55,3 +55,11 @@ def p4_base_url() -> str:
 def p5_base_url() -> str:
     return (os.getenv("P5_BASE_URL") or "http://127.0.0.1:8002").rstrip("/")
 
+
+def gemini_api_key() -> str:
+    return (os.getenv("GEMINI_API_KEY") or "").strip()
+
+
+def gemini_model() -> str:
+    return (os.getenv("GEMINI_MODEL") or "gemini-flash-lite-latest").strip()
+

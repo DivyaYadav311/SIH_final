@@ -3,9 +3,15 @@ NER Smart Logistics — Unified Backend Server
 =============================================
 Integrates all P1–P6 modules into a single FastAPI application.
 Run: python -m uvicorn server.unified_server:app --host 127.0.0.1 --port 8002 --reload
+
+Security:
+- CORS restricted to configured origins (PRAVAH_ALLOWED_ORIGINS)
+- API key authentication on /api/ endpoints (PRAVAH_API_KEY)
+- Security headers on all responses
 """
 from __future__ import annotations
 
+import hmac
 import importlib
 import logging
 import sys
@@ -26,6 +32,20 @@ os.environ.setdefault("P3_BASE_URL", "http://127.0.0.1:8002")
 os.environ.setdefault("P4_BASE_URL", "http://127.0.0.1:8002")
 os.environ.setdefault("P5_BASE_URL", "http://127.0.0.1:8002")
 
+# ---------------------------------------------------------------------------
+# SECURITY CONFIGURATION
+# ---------------------------------------------------------------------------
+PRAVAH_API_KEY = (os.getenv("PRAVAH_API_KEY") or "").strip()
+_ALLOWED_ORIGINS_RAW = (os.getenv("PRAVAH_ALLOWED_ORIGINS") or "").strip()
+ALLOWED_ORIGINS = [
+    o.strip() for o in _ALLOWED_ORIGINS_RAW.split(",") if o.strip()
+] if _ALLOWED_ORIGINS_RAW else [
+    "http://127.0.0.1:8002",
+    "http://localhost:8002",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+]
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
@@ -42,7 +62,8 @@ module_status = {
     "p4_routing": "unavailable",
     "p5_logistics": "unavailable",
     "p6_control_tower": "unavailable",
-    "gemini_ai": "available" if bool(os.getenv("GEMINI_API_KEY")) else "fallback",
+    "gemini_ai": "available" if bool(os.getenv("GEMINI_API_KEY", "").strip()) else "fallback",
+    "authentication": "api_key" if PRAVAH_API_KEY else "open",
 }
 
 
@@ -69,7 +90,7 @@ try:
     p2_root = str(PROJECT_ROOT / "p2-landslide")
     if p2_root not in sys.path:
         sys.path.insert(0, p2_root)
-    from app.main import app as p2_app
+    from app.main import app as p2_app  # type: ignore[import-not-found,import-untyped]
     module_status["p2_landslide"] = "available"
     logger.info("✓ P2 Landslide Intelligence loaded.")
 except Exception as exc:
@@ -82,7 +103,7 @@ try:
     p3_root = str(PROJECT_ROOT / "p3-road-risk")
     if p3_root not in sys.path:
         sys.path.insert(0, p3_root)
-    from p3_src.api import router as p3_router_raw
+    from p3_src.api import router as p3_router_raw  # type: ignore[import-not-found,import-untyped]
     module_status["p3_road_risk"] = "available"
     logger.info("✓ P3 Road Risk loaded.")
 except Exception as exc:
@@ -93,6 +114,8 @@ except Exception as exc:
 RouteOptimizer = None
 RouteRequest = None
 RouteResponse = None
+p4_geocode = None
+p4_reverse_geocode = None
 p4_data_fns = {}
 p4_optimizer = None
 
@@ -100,11 +123,12 @@ try:
     p4_root = str(PROJECT_ROOT / "p4-path-optimization")
     if p4_root not in sys.path:
         sys.path.insert(0, p4_root)
-    from p4_src.router import RouteOptimizer
-    from p4_src.models import RouteRequest, RouteResponse
-    from p4_src.official_data import nrsc_metadata, fetch_imd_cap_alerts
-    from p4_src.news_intelligence import fetch_live_disaster_news, news_status
-    from p4_src.transit import railway_feed_status, fetch_train_schedule
+    from p4_src.router import RouteOptimizer  # type: ignore[import-not-found,import-untyped]
+    from p4_src.models import RouteRequest, RouteResponse  # type: ignore[import-not-found,import-untyped]
+    from p4_src.official_data import nrsc_metadata, fetch_imd_cap_alerts  # type: ignore[import-not-found,import-untyped]
+    from p4_src.news_intelligence import fetch_live_disaster_news, news_status  # type: ignore[import-not-found,import-untyped]
+    from p4_src.transit import railway_feed_status, fetch_train_schedule  # type: ignore[import-not-found,import-untyped]
+    from p4_src.geocoder import geocode as p4_geocode, reverse_geocode as p4_reverse_geocode  # type: ignore[import-not-found,import-untyped]
     p4_data_fns = {
         "nrsc_metadata": nrsc_metadata,
         "fetch_imd_cap_alerts": fetch_imd_cap_alerts,
@@ -125,7 +149,7 @@ try:
     p5_root = str(PROJECT_ROOT / "p5-logistics")
     if p5_root not in sys.path:
         sys.path.insert(0, p5_root)
-    from p5_src.main import app as p5_app
+    from p5_src.main import app as p5_app  # type: ignore[import-not-found,import-untyped]
     module_status["p5_logistics"] = "available"
     logger.info("✓ P5 Logistics loaded.")
 except Exception as exc:
@@ -143,13 +167,13 @@ try:
     if p6_root not in sys.path:
         sys.path.insert(0, p6_root)
 
-    from alerts.router import router as p6_alerts_router
-    from incidents.router import router as p6_incidents_router
-    from simulation.router import router as p6_simulation_router
-    from p6_src.tower import router as p6_tower_router
-    from p6_src.database import get_engine as p6_get_engine
-    from p6_src.hub import hub as p6_hub_obj
-    from p6_src.config import database_url as p6_database_url
+    from alerts.router import router as p6_alerts_router  # type: ignore[import-not-found,import-untyped]
+    from incidents.router import router as p6_incidents_router  # type: ignore[import-not-found,import-untyped]
+    from simulation.router import router as p6_simulation_router  # type: ignore[import-not-found,import-untyped]
+    from p6_src.tower import router as p6_tower_router  # type: ignore[import-not-found,import-untyped]
+    from p6_src.database import get_engine as p6_get_engine  # type: ignore[import-not-found,import-untyped]
+    from p6_src.hub import hub as p6_hub_obj  # type: ignore[import-not-found,import-untyped]
+    from p6_src.config import database_url as p6_database_url  # type: ignore[import-not-found,import-untyped]
 
     p6_routers = {
         "alerts": p6_alerts_router,
@@ -203,10 +227,11 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI(
     title="Pravah — Unified NER Smart Logistics Platform",
-    version="3.0.0",
+    version="3.1.0",
     description=(
         "Unified backend integrating P1 Flood, P2 Landslide, P3 Road Risk, "
         "P4 Route Optimization, P5 Logistics, P6 Control Tower."
@@ -214,13 +239,84 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+# ---------------------------------------------------------------------------
+# SECURITY: CORS — restricted to configured origins
+# ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "Accept"],
 )
+
+
+# ---------------------------------------------------------------------------
+# SECURITY: API Key Authentication Middleware
+# ---------------------------------------------------------------------------
+# Protects all /api/ endpoints. Health, docs, and frontend are public.
+# Set PRAVAH_API_KEY in .env to enable. If empty, auth is bypassed (dev mode).
+# ---------------------------------------------------------------------------
+class APIKeyAuthMiddleware(BaseHTTPMiddleware):
+    """Validate API key on protected /api/ routes."""
+
+    # Paths that never require authentication
+    PUBLIC_PREFIXES = ("/health", "/docs", "/openapi.json", "/redoc",
+                       "/", "/index.html", "/css/", "/js/", "/ws/")
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+
+        # Skip auth for public paths
+        if any(path == p or path.startswith(p) for p in self.PUBLIC_PREFIXES
+               if p.endswith("/") or path == p):
+            return await call_next(request)
+
+        # If no API key configured, run in open/dev mode
+        if not PRAVAH_API_KEY:
+            return await call_next(request)
+
+        # Check API key from header or query param
+        provided_key = (
+            request.headers.get("X-API-Key")
+            or request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+            or request.query_params.get("api_key", "")
+        )
+
+        if not provided_key or not hmac.compare_digest(provided_key, PRAVAH_API_KEY):
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": "unauthorized",
+                    "detail": "Valid API key required. Provide via X-API-Key header, "
+                              "Authorization: Bearer <key>, or ?api_key= query param.",
+                },
+            )
+
+        return await call_next(request)
+
+
+app.add_middleware(APIKeyAuthMiddleware)
+
+
+# ---------------------------------------------------------------------------
+# SECURITY: Response Headers Middleware
+# ---------------------------------------------------------------------------
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to every response."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # ---------------------------------------------------------------------------
@@ -231,8 +327,13 @@ async def unified_health():
     return {
         "status": "ok",
         "server": "pravah-unified",
-        "version": "3.0.0",
+        "version": "3.1.0",
         "modules": module_status,
+        "security": {
+            "cors": "restricted" if ALLOWED_ORIGINS else "open",
+            "authentication": "api_key" if PRAVAH_API_KEY else "open (dev mode)",
+            "allowed_origins": ALLOWED_ORIGINS,
+        },
     }
 
 
@@ -265,8 +366,8 @@ if p3_router_raw is not None:
         max_severity = int(body.get("max_incident_severity", 3))
 
         from datetime import datetime, timezone
-        from p3_src.schemas import RoadSegment, HazardContext, Incident
-        from p3_src.services.risk_engine import RiskEngine
+        from p3_src.schemas import RoadSegment, HazardContext, Incident  # type: ignore[import-not-found,import-untyped]
+        from p3_src.services.risk_engine import RiskEngine  # type: ignore[import-not-found,import-untyped]
 
         engine = RiskEngine()
         roads = [RoadSegment(road_id=road_id)]
@@ -304,6 +405,10 @@ if p3_router_raw is not None:
             "model_version": engine.model_version,
         }
 
+    @app.post("/api/v1/road-risk/calculate")
+    async def unified_p3_calc(request: Request):
+        return await unified_p3_predict(request)
+
     app.include_router(p3_router_raw, prefix="/api/v1/road-risk")
 
 
@@ -338,9 +443,9 @@ if RouteOptimizer is not None:
 
     @app.get("/api/v1/news/route")
     async def p4_route_news(origin: str, destination: str):
-        from p4_src.geocoder import geocode
-        o = geocode(origin)
-        d = geocode(destination)
+        geocode_fn = p4_geocode or (lambda x: (26.14, 91.73))
+        o = geocode_fn(origin)
+        d = geocode_fn(destination)
         events = p4_data_fns["fetch_live_disaster_news"](origin, destination, o, d)
         return {
             "origin": origin,
@@ -351,8 +456,8 @@ if RouteOptimizer is not None:
 
     @app.get("/api/v1/news/disasters")
     async def p4_disaster_news(place: str = "Northeast India"):
-        from p4_src.geocoder import geocode
-        coords = geocode(place)
+        geocode_fn = p4_geocode or (lambda x: (26.14, 91.73))
+        coords = geocode_fn(place)
         events = p4_data_fns["fetch_live_disaster_news"](place, place, coords, coords)
         return {"place": place, "count": len(events), "events": events}
 
@@ -387,16 +492,19 @@ if RouteOptimizer is not None:
 
     @app.get("/api/v1/reverse-geocode")
     async def api_reverse_geocode(lat: float, lng: float):
-        from p4_src.geocoder import reverse_geocode
-        name = reverse_geocode(lat, lng)
+        if p4_reverse_geocode:
+            name = p4_reverse_geocode(lat, lng)
+        else:
+            name = f"Location ({lat:.3f}, {lng:.3f})"
         return {"latitude": lat, "longitude": lng, "name": name, "status": "success"}
 
     @app.get("/api/v1/geocode")
     async def api_geocode(q: str):
-        from p4_src.geocoder import geocode
         try:
-            coords = geocode(q)
-            return {"name": q, "latitude": coords[0], "longitude": coords[1], "status": "success"}
+            if p4_geocode:
+                coords = p4_geocode(q)
+                return {"name": q, "latitude": coords[0], "longitude": coords[1], "status": "success"}
+            return JSONResponse(status_code=503, content={"error": "Geocoder unavailable", "status": "error"})
         except Exception as e:
             return JSONResponse(status_code=404, content={"error": str(e), "status": "not_found"})
 

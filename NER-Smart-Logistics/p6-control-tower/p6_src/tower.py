@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from alerts.imd import fetch_imd_cap_alerts
-from p6_src.config import hf_token, p3_base_url, p4_base_url, p5_base_url
+from p6_src.config import gemini_api_key, hf_token, p3_base_url, p4_base_url, p5_base_url
 from p6_src.database import get_session
 from p6_src.orm import AlertRow, IncidentRow, SimulationRow
 from simulation.engine import load_shipments
@@ -54,7 +54,11 @@ def overview(db: Session = Depends(get_session)) -> dict[str, Any]:
             "alerts": "p6_sqlite",
             "shipments": ship_src,
             "imd": "https://wis2box.imd.gov.in/oapi/collections/messages/items",
-            "image_verification": "huggingface_api" if hf_token() else "local_clip_or_unavailable",
+            "image_verification": (
+                "gemini_vision_ai"
+                if gemini_api_key()
+                else ("huggingface_api" if hf_token() else "visual_telemetry")
+            ),
             "upstream": {
                 "P3_BASE_URL": bool(p3_base_url()),
                 "P4_BASE_URL": bool(p4_base_url()),

@@ -267,17 +267,10 @@ class Warehouse(BaseModel):
 
     last_updated: Optional[datetime] = None
 
-    @property
-    def available_capacity(self) -> float:
-        return max(
-            0,
-            self.storage_capacity
-            - self.current_utilization,
-        )
-
 
 class WarehouseOutput(Warehouse):
-    available_capacity: float
+    """Warehouse with pre-computed available_capacity for API responses."""
+    available_capacity: float = Field(ge=0, description="Storage capacity minus current utilization")
 
 
 # ============================================================

@@ -53,5 +53,115 @@
     "storage_capacity": 4500.0,
     "current_utilization": 1200.0,
     "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_006",
+    "name": "Imphal State Supply Depot",
+    "state": "Manipur",
+    "district": "Imphal West",
+    "latitude": 24.8170,
+    "longitude": 93.9368,
+    "storage_capacity": 3800.0,
+    "current_utilization": 1900.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_007",
+    "name": "Kohima Civil Supplies Godown",
+    "state": "Nagaland",
+    "district": "Kohima",
+    "latitude": 25.6747,
+    "longitude": 94.1077,
+    "storage_capacity": 2800.0,
+    "current_utilization": 900.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_008",
+    "name": "Agartala Central Warehouse",
+    "state": "Tripura",
+    "district": "West Tripura",
+    "latitude": 23.8315,
+    "longitude": 91.2868,
+    "storage_capacity": 4200.0,
+    "current_utilization": 1700.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_009",
+    "name": "Aizawl Food & Civil Supplies Depot",
+    "state": "Mizoram",
+    "district": "Aizawl",
+    "latitude": 23.7271,
+    "longitude": 92.7176,
+    "storage_capacity": 2500.0,
+    "current_utilization": 800.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_010",
+    "name": "Itanagar State Godown",
+    "state": "Arunachal Pradesh",
+    "district": "Papum Pare",
+    "latitude": 27.0844,
+    "longitude": 93.6053,
+    "storage_capacity": 3000.0,
+    "current_utilization": 600.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_011",
+    "name": "Gangtok Distribution Centre",
+    "state": "Sikkim",
+    "district": "East Sikkim",
+    "latitude": 27.3389,
+    "longitude": 88.6065,
+    "storage_capacity": 1800.0,
+    "current_utilization": 500.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_012",
+    "name": "Dimapur Rail Transit Depot",
+    "state": "Nagaland",
+    "district": "Dimapur",
+    "latitude": 25.9091,
+    "longitude": 93.7265,
+    "storage_capacity": 5500.0,
+    "current_utilization": 3000.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_013",
+    "name": "Naharlagun FCI Godown",
+    "state": "Arunachal Pradesh",
+    "district": "Papum Pare",
+    "latitude": 27.1050,
+    "longitude": 93.6960,
+    "storage_capacity": 4000.0,
+    "current_utilization": 1100.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_014",
+    "name": "Churachandpur Emergency Buffer",
+    "state": "Manipur",
+    "district": "Churachandpur",
+    "latitude": 24.3330,
+    "longitude": 93.6830,
+    "storage_capacity": 2000.0,
+    "current_utilization": 700.0,
+    "status": "ACTIVE"
+  },
+  {
+    "warehouse_id": "WH_015",
+    "name": "Lunglei Southern Depot",
+    "state": "Mizoram",
+    "district": "Lunglei",
+    "latitude": 22.8884,
+    "longitude": 92.7316,
+    "storage_capacity": 1500.0,
+    "current_utilization": 400.0,
+    "status": "ACTIVE"
   }
 ]
